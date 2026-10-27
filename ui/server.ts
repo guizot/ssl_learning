@@ -378,16 +378,55 @@ const server = http.createServer(async (req, res) => {
         const keyP = path.join(CA_CLIENTS_DIR, c.id, `${c.id}.key`);
         const csrP = path.join(CA_CLIENTS_DIR, c.id, `${c.id}.csr`);
         const crtP = path.join(CA_CLIENTS_DIR, c.id, `${c.id}.crt`);
+        const keyExists = fs.existsSync(keyP);
+        const csrExists = fs.existsSync(csrP);
+        const crtExists = fs.existsSync(crtP);
+
+        let crtValid = false;
+        if (crtExists && rootCaExists) {
+          try {
+            execFileSync("openssl", ["verify", "-CAfile", path.join(CA_ROOT_DIR, "root_ca.crt"), crtP], {
+              cwd: CA_DIR,
+              encoding: "utf-8",
+              stdio: ["ignore", "pipe", "pipe"],
+            });
+            crtValid = true;
+          } catch {
+            crtValid = false;
+          }
+        }
+
+        let keyMatchesCrt = false;
+        if (keyExists && crtExists) {
+          try {
+            const keyPub = execFileSync("openssl", ["pkey", "-in", keyP, "-pubout"], {
+              cwd: CA_DIR,
+              encoding: "utf-8",
+              stdio: ["ignore", "pipe", "ignore"],
+            }).trim();
+            const crtPub = execFileSync("openssl", ["x509", "-in", crtP, "-pubkey", "-noout"], {
+              cwd: CA_DIR,
+              encoding: "utf-8",
+              stdio: ["ignore", "pipe", "ignore"],
+            }).trim();
+            keyMatchesCrt = Boolean(keyPub && crtPub && keyPub === crtPub);
+          } catch {
+            keyMatchesCrt = false;
+          }
+        }
+
         const inboxCount = messages.filter((m) => m.recipientId === c.id).length;
         return {
           id: c.id,
           name: c.name,
-          keyExists: fs.existsSync(keyP),
-          keySize: fs.existsSync(keyP) ? fs.statSync(keyP).size : 0,
-          csrExists: fs.existsSync(csrP),
-          csrSize: fs.existsSync(csrP) ? fs.statSync(csrP).size : 0,
-          crtExists: fs.existsSync(crtP),
-          crtSize: fs.existsSync(crtP) ? fs.statSync(crtP).size : 0,
+          keyExists,
+          keySize: keyExists ? fs.statSync(keyP).size : 0,
+          csrExists,
+          csrSize: csrExists ? fs.statSync(csrP).size : 0,
+          crtExists,
+          crtSize: crtExists ? fs.statSync(crtP).size : 0,
+          crtValid,
+          keyMatchesCrt,
           inboxCount,
         };
       });
@@ -402,6 +441,8 @@ const server = http.createServer(async (req, res) => {
         activeDetails = {
           id: activeClient.id,
           name: activeClient.name,
+          crtValid: activeClient.crtValid,
+          keyMatchesCrt: activeClient.keyMatchesCrt,
           keyPem: fs.existsSync(keyP) ? fs.readFileSync(keyP, "utf-8").trim() : "",
           csrPem: fs.existsSync(csrP) ? fs.readFileSync(csrP, "utf-8").trim() : "",
           crtPem: fs.existsSync(crtP) ? fs.readFileSync(crtP, "utf-8").trim() : "",
@@ -437,6 +478,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && pathname === "/api/ca/init-root") {
+      const srlPath = path.join(CA_ROOT_DIR, "root_ca.srl");
+      if (fs.existsSync(srlPath)) {
+        try { fs.unlinkSync(srlPath); } catch {}
+      }
       const logs: OpenSSLLog[] = [];
       logs.push(runCAOpenSSL(["ecparam", "-name", "secp256k1", "-genkey", "-noout", "-out", "ca/root_ca.key"]));
       logs.push(
@@ -461,24 +506,27 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/ca/clients") {
       const body = await readJsonBody(req);
       const name = (body.name || "").trim() || `Client_${Date.now().toString().slice(-4)}`;
-      const safeId = name.toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 24);
+      const safeId = (body.id || name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")).slice(0, 24);
       getClientDir(safeId);
 
       const logs: OpenSSLLog[] = [];
-      logs.push(runCAOpenSSL(["ecparam", "-name", "secp256k1", "-genkey", "-noout", "-out", `clients/${safeId}/${safeId}.key`]));
-      logs.push(
-        runCAOpenSSL([
-          "req",
-          "-new",
-          "-key",
-          `clients/${safeId}/${safeId}.key`,
-          "-out",
-          `clients/${safeId}/${safeId}.csr`,
-          "-subj",
-          `/CN=${name}/O=Users/C=ID`,
-        ])
-      );
-      logs.push(runCAOpenSSL(["req", "-in", `clients/${safeId}/${safeId}.csr`, "-text", "-noout"]));
+      // Only generate key and CSR when explicitly requested (action === "generate-key" or generateKey === true)
+      if (body.generateKey === true || body.action === "generate-key") {
+        logs.push(runCAOpenSSL(["ecparam", "-name", "secp256k1", "-genkey", "-noout", "-out", `clients/${safeId}/${safeId}.key`]));
+        logs.push(
+          runCAOpenSSL([
+            "req",
+            "-new",
+            "-key",
+            `clients/${safeId}/${safeId}.key`,
+            "-out",
+            `clients/${safeId}/${safeId}.csr`,
+            "-subj",
+            `/CN=${name}/O=Users/C=ID`,
+          ])
+        );
+        logs.push(runCAOpenSSL(["req", "-in", `clients/${safeId}/${safeId}.csr`, "-text", "-noout"]));
+      }
 
       const store = loadCAStore();
       if (!store.clients.some((c) => c.id === safeId)) {
@@ -488,6 +536,51 @@ const server = http.createServer(async (req, res) => {
       saveCAStore(store);
 
       return sendJson(res, 201, { success: true, id: safeId, name, opensslLogs: logs });
+    }
+
+    // -------------------------------------------------------------------------
+    // REMOVE INDIVIDUAL CLIENT ARTIFACTS (.key, .csr, .crt)
+    // -------------------------------------------------------------------------
+    if (req.method === "POST" && pathname === "/api/ca/client-remove-file") {
+      const body = await readJsonBody(req);
+      const clientId = (body.clientId || "").trim();
+      const fileType = (body.fileType || "").trim(); // "key", "csr", "crt", or "all"
+
+      if (!clientId) {
+        return sendJson(res, 400, { error: "Missing clientId parameter" });
+      }
+
+      const clientDir = path.join(CA_CLIENTS_DIR, clientId);
+      if (!fs.existsSync(clientDir)) {
+        return sendJson(res, 404, { error: `Client directory '${clientId}' not found` });
+      }
+
+      const removedFiles: string[] = [];
+      const keyP = path.join(clientDir, `${clientId}.key`);
+      const csrP = path.join(clientDir, `${clientId}.csr`);
+      const crtP = path.join(clientDir, `${clientId}.crt`);
+
+      if (fileType === "key" || fileType === "key_csr" || fileType === "all") {
+        if (fs.existsSync(keyP)) { fs.unlinkSync(keyP); removedFiles.push(`${clientId}.key`); }
+      }
+      if (fileType === "csr" || fileType === "key_csr" || fileType === "all") {
+        if (fs.existsSync(csrP)) { fs.unlinkSync(csrP); removedFiles.push(`${clientId}.csr`); }
+      }
+      if (fileType === "crt" || fileType === "all") {
+        if (fs.existsSync(crtP)) { fs.unlinkSync(crtP); removedFiles.push(`${clientId}.crt`); }
+      }
+
+      const logCmd = `rm -f clients/${clientId}/${clientId}.{${fileType}}`;
+      return sendJson(res, 200, {
+        success: true,
+        clientId,
+        fileType,
+        removedFiles,
+        opensslLog: {
+          command: logCmd,
+          output: `Removed [${removedFiles.join(", ")}] from clients/${clientId}/`,
+        },
+      });
     }
 
     if (req.method === "POST" && pathname === "/api/ca/select-client") {
@@ -587,8 +680,32 @@ const server = http.createServer(async (req, res) => {
           encoding: "utf-8",
           stdio: ["ignore", "pipe", "pipe"],
         });
+
+        // Also check if key matches cert
+        let keyMatchesCrt = true;
+        const keyP = path.join(CA_CLIENTS_DIR, id, `${id}.key`);
+        const crtP = path.join(CA_DIR, targetCrt);
+        if (fs.existsSync(keyP) && fs.existsSync(crtP)) {
+          try {
+            const keyPub = execFileSync("openssl", ["pkey", "-in", keyP, "-pubout"], {
+              cwd: CA_DIR,
+              encoding: "utf-8",
+              stdio: ["ignore", "pipe", "ignore"],
+            }).trim();
+            const crtPub = execFileSync("openssl", ["x509", "-in", crtP, "-pubkey", "-noout"], {
+              cwd: CA_DIR,
+              encoding: "utf-8",
+              stdio: ["ignore", "pipe", "ignore"],
+            }).trim();
+            keyMatchesCrt = Boolean(keyPub && crtPub && keyPub === crtPub);
+          } catch {
+            keyMatchesCrt = false;
+          }
+        }
+
         return sendJson(res, 200, {
           isValid: true,
+          keyMatchesCrt,
           isFake,
           opensslLog: { command: cmdString, output: out.trim() || `${targetCrt}: OK` },
         });
@@ -802,6 +919,20 @@ const server = http.createServer(async (req, res) => {
       }
 
       // Legitimate Recipient Decryption
+      const recipKeyPath = path.join(CA_CLIENTS_DIR, recipientId, `${recipientId}.key`);
+      if (!fs.existsSync(recipKeyPath)) {
+        return sendJson(res, 200, {
+          success: false,
+          keyId,
+          recipientId,
+          error: `Missing Private Key: clients/${recipientId}/${recipientId}.key not found. Without your private key, encrypted documents can never be decrypted!`,
+          opensslLog: {
+            command: `openssl cms -decrypt -in ${encRel} -inkey clients/${recipientId}/${recipientId}.key`,
+            output: "Error: private key missing. Decryption impossible.",
+          },
+        });
+      }
+
       const decTmpRel = `messages/tmp_dec_${targetMsg.id}.tmp`;
       const decTmpPath = path.join(CA_DIR, decTmpRel);
       const decryptArgs = [
@@ -1731,7 +1862,12 @@ const server = http.createServer(async (req, res) => {
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath);
       const contentType = MIME_TYPES[ext] || "application/octet-stream";
-      res.writeHead(200, { "Content-Type": contentType });
+      res.writeHead(200, {
+        "Content-Type": contentType,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      });
       return fs.createReadStream(filePath).pipe(res);
     }
 

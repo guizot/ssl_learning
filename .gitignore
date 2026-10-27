@@ -19,3 +19,6 @@ generated/
 # Logs
 *.log
 npm-debug.log*
+
+# Screenshot artifacts
+*.png

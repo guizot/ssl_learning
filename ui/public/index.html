@@ -2,178 +2,253 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Certificate Authority (CA) &amp; PKI Lab</title>
-  <link rel="stylesheet" href="/styles.css" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            zinc: {
+              50: 'rgb(var(--zinc-50) / <alpha-value>)',
+              100: 'rgb(var(--zinc-100) / <alpha-value>)',
+              200: 'rgb(var(--zinc-200) / <alpha-value>)',
+              300: 'rgb(var(--zinc-300) / <alpha-value>)',
+              400: 'rgb(var(--zinc-400) / <alpha-value>)',
+              500: 'rgb(var(--zinc-500) / <alpha-value>)',
+              600: 'rgb(var(--zinc-600) / <alpha-value>)',
+              700: 'rgb(var(--zinc-700) / <alpha-value>)',
+              800: 'rgb(var(--zinc-800) / <alpha-value>)',
+              900: 'rgb(var(--zinc-900) / <alpha-value>)',
+              950: 'rgb(var(--zinc-950) / <alpha-value>)',
+            },
+            emerald: {
+              400: 'rgb(var(--emerald-400) / <alpha-value>)',
+              500: 'rgb(var(--emerald-500) / <alpha-value>)',
+            },
+            rose: {
+              400: '#fb7185',
+              500: '#f43f5e',
+            }
+          },
+          fontFamily: {
+            sans: ["Geist", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+            mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="/styles.css?v=5.3" />
 </head>
-<body>
-  <div class="app-layout">
-    <!-- MINIMAL HEADER -->
-    <header class="header">
-      <div class="header-left">
-        <span class="logo-mark">CA</span>
-        <div>
-          <h1 class="logo-title">Certificate Authority (CA) Lab</h1>
-          <p class="logo-subtitle">Hands-on PKI &amp; Encrypted Client Messaging using OpenSSL 3.6.3</p>
+<body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
+
+  <div class="app-layout max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
+
+    <!-- HEADER (FILE BROWSER / AGY MANAGER STYLE) -->
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-800">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 shadow-sm shrink-0">
+          <i data-lucide="shield-check" class="w-5 h-5 text-zinc-300"></i>
+        </div>
+        <div class="space-y-0.5 min-w-0">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-zinc-100 truncate">
+            Certificate Authority Lab
+          </h1>
+          <p class="text-xs font-mono text-zinc-500 truncate">
+            OpenSSL 3.5.7 · secp256k1 · Zero-CA PKI
+          </p>
         </div>
       </div>
-      <div class="header-right">
-        <!-- ROLE SELECTOR WIDGET -->
-        <div class="role-selector-pill">
-          <span class="role-indicator-dot"></span>
-          <label class="role-label" for="global-role-select">Role:</label>
-          <select id="global-role-select" class="role-select">
-            <option value="admin">🏛️ Admin (Root CA)</option>
-            <!-- Clients dynamically populated -->
-          </select>
+
+      <!-- Action Controls -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+        <!-- Row 1: Role Selector (max-width flex-1) + Theme Toggle on Right -->
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <!-- Role Selector Pill -->
+          <div class="flex items-center gap-2 px-3 h-9 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex-1 sm:flex-initial min-w-0">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+            <label class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0" for="global-role-select">Role:</label>
+            <select id="global-role-select" class="flex-1 sm:flex-none bg-transparent border-none text-zinc-200 text-xs font-medium focus:outline-none cursor-pointer truncate">
+              <option value="admin">Admin (Root CA)</option>
+            </select>
+          </div>
+
+          <!-- Theme Toggle Button -->
+          <button id="btn-theme-toggle" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors shrink-0" title="Toggle Theme (Auto / Dark / Light)">
+            <i id="theme-icon" data-lucide="moon" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+          </button>
         </div>
-        <button id="btn-open-add-client" class="btn-outline btn-sm">+ Add Client</button>
-        <button id="btn-ca-reset" class="btn-ghost btn-sm" title="Wipe all generated certificates and reset">
-          Reset All
-        </button>
+
+        <!-- Row 2 on Mobile: Add Client and Reset (1:1 weight side-by-side) -->
+        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+          <button id="btn-open-add-client" class="inline-flex items-center justify-center gap-1.5 px-3 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 transition-colors w-full sm:w-auto">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5 text-zinc-400"></i>
+            <span>Add Client</span>
+          </button>
+
+          <button id="btn-ca-reset" class="inline-flex items-center justify-center gap-1.5 px-3 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors w-full sm:w-auto" title="Reset all certificates">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Reset</span>
+          </button>
+        </div>
       </div>
     </header>
-
-    <!-- INLINE ADD CLIENT MODAL / PANEL (COLLAPSIBLE) -->
-    <div id="add-client-panel" class="add-client-panel" style="display: none;">
-      <div class="add-client-inner">
-        <span class="add-client-label">New Client / Domain:</span>
-        <input type="text" id="input-client-name" class="text-input" placeholder="Enter Common Name (e.g. Bob, mybank.com)..." />
-        <button id="btn-submit-add-client" class="btn-solid btn-sm">Create Client</button>
-        <button id="btn-cancel-add-client" class="btn-ghost btn-sm">Cancel</button>
-      </div>
-    </div>
 
     <!-- ===================================================================== -->
     <!-- VIEW 1: ADMIN (ROOT CA) MANAGEMENT CENTER -->
     <!-- ===================================================================== -->
-    <div id="view-admin" class="role-view">
-      <!-- ADMIN FILE STRIP -->
-      <div class="file-strip">
-        <div class="file-strip-title">Authority Trust Store: module0-ca/generated/ca/</div>
-        <div class="file-badges">
-          <div class="f-badge" id="fb-root-key">
-            <span class="f-dot"></span>
-            <span class="f-name">ca/root_ca.key</span>
-            <span class="f-state" id="fs-root-key">not created</span>
+    <div id="view-admin" class="role-view space-y-5">
+
+      <!-- Store Status Card -->
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="database" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Certificate Store &amp; Artifacts</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Store: <span class="text-zinc-300 truncate">module0-ca/generated/ca/</span></p>
           </div>
-          <div class="f-badge" id="fb-root-crt">
-            <span class="f-dot"></span>
-            <span class="f-name">ca/root_ca.crt</span>
-            <span class="f-state" id="fs-root-crt">not created</span>
-          </div>
-          <div class="f-badge">
-            <span class="f-name">Registered Clients:</span>
-            <span class="f-state" id="admin-clients-count">0</span>
+          <div class="flex items-center gap-2 flex-wrap text-xs font-mono">
+            <div id="fb-root-key" class="f-badge inline-flex items-center gap-1.5 px-2.5 h-9 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot"></span>
+              <span class="text-zinc-300">root_ca.key</span>
+              <span id="fs-root-key" class="f-state text-zinc-500 text-[11px]">not created</span>
+            </div>
+            <div id="fb-root-crt" class="f-badge inline-flex items-center gap-1.5 px-2.5 h-9 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot"></span>
+              <span class="text-zinc-300">root_ca.crt</span>
+              <span id="fs-root-crt" class="f-state text-zinc-500 text-[11px]">not created</span>
+            </div>
+            <div class="inline-flex items-center gap-1.5 px-2.5 h-9 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span class="text-zinc-500">Clients:</span>
+              <span id="admin-clients-count" class="text-zinc-200 font-bold">0</span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- CARD 1: ROOT CA MASTER AUTHORITY -->
-      <section class="step-card active">
-        <div class="card-head">
-          <div class="card-title-group">
-            <span class="step-tag">Admin · Trust Root</span>
-            <h2>Root Certificate Authority (Root CA)</h2>
-            <p class="step-tagline">
-              The Root CA is the anchor of trust in Web2 PKI. It signs certificates for clients to prove identity.
-            </p>
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield" class="w-4 h-4 text-zinc-400"></i>
+            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Root Certificate Authority</h2>
           </div>
-          <button id="btn-admin-init-root" class="btn-solid">
-            Initialize Root CA
-          </button>
+          <p class="text-xs text-zinc-400">Anchor of trust &middot; Generates the self-signed master authority to sign client certificates.</p>
         </div>
 
-        <div class="cmd-pill">
+        <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
           <code>$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
         </div>
 
-        <div class="card-body" id="body-admin-root" style="display: none;">
-          <div class="meta-grid">
-            <div class="meta-item">
-              <span class="meta-label">Issuer (Self-Signed):</span>
-              <span class="meta-value" id="admin-ca-issuer">CN=MyRootCA</span>
+        <div>
+          <button id="btn-admin-init-root" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+            <span>Initialize Root CA</span>
+          </button>
+        </div>
+
+        <div id="body-admin-root" style="display: none;" class="space-y-2.5 pt-3 border-t border-zinc-800">
+          <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-1">
+            <div class="flex items-center justify-between text-[10px] uppercase font-bold text-zinc-500 font-mono">
+              <span>Issuer (Authority DN)</span>
+              <span class="text-emerald-400 font-normal">Self-Signed Root</span>
             </div>
-            <div class="meta-item">
-              <span class="meta-label">Subject:</span>
-              <span class="meta-value" id="admin-ca-subject">CN=MyRootCA</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">Validity Period:</span>
-              <span class="meta-value" id="admin-ca-dates">365 Days</span>
-            </div>
+            <div id="admin-ca-issuer" class="text-xs font-mono text-zinc-200 break-all leading-relaxed">CN=MyRootCA, O=GlobalTrustAuthority, C=ID</div>
           </div>
 
-          <details class="details-panel">
-            <summary>Show Root CA Certificate PEM &amp; OpenSSL Text</summary>
-            <div class="details-content">
-              <pre class="mono-display pem" id="admin-ca-pem">-</pre>
+          <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-1">
+            <div class="flex items-center justify-between text-[10px] uppercase font-bold text-zinc-500 font-mono">
+              <span>Subject (Identity DN)</span>
+              <span class="text-zinc-400 font-normal">Self-Issued</span>
+            </div>
+            <div id="admin-ca-subject" class="text-xs font-mono text-zinc-200 break-all leading-relaxed">CN=MyRootCA, O=GlobalTrustAuthority, C=ID</div>
+          </div>
+
+          <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-1">
+            <div class="flex items-center justify-between text-[10px] uppercase font-bold text-zinc-500 font-mono">
+              <span>Validity Period (365 Days)</span>
+              <span class="text-zinc-400 font-normal">Active</span>
+            </div>
+            <div id="admin-ca-dates" class="text-xs font-mono text-zinc-200 break-all leading-relaxed">-</div>
+          </div>
+
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors">View Root Certificate PEM</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors">Show PEM Text</span>
+            </summary>
+            <div class="p-3 sm:p-4 border-t border-zinc-800">
+              <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="admin-ca-pem">-</pre>
             </div>
           </details>
         </div>
       </section>
 
-      <!-- CARD 2: CLIENT CERTIFICATE MANAGEMENT & SIGNING -->
-      <section class="step-card active">
-        <div class="card-head">
-          <div class="card-title-group">
-            <span class="step-tag">Admin · Certificate Authority</span>
-            <h2>Client Certificate Requests &amp; Issuance</h2>
-            <p class="step-tagline">
-              Inspect pending Certificate Signing Requests (CSRs) from clients and issue signed X.509 certificates.
-            </p>
+      <!-- CARD 2: CLIENT CERTIFICATE VAULT & CSRS -->
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-zinc-400"></i>
+            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Certificate Vault &amp; CSRs</h2>
           </div>
+          <p class="text-xs text-zinc-400">Manage client keypairs, incoming certificate signing requests, and issued X.509 certificates</p>
         </div>
 
-        <div class="card-body" style="display: flex;">
-          <div class="table-container">
-            <table class="minimal-table" id="admin-clients-table">
-              <thead>
-                <tr>
-                  <th>Client Name</th>
-                  <th>Private Key</th>
-                  <th>CSR (Request)</th>
-                  <th>X.509 Certificate</th>
-                  <th>Admin Action</th>
-                </tr>
-              </thead>
-              <tbody id="admin-clients-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
+        <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
+          <code>$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
+        </div>
+
+        <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
+          <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
+            <!-- Dynamically populated card rows -->
           </div>
         </div>
       </section>
 
       <!-- CARD 3: SECURITY & UNTRUSTED CA ATTACK TEST -->
-      <section class="step-card active">
-        <div class="card-head">
-          <div class="card-title-group">
-            <span class="step-tag">Admin · Security Check</span>
-            <h2>Untrusted / Fake CA Attack Detection</h2>
-            <p class="step-tagline">
-              Verify how OpenSSL verifies trust boundaries when a rogue attacker attempts to sign unauthorized certificates.
-            </p>
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-400"></i>
+            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Untrusted CA Detection</h2>
           </div>
-          <button id="btn-admin-fake-test" class="btn-solid btn-danger-action">
-            Test Fake CA Attack
-          </button>
+          <p class="text-xs text-zinc-400">Verifies how OpenSSL rejects rogue attacker certificates outside the trusted root chain</p>
         </div>
 
-        <div class="cmd-pill">
+        <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
           <code>$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
         </div>
 
-        <div class="card-body" id="body-admin-fake" style="display: none;">
-          <div class="result-banner invalid" id="admin-fake-banner">
-            <span class="res-icon">✕</span>
-            <span class="res-text" id="admin-fake-text">
+        <div>
+          <button id="btn-admin-fake-test" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+            <span>Test Fake CA Attack</span>
+          </button>
+        </div>
+
+        <div id="body-admin-fake" style="display: none;" class="space-y-2 pt-3 border-t border-zinc-800">
+          <div class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 flex items-center gap-2" id="admin-fake-banner">
+            <i data-lucide="shield-x" class="w-4 h-4 shrink-0"></i>
+            <span id="admin-fake-text">
               Verification Failure: unable to get local issuer certificate (Untrusted CA caught!)
             </span>
           </div>
-          <p class="hint-text">
-            <strong>Security Principle:</strong> In Web2 PKI, clients reject any certificate whose issuer cannot be chained back to a trusted Root CA in the system's trust store.
-          </p>
         </div>
       </section>
     </div>
@@ -181,222 +256,372 @@
     <!-- ===================================================================== -->
     <!-- VIEW 2: CLIENT PERSPECTIVE (ALICE / BOB / ETC) -->
     <!-- ===================================================================== -->
-    <div id="view-client" class="role-view" style="display: none;">
-      <!-- CLIENT HEADER BAR -->
-      <div class="client-perspective-strip">
-        <div class="client-badge-hero">
-          <span class="client-avatar">👤</span>
-          <div>
-            <div class="client-perspective-name" id="client-view-name">Client</div>
-            <div class="client-perspective-sub">Client Perspective · Common Name: <span id="client-view-cn">CN=Client</span></div>
-          </div>
-        </div>
-        <div class="file-badges">
-          <div class="f-badge" id="fb-client-key">
-            <span class="f-dot"></span>
-            <span class="f-name" id="fn-client-key">client.key</span>
-            <span class="f-state" id="fs-client-key">not created</span>
-          </div>
-          <div class="f-badge" id="fb-client-csr">
-            <span class="f-dot"></span>
-            <span class="f-name" id="fn-client-csr">client.csr</span>
-            <span class="f-state" id="fs-client-csr">not created</span>
-          </div>
-          <div class="f-badge" id="fb-client-crt">
-            <span class="f-dot"></span>
-            <span class="f-name" id="fn-client-crt">client.crt</span>
-            <span class="f-state" id="fs-client-crt">not created</span>
-          </div>
-        </div>
-      </div>
+    <div id="view-client" class="role-view space-y-5" style="display: none;">
 
-      <!-- CLIENT SUB-TABS -->
-      <nav class="subtabs-nav">
-        <button class="subtab-btn active" data-subtab="identity">
-          🪪 Identity &amp; Certificate
+      <!-- Client Store Status Card -->
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="database" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Storage &amp; Artifacts</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Store: <span class="text-zinc-300 truncate" id="client-view-store">module0-ca/generated/clients/bob/</span></p>
+            <span id="client-view-name" class="hidden"></span>
+            <span id="client-view-cn" class="hidden"></span>
+          </div>
+
+          <!-- Files Pills -->
+          <div class="flex items-center gap-2 flex-wrap text-xs font-mono">
+            <div id="fb-client-key" class="f-badge inline-flex items-center gap-1.5 px-2.5 h-9 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot"></span>
+              <span id="fn-client-key" class="text-zinc-300">client.key</span>
+              <span id="fs-client-key" class="f-state text-zinc-500 text-[11px]">not created</span>
+            </div>
+            <div id="fb-client-csr" class="f-badge inline-flex items-center gap-1.5 px-2.5 h-9 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot"></span>
+              <span id="fn-client-csr" class="text-zinc-300">client.csr</span>
+              <span id="fs-client-csr" class="f-state text-zinc-500 text-[11px]">not created</span>
+            </div>
+            <div id="fb-client-crt" class="f-badge inline-flex items-center gap-1.5 px-2.5 h-9 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot"></span>
+              <span id="fn-client-crt" class="text-zinc-300">client.crt</span>
+              <span id="fs-client-crt" class="f-state text-zinc-500 text-[11px]">not created</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CLIENT SEGMENTED SUBTABS -->
+      <nav class="flex gap-1.5 p-1 bg-zinc-900 border border-zinc-800 rounded-lg overflow-x-auto text-xs font-medium" id="client-subtabs-nav">
+        <button class="subtab-btn active flex-1 py-2 px-3 rounded-lg font-medium text-center shrink-0 sm:shrink" data-subtab="identity">
+          Identity &amp; Certificate
         </button>
-        <button class="subtab-btn" data-subtab="send">
-          📤 Send Encrypted Document
+        <button class="subtab-btn flex-1 py-2 px-3 rounded-lg font-medium text-center shrink-0 sm:shrink" data-subtab="send">
+          Send Encrypted Document
         </button>
-        <button class="subtab-btn" data-subtab="inbox">
-          📬 Inbox (<span id="inbox-tab-count">0</span>)
+        <button class="subtab-btn flex-1 py-2 px-3 rounded-lg font-medium text-center shrink-0 sm:shrink" data-subtab="inbox">
+          Inbox (<span id="inbox-tab-count">0</span>)
         </button>
       </nav>
 
       <!-- SUBTAB 1: IDENTITY & CERTIFICATE -->
-      <div id="subtab-identity" class="subtab-panel active">
-        <!-- KEY & CSR GENERATION -->
-        <section class="step-card active">
-          <div class="card-head">
-            <div class="card-title-group">
-              <span class="step-tag">Identity · Key &amp; CSR</span>
-              <h2>Generate Private Key &amp; CSR</h2>
-              <p class="step-tagline">
-                Generate your personal EC private key (secp256k1) and a Certificate Signing Request (CSR) containing your public key.
-              </p>
+      <div id="subtab-identity" class="subtab-panel space-y-4">
+        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="key" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Generate Keypair &amp; CSR</h2>
             </div>
-            <button id="btn-client-gen-key" class="btn-solid">
-              Generate Key &amp; CSR
+            <p class="text-xs text-zinc-400">Generate personal EC private key (secp256k1) and CSR containing public key</p>
+          </div>
+
+          <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
+            <code id="cmd-client-csr">$ openssl ecparam -name secp256k1 -genkey -noout -out client.key &amp;&amp; openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="btn-client-gen-key" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Generate Key &amp; CSR</span>
+            </button>
+            <button id="btn-client-remove-key-csr" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shadow-sm w-full sm:w-auto" style="display: none;">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Remove Key &amp; CSR</span>
+            </button>
+            <button id="btn-client-remove-crt" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shadow-sm w-full sm:w-auto" style="display: none;">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Remove Cert</span>
             </button>
           </div>
 
-          <div class="cmd-pill">
-            <code id="cmd-client-csr">$ openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
+          <div id="body-client-identity" style="display: none;" class="flex flex-col space-y-2.5 pt-3 border-t border-zinc-800">
+            <!-- Full Width Common Name Card -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-1 w-full">
+              <div class="flex items-center justify-between text-[10px] uppercase font-bold text-zinc-500 font-mono">
+                <span>Common Name (Identity)</span>
+                <span class="text-zinc-400 font-normal">X.509 Subject</span>
+              </div>
+              <div id="client-info-cn" class="text-xs font-mono text-zinc-200 break-all leading-relaxed">CN=Alice</div>
+            </div>
+
+            <!-- Full Width Algorithm Card -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-1 w-full">
+              <div class="flex items-center justify-between text-[10px] uppercase font-bold text-zinc-500 font-mono">
+                <span>Cryptographic Algorithm</span>
+                <span class="text-zinc-400 font-normal">Asymmetric EC</span>
+              </div>
+              <div class="text-xs font-mono text-zinc-200">secp256k1 (Elliptic Curve Cryptography &middot; 256-bit)</div>
+            </div>
+
+            <!-- Full Width Root CA Status Card -->
+            <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-1 w-full">
+              <div class="flex items-center justify-between text-[10px] uppercase font-bold text-zinc-500 font-mono">
+                <span>Root CA Trust Status</span>
+                <span class="text-zinc-400 font-normal">Trust Anchor</span>
+              </div>
+              <div id="client-info-cert-status" class="text-xs font-mono text-zinc-200 leading-relaxed">Not Signed Yet</div>
+            </div>
+
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors">View Certificate Signing Request (.csr)</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors">Show Text</span>
+              </summary>
+              <div class="p-3 sm:p-4 border-t border-zinc-800">
+                <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-csr-text">-</pre>
+              </div>
+            </details>
+
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-crt-details" style="display: none;">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors">View Issued X.509 Certificate (.crt)</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors">Show Certificate</span>
+              </summary>
+              <div class="p-3 sm:p-4 border-t border-zinc-800">
+                <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-crt-text">-</pre>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <!-- SECTION 2: VERIFY CERTIFICATE CHAIN (DEDICATED SECTION) -->
+        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm" id="section-client-verify" style="display: none;">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="shield-check" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Verify Certificate Chain</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Verify certificate validity and chain of trust against Root CA</p>
           </div>
 
-          <div class="card-body" id="body-client-identity" style="display: none;">
-            <div class="meta-grid">
-              <div class="meta-item">
-                <span class="meta-label">Identity Common Name:</span>
-                <span class="meta-value" id="client-info-cn">CN=Alice</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Public Key Algorithm:</span>
-                <span class="meta-value">id-ecPublicKey (secp256k1)</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Root CA Status:</span>
-                <span class="meta-value" id="client-info-cert-status">Not Signed Yet</span>
-              </div>
-            </div>
+          <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
+            <code id="cmd-client-verify">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/[client].crt</code>
+          </div>
 
-            <details class="details-panel">
-              <summary>Show CSR Contents &amp; Text</summary>
-              <div class="details-content">
-                <pre class="mono-display pem" id="client-csr-text">-</pre>
-              </div>
-            </details>
+          <div>
+            <button id="btn-client-verify-ca" class="btn-solid h-9 sm:h-8 w-full sm:w-auto shrink-0">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              <span>Verify with Root CA</span>
+            </button>
+          </div>
 
-            <details class="details-panel" id="client-crt-details" style="display: none;">
-              <summary>Show Issued X.509 Certificate (.crt)</summary>
-              <div class="details-content">
-                <pre class="mono-display pem" id="client-crt-text">-</pre>
-              </div>
-            </details>
-
-            <div class="step-footer" id="client-verify-footer" style="display: none;">
-              <span class="status-msg">Your certificate is signed by the Root CA.</span>
-              <button id="btn-client-verify-ca" class="btn-outline">Verify with Root CA ➔</button>
-            </div>
-
-            <div class="result-banner valid" id="client-verify-banner" style="display: none; margin-top: 12px;">
-              <span class="res-icon">✓</span>
-              <span class="res-text" id="client-verify-banner-text">Certificate Validated by MyRootCA</span>
-            </div>
+          <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-center gap-2" id="client-verify-banner" style="display: none;">
+            <i data-lucide="check" class="w-4 h-4 shrink-0"></i>
+            <span id="client-verify-banner-text">Certificate Validated by MyRootCA</span>
           </div>
         </section>
       </div>
 
       <!-- SUBTAB 2: SEND ENCRYPTED DOCUMENT -->
-      <div id="subtab-send" class="subtab-panel" style="display: none;">
-        <!-- WARNING WHEN NO OTHER CERTIFIED CLIENT EXISTS -->
-        <div id="no-recipients-warning" class="warning-box" style="display: none;">
-          <span class="warning-icon">⚠️</span>
-          <div class="warning-content">
-            <strong>Cannot Send Document: No Eligible Recipients Found</strong>
-            <p>
-              In Public Key Infrastructure (PKI), you must lock a document using the <em>recipient's signed certificate</em>.
-              Currently, there are no other clients with a valid Root CA certificate.
-            </p>
-            <p class="warning-sub">
-              👉 Switch your role in the top right to <strong>Admin (Root CA)</strong> (or click <strong>"+ Add Client"</strong>) to register another client (e.g. Bob) and issue their certificate first.
-            </p>
-          </div>
-        </div>
-
-        <!-- SEND DOCUMENT FORM -->
-        <section class="step-card active" id="card-send-form">
-          <div class="card-head">
-            <div class="card-title-group">
-              <span class="step-tag">Confidentiality · OpenSSL CMS</span>
-              <h2>Send Encrypted Document to Another Client</h2>
-              <p class="step-tagline">
-                Lock a secret document using the recipient's public certificate. It will be delivered directly to the recipient's Inbox.
-              </p>
+      <div id="subtab-send" class="subtab-panel space-y-4" style="display: none;">
+        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm" id="card-send-form">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="lock" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Send Encrypted Document</h2>
             </div>
-            <button id="btn-client-send-doc" class="btn-solid">
-              Encrypt &amp; Send
-            </button>
+            <p class="text-xs text-zinc-400">Encrypt data using the recipient public certificate (OpenSSL CMS envelope)</p>
           </div>
 
-          <div class="cmd-pill">
+          <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
             <code id="cmd-client-send">$ openssl cms -encrypt -in document.txt -out msg.enc recipient.crt</code>
           </div>
 
-          <div class="card-body" style="display: flex;">
-            <div class="transfer-grid">
-              <div class="input-group">
-                <label class="field-label" for="send-sender-display">Sender (From):</label>
-                <input type="text" id="send-sender-display" class="text-input" readonly value="" placeholder="Current Client" />
+          <div>
+            <button id="btn-client-send-doc" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+              <span>Encrypt &amp; Send</span>
+            </button>
+          </div>
+
+          <div id="no-recipients-warning" class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200 flex items-start gap-3 hidden" hidden style="display: none;">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400 shrink-0 mt-0.5"></i>
+            <div class="space-y-1">
+              <strong class="font-semibold text-amber-300">No Eligible Recipients Found</strong>
+              <p class="text-zinc-300">In PKI, documents are encrypted using the recipient public certificate. Switch role to <strong>Admin</strong> or click <strong>+ Add Client</strong> to register another client and issue their certificate first.</p>
+            </div>
+          </div>
+
+          <div class="space-y-3 pt-3 border-t border-zinc-800">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-zinc-400" for="send-sender-display">Sender (From):</label>
+                <input type="text" id="send-sender-display" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300" readonly value="" placeholder="Current Client" />
               </div>
-              <div class="input-group">
-                <label class="field-label" for="send-recipient-select">Recipient (Whose certificate locks the file):</label>
-                <select id="send-recipient-select" class="client-dropdown">
-                  <!-- Dynamically populated with other certified clients -->
+              <div class="space-y-1">
+                <label class="text-xs font-medium text-zinc-400" for="send-recipient-select">Recipient:</label>
+                <select id="send-recipient-select" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-700">
+                  <!-- Dynamically populated -->
                 </select>
               </div>
             </div>
 
-            <div class="input-group">
-              <label class="field-label" for="send-doc-title">Document Title / Subject:</label>
-              <input type="text" id="send-doc-title" class="text-input" value="Q4 Financial &amp; Bonus Report 2026" />
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-zinc-400" for="send-doc-title">Document Title:</label>
+              <input type="text" id="send-doc-title" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700" value="Q4 Financial Report 2026" />
             </div>
 
-            <div class="input-group">
-              <label class="field-label" for="send-doc-message">Document Content (Confidential text to encrypt):</label>
-              <textarea id="send-doc-message" class="text-input text-area" rows="3">Confidential: Authorized \$500,000 budget transfer for blockchain R&amp;D.</textarea>
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-zinc-400" for="send-doc-message">Confidential Content:</label>
+              <textarea id="send-doc-message" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 min-h-[72px]" rows="3">Confidential: Authorized $500,000 budget transfer for blockchain R&amp;D.</textarea>
             </div>
 
-            <!-- DIGITAL SIGNATURE TOGGLE & SENDER CERTIFICATE VALIDATION -->
-            <div class="signature-option-box">
-              <label class="checkbox-label" for="send-sign-checkbox">
-                <input type="checkbox" id="send-sign-checkbox" checked />
-                <span><strong>Attach Digital Signature</strong> (Authenticates sender identity using your private key &amp; certificate)</span>
+            <div class="rounded-lg bg-zinc-950 border border-zinc-800 p-3 space-y-2">
+              <label class="flex items-center gap-2.5 text-xs text-zinc-300 cursor-pointer select-none" for="send-sign-checkbox">
+                <input type="checkbox" id="send-sign-checkbox" checked class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-zinc-100" />
+                <span><strong>Attach Digital Signature</strong> (Authenticates sender identity using your private key)</span>
               </label>
-              <div id="sender-cert-warning" class="hint-warning" style="display: none;">
-                ⚠️ <strong>Sender Certificate Required:</strong> To attach a digital signature, you must hold an issued Root CA certificate (<span id="warn-sender-crt">client.crt</span>). Switch to <strong>Admin</strong> to sign your CSR, or uncheck this box to send without a signature (anonymous).
+              <div id="sender-cert-warning" class="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 hidden" style="display: none;">
+                <strong>Sender Certificate Required:</strong> To attach a signature, your CSR must be signed by Root CA (<span id="warn-sender-crt">client.crt</span>).
               </div>
             </div>
 
-            <div class="result-banner valid" id="send-success-banner" style="display: none; margin-top: 10px;">
-              <span class="res-icon">✓</span>
-              <span class="res-text" id="send-success-text">Document encrypted and delivered to recipient's Inbox!</span>
+            <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-center gap-2 hidden" id="send-success-banner" style="display: none;">
+              <i data-lucide="check" class="w-4 h-4 shrink-0"></i>
+              <span id="send-success-text">Document encrypted and delivered to recipient inbox!</span>
             </div>
           </div>
         </section>
       </div>
 
       <!-- SUBTAB 3: INBOX -->
-      <div id="subtab-inbox" class="subtab-panel" style="display: none;">
-        <div class="inbox-header">
-          <div>
-            <h3>📬 Received Documents for <span id="inbox-owner-name">-</span></h3>
-            <p class="hint-text">Documents encrypted with your certificate. Only your private key can unlock them.</p>
+      <div id="subtab-inbox" class="subtab-panel space-y-4" style="display: none;">
+        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2">
+                <i data-lucide="inbox" class="w-4 h-4 text-zinc-400"></i>
+                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Received Documents for <span id="inbox-owner-name">-</span></h3>
+              </div>
+              <p class="text-xs text-zinc-400">Encrypted with your public certificate. Only your private key can unlock them.</p>
+            </div>
+            <button id="btn-refresh-inbox" class="btn-solid h-9 sm:h-8 w-full sm:w-auto shrink-0">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh</span>
+            </button>
           </div>
-          <button id="btn-refresh-inbox" class="btn-outline btn-sm">↻ Refresh Inbox</button>
-        </div>
 
-        <div id="inbox-list" class="inbox-list">
-          <!-- Dynamically populated with message cards or empty state -->
-        </div>
+          <div id="inbox-list" class="space-y-3 pt-3 border-t border-zinc-800">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
       </div>
     </div>
 
-    <!-- LIVE OPENSSL TERMINAL DRAWER (EXPANDABLE) -->
-    <footer class="footer-terminal">
-      <details class="terminal-drawer">
-        <summary class="terminal-summary">
-          <span class="term-status-dot"></span>
-          <span>Live OpenSSL 3.6.3 Terminal Command Log</span>
-          <span class="term-hint">(click to toggle)</span>
-        </summary>
-        <div class="terminal-box" id="term-box">
-          <div class="term-line">Ready. OpenSSL commands will appear here.</div>
-        </div>
-      </details>
-    </footer>
   </div>
 
-  <script src="/app.js" type="module"></script>
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: ADD NEW CLIENT / DOMAIN -->
+  <!-- ===================================================================== -->
+  <div id="modal-add-client" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
+    <div class="rounded-lg border border-zinc-800 bg-zinc-900 w-full max-w-md p-5 space-y-4 shadow-2xl relative">
+      <div class="flex items-start justify-between gap-3">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-4 h-4 text-zinc-400"></i>
+            <h3 class="text-sm font-semibold tracking-wide text-zinc-100">Add New Client</h3>
+          </div>
+          <p class="text-xs text-zinc-400">Register a client Common Name (CN) for PKI enrollment</p>
+        </div>
+        <button id="btn-close-modal-add-client" class="text-zinc-500 hover:text-zinc-300 p-1 rounded-lg hover:bg-zinc-800 transition-colors" title="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <label for="input-client-name" class="block text-xs font-medium text-zinc-300">Client / Domain Common Name</label>
+        <input
+          type="text"
+          id="input-client-name"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 h-9 sm:h-8 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 font-mono"
+          placeholder="e.g. Alice, Bob, mail.example.com"
+          autocomplete="off"
+        />
+        <p id="add-client-error" class="text-[11px] text-rose-400 font-mono" style="display: none;"></p>
+      </div>
+
+      <div class="flex items-center gap-2.5 pt-1">
+        <button id="btn-cancel-add-client" class="flex-1 inline-flex items-center justify-center gap-1.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition-colors">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          <span>Cancel</span>
+        </button>
+        <button id="btn-submit-add-client" class="flex-1 btn-solid h-9 sm:h-8 text-xs font-medium rounded-lg">
+          <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+          <span>Create Client</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: UNIFIED CONFIRMATION / ALERT DIALOG -->
+  <!-- ===================================================================== -->
+  <div id="modal-confirm" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
+    <div class="rounded-lg border border-zinc-800 bg-zinc-900 w-full max-w-sm p-5 space-y-4 shadow-2xl relative">
+      <div class="flex items-start gap-3.5">
+        <div id="confirm-icon-box" class="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+          <i id="confirm-icon" data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <div class="space-y-1">
+          <h3 id="confirm-title" class="text-sm font-semibold tracking-wide text-zinc-100">Confirm Action</h3>
+          <p id="confirm-message" class="text-xs text-zinc-400 leading-relaxed">Are you sure you want to proceed?</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 pt-1">
+        <button id="btn-confirm-cancel" class="flex-1 inline-flex items-center justify-center gap-1.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition-colors">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          <span id="confirm-cancel-text">Cancel</span>
+        </button>
+        <button id="btn-confirm-proceed" class="flex-1 inline-flex items-center justify-center gap-1.5 h-9 sm:h-8 text-xs font-medium rounded-lg transition-colors">
+          <i id="confirm-proceed-icon" data-lucide="check" class="w-3.5 h-3.5"></i>
+          <span id="confirm-proceed-text">Confirm</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js?v=5.3" type="module"></script>
+  <script>
+    // Theme Switcher (System / Dark / Light)
+    const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      const icon = document.getElementById("theme-icon");
+      if (theme === "dark") {
+        root.classList.add("dark");
+        root.classList.remove("light");
+        if (icon) icon.setAttribute("data-lucide", "moon");
+      } else if (theme === "light") {
+        root.classList.add("light");
+        root.classList.remove("dark");
+        if (icon) icon.setAttribute("data-lucide", "sun");
+      } else {
+        root.classList.remove("dark", "light");
+        const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (icon) icon.setAttribute("data-lucide", isDark ? "moon" : "sun");
+      }
+      localStorage.setItem("ca_lab_theme", theme);
+      if (window.lucide) window.lucide.createIcons();
+    }
+    applyTheme(savedTheme);
+
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if ((localStorage.getItem("ca_lab_theme") || "system") === "system") {
+        applyTheme("system");
+      }
+    });
+
+    document.getElementById("btn-theme-toggle")?.addEventListener("click", () => {
+      const current = localStorage.getItem("ca_lab_theme") || "system";
+      const next = current === "system" ? "light" : current === "light" ? "dark" : "system";
+      applyTheme(next);
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
 </body>
 </html>
