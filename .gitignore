@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Generated keys, certs, CSRs, and temporary PKI files
+generated/
+**/generated/
+*.key
+*.csr
+*.crt
+*.srl
+*.pem
+*.enc
+*.signed
+*.bin
+
+# macOS metadata
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*

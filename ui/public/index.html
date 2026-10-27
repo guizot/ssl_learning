@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Certificate Authority (CA) &amp; PKI Lab</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- MINIMAL HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo-mark">CA</span>
+        <div>
+          <h1 class="logo-title">Certificate Authority (CA) Lab</h1>
+          <p class="logo-subtitle">Hands-on PKI &amp; Encrypted Client Messaging using OpenSSL 3.6.3</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <!-- ROLE SELECTOR WIDGET -->
+        <div class="role-selector-pill">
+          <span class="role-indicator-dot"></span>
+          <label class="role-label" for="global-role-select">Role:</label>
+          <select id="global-role-select" class="role-select">
+            <option value="admin">🏛️ Admin (Root CA)</option>
+            <!-- Clients dynamically populated -->
+          </select>
+        </div>
+        <button id="btn-open-add-client" class="btn-outline btn-sm">+ Add Client</button>
+        <button id="btn-ca-reset" class="btn-ghost btn-sm" title="Wipe all generated certificates and reset">
+          Reset All
+        </button>
+      </div>
+    </header>
+
+    <!-- INLINE ADD CLIENT MODAL / PANEL (COLLAPSIBLE) -->
+    <div id="add-client-panel" class="add-client-panel" style="display: none;">
+      <div class="add-client-inner">
+        <span class="add-client-label">New Client / Domain:</span>
+        <input type="text" id="input-client-name" class="text-input" placeholder="Enter Common Name (e.g. Bob, mybank.com)..." />
+        <button id="btn-submit-add-client" class="btn-solid btn-sm">Create Client</button>
+        <button id="btn-cancel-add-client" class="btn-ghost btn-sm">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: ADMIN (ROOT CA) MANAGEMENT CENTER -->
+    <!-- ===================================================================== -->
+    <div id="view-admin" class="role-view">
+      <!-- ADMIN FILE STRIP -->
+      <div class="file-strip">
+        <div class="file-strip-title">Authority Trust Store: module0-ca/generated/ca/</div>
+        <div class="file-badges">
+          <div class="f-badge" id="fb-root-key">
+            <span class="f-dot"></span>
+            <span class="f-name">ca/root_ca.key</span>
+            <span class="f-state" id="fs-root-key">not created</span>
+          </div>
+          <div class="f-badge" id="fb-root-crt">
+            <span class="f-dot"></span>
+            <span class="f-name">ca/root_ca.crt</span>
+            <span class="f-state" id="fs-root-crt">not created</span>
+          </div>
+          <div class="f-badge">
+            <span class="f-name">Registered Clients:</span>
+            <span class="f-state" id="admin-clients-count">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 1: ROOT CA MASTER AUTHORITY -->
+      <section class="step-card active">
+        <div class="card-head">
+          <div class="card-title-group">
+            <span class="step-tag">Admin · Trust Root</span>
+            <h2>Root Certificate Authority (Root CA)</h2>
+            <p class="step-tagline">
+              The Root CA is the anchor of trust in Web2 PKI. It signs certificates for clients to prove identity.
+            </p>
+          </div>
+          <button id="btn-admin-init-root" class="btn-solid">
+            Initialize Root CA
+          </button>
+        </div>
+
+        <div class="cmd-pill">
+          <code>$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
+        </div>
+
+        <div class="card-body" id="body-admin-root" style="display: none;">
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Issuer (Self-Signed):</span>
+              <span class="meta-value" id="admin-ca-issuer">CN=MyRootCA</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Subject:</span>
+              <span class="meta-value" id="admin-ca-subject">CN=MyRootCA</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Validity Period:</span>
+              <span class="meta-value" id="admin-ca-dates">365 Days</span>
+            </div>
+          </div>
+
+          <details class="details-panel">
+            <summary>Show Root CA Certificate PEM &amp; OpenSSL Text</summary>
+            <div class="details-content">
+              <pre class="mono-display pem" id="admin-ca-pem">-</pre>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- CARD 2: CLIENT CERTIFICATE MANAGEMENT & SIGNING -->
+      <section class="step-card active">
+        <div class="card-head">
+          <div class="card-title-group">
+            <span class="step-tag">Admin · Certificate Authority</span>
+            <h2>Client Certificate Requests &amp; Issuance</h2>
+            <p class="step-tagline">
+              Inspect pending Certificate Signing Requests (CSRs) from clients and issue signed X.509 certificates.
+            </p>
+          </div>
+        </div>
+
+        <div class="card-body" style="display: flex;">
+          <div class="table-container">
+            <table class="minimal-table" id="admin-clients-table">
+              <thead>
+                <tr>
+                  <th>Client Name</th>
+                  <th>Private Key</th>
+                  <th>CSR (Request)</th>
+                  <th>X.509 Certificate</th>
+                  <th>Admin Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-clients-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CARD 3: SECURITY & UNTRUSTED CA ATTACK TEST -->
+      <section class="step-card active">
+        <div class="card-head">
+          <div class="card-title-group">
+            <span class="step-tag">Admin · Security Check</span>
+            <h2>Untrusted / Fake CA Attack Detection</h2>
+            <p class="step-tagline">
+              Verify how OpenSSL verifies trust boundaries when a rogue attacker attempts to sign unauthorized certificates.
+            </p>
+          </div>
+          <button id="btn-admin-fake-test" class="btn-solid btn-danger-action">
+            Test Fake CA Attack
+          </button>
+        </div>
+
+        <div class="cmd-pill">
+          <code>$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
+        </div>
+
+        <div class="card-body" id="body-admin-fake" style="display: none;">
+          <div class="result-banner invalid" id="admin-fake-banner">
+            <span class="res-icon">✕</span>
+            <span class="res-text" id="admin-fake-text">
+              Verification Failure: unable to get local issuer certificate (Untrusted CA caught!)
+            </span>
+          </div>
+          <p class="hint-text">
+            <strong>Security Principle:</strong> In Web2 PKI, clients reject any certificate whose issuer cannot be chained back to a trusted Root CA in the system's trust store.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: CLIENT PERSPECTIVE (ALICE / BOB / ETC) -->
+    <!-- ===================================================================== -->
+    <div id="view-client" class="role-view" style="display: none;">
+      <!-- CLIENT HEADER BAR -->
+      <div class="client-perspective-strip">
+        <div class="client-badge-hero">
+          <span class="client-avatar">👤</span>
+          <div>
+            <div class="client-perspective-name" id="client-view-name">Client</div>
+            <div class="client-perspective-sub">Client Perspective · Common Name: <span id="client-view-cn">CN=Client</span></div>
+          </div>
+        </div>
+        <div class="file-badges">
+          <div class="f-badge" id="fb-client-key">
+            <span class="f-dot"></span>
+            <span class="f-name" id="fn-client-key">client.key</span>
+            <span class="f-state" id="fs-client-key">not created</span>
+          </div>
+          <div class="f-badge" id="fb-client-csr">
+            <span class="f-dot"></span>
+            <span class="f-name" id="fn-client-csr">client.csr</span>
+            <span class="f-state" id="fs-client-csr">not created</span>
+          </div>
+          <div class="f-badge" id="fb-client-crt">
+            <span class="f-dot"></span>
+            <span class="f-name" id="fn-client-crt">client.crt</span>
+            <span class="f-state" id="fs-client-crt">not created</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLIENT SUB-TABS -->
+      <nav class="subtabs-nav">
+        <button class="subtab-btn active" data-subtab="identity">
+          🪪 Identity &amp; Certificate
+        </button>
+        <button class="subtab-btn" data-subtab="send">
+          📤 Send Encrypted Document
+        </button>
+        <button class="subtab-btn" data-subtab="inbox">
+          📬 Inbox (<span id="inbox-tab-count">0</span>)
+        </button>
+      </nav>
+
+      <!-- SUBTAB 1: IDENTITY & CERTIFICATE -->
+      <div id="subtab-identity" class="subtab-panel active">
+        <!-- KEY & CSR GENERATION -->
+        <section class="step-card active">
+          <div class="card-head">
+            <div class="card-title-group">
+              <span class="step-tag">Identity · Key &amp; CSR</span>
+              <h2>Generate Private Key &amp; CSR</h2>
+              <p class="step-tagline">
+                Generate your personal EC private key (secp256k1) and a Certificate Signing Request (CSR) containing your public key.
+              </p>
+            </div>
+            <button id="btn-client-gen-key" class="btn-solid">
+              Generate Key &amp; CSR
+            </button>
+          </div>
+
+          <div class="cmd-pill">
+            <code id="cmd-client-csr">$ openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
+          </div>
+
+          <div class="card-body" id="body-client-identity" style="display: none;">
+            <div class="meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Identity Common Name:</span>
+                <span class="meta-value" id="client-info-cn">CN=Alice</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Public Key Algorithm:</span>
+                <span class="meta-value">id-ecPublicKey (secp256k1)</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Root CA Status:</span>
+                <span class="meta-value" id="client-info-cert-status">Not Signed Yet</span>
+              </div>
+            </div>
+
+            <details class="details-panel">
+              <summary>Show CSR Contents &amp; Text</summary>
+              <div class="details-content">
+                <pre class="mono-display pem" id="client-csr-text">-</pre>
+              </div>
+            </details>
+
+            <details class="details-panel" id="client-crt-details" style="display: none;">
+              <summary>Show Issued X.509 Certificate (.crt)</summary>
+              <div class="details-content">
+                <pre class="mono-display pem" id="client-crt-text">-</pre>
+              </div>
+            </details>
+
+            <div class="step-footer" id="client-verify-footer" style="display: none;">
+              <span class="status-msg">Your certificate is signed by the Root CA.</span>
+              <button id="btn-client-verify-ca" class="btn-outline">Verify with Root CA ➔</button>
+            </div>
+
+            <div class="result-banner valid" id="client-verify-banner" style="display: none; margin-top: 12px;">
+              <span class="res-icon">✓</span>
+              <span class="res-text" id="client-verify-banner-text">Certificate Validated by MyRootCA</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SUBTAB 2: SEND ENCRYPTED DOCUMENT -->
+      <div id="subtab-send" class="subtab-panel" style="display: none;">
+        <!-- WARNING WHEN NO OTHER CERTIFIED CLIENT EXISTS -->
+        <div id="no-recipients-warning" class="warning-box" style="display: none;">
+          <span class="warning-icon">⚠️</span>
+          <div class="warning-content">
+            <strong>Cannot Send Document: No Eligible Recipients Found</strong>
+            <p>
+              In Public Key Infrastructure (PKI), you must lock a document using the <em>recipient's signed certificate</em>.
+              Currently, there are no other clients with a valid Root CA certificate.
+            </p>
+            <p class="warning-sub">
+              👉 Switch your role in the top right to <strong>Admin (Root CA)</strong> (or click <strong>"+ Add Client"</strong>) to register another client (e.g. Bob) and issue their certificate first.
+            </p>
+          </div>
+        </div>
+
+        <!-- SEND DOCUMENT FORM -->
+        <section class="step-card active" id="card-send-form">
+          <div class="card-head">
+            <div class="card-title-group">
+              <span class="step-tag">Confidentiality · OpenSSL CMS</span>
+              <h2>Send Encrypted Document to Another Client</h2>
+              <p class="step-tagline">
+                Lock a secret document using the recipient's public certificate. It will be delivered directly to the recipient's Inbox.
+              </p>
+            </div>
+            <button id="btn-client-send-doc" class="btn-solid">
+              Encrypt &amp; Send
+            </button>
+          </div>
+
+          <div class="cmd-pill">
+            <code id="cmd-client-send">$ openssl cms -encrypt -in document.txt -out msg.enc recipient.crt</code>
+          </div>
+
+          <div class="card-body" style="display: flex;">
+            <div class="transfer-grid">
+              <div class="input-group">
+                <label class="field-label" for="send-sender-display">Sender (From):</label>
+                <input type="text" id="send-sender-display" class="text-input" readonly value="" placeholder="Current Client" />
+              </div>
+              <div class="input-group">
+                <label class="field-label" for="send-recipient-select">Recipient (Whose certificate locks the file):</label>
+                <select id="send-recipient-select" class="client-dropdown">
+                  <!-- Dynamically populated with other certified clients -->
+                </select>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="field-label" for="send-doc-title">Document Title / Subject:</label>
+              <input type="text" id="send-doc-title" class="text-input" value="Q4 Financial &amp; Bonus Report 2026" />
+            </div>
+
+            <div class="input-group">
+              <label class="field-label" for="send-doc-message">Document Content (Confidential text to encrypt):</label>
+              <textarea id="send-doc-message" class="text-input text-area" rows="3">Confidential: Authorized \$500,000 budget transfer for blockchain R&amp;D.</textarea>
+            </div>
+
+            <!-- DIGITAL SIGNATURE TOGGLE & SENDER CERTIFICATE VALIDATION -->
+            <div class="signature-option-box">
+              <label class="checkbox-label" for="send-sign-checkbox">
+                <input type="checkbox" id="send-sign-checkbox" checked />
+                <span><strong>Attach Digital Signature</strong> (Authenticates sender identity using your private key &amp; certificate)</span>
+              </label>
+              <div id="sender-cert-warning" class="hint-warning" style="display: none;">
+                ⚠️ <strong>Sender Certificate Required:</strong> To attach a digital signature, you must hold an issued Root CA certificate (<span id="warn-sender-crt">client.crt</span>). Switch to <strong>Admin</strong> to sign your CSR, or uncheck this box to send without a signature (anonymous).
+              </div>
+            </div>
+
+            <div class="result-banner valid" id="send-success-banner" style="display: none; margin-top: 10px;">
+              <span class="res-icon">✓</span>
+              <span class="res-text" id="send-success-text">Document encrypted and delivered to recipient's Inbox!</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- SUBTAB 3: INBOX -->
+      <div id="subtab-inbox" class="subtab-panel" style="display: none;">
+        <div class="inbox-header">
+          <div>
+            <h3>📬 Received Documents for <span id="inbox-owner-name">-</span></h3>
+            <p class="hint-text">Documents encrypted with your certificate. Only your private key can unlock them.</p>
+          </div>
+          <button id="btn-refresh-inbox" class="btn-outline btn-sm">↻ Refresh Inbox</button>
+        </div>
+
+        <div id="inbox-list" class="inbox-list">
+          <!-- Dynamically populated with message cards or empty state -->
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE OPENSSL TERMINAL DRAWER (EXPANDABLE) -->
+    <footer class="footer-terminal">
+      <details class="terminal-drawer">
+        <summary class="terminal-summary">
+          <span class="term-status-dot"></span>
+          <span>Live OpenSSL 3.6.3 Terminal Command Log</span>
+          <span class="term-hint">(click to toggle)</span>
+        </summary>
+        <div class="terminal-box" id="term-box">
+          <div class="term-line">Ready. OpenSSL commands will appear here.</div>
+        </div>
+      </details>
+    </footer>
+  </div>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
