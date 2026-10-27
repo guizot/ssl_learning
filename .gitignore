@@ -22,3 +22,7 @@ npm-debug.log*
 
 # Screenshot artifacts
 *.png
+
+# Python cache
+__pycache__/
+*.pyc

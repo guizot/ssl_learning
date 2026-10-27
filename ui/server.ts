@@ -597,6 +597,20 @@ const server = http.createServer(async (req, res) => {
       const body = await readJsonBody(req);
       const store = loadCAStore();
       const id = body.id || store.activeId;
+
+      if (!fs.existsSync(path.join(CA_ROOT_DIR, "root_ca.crt")) || !fs.existsSync(path.join(CA_ROOT_DIR, "root_ca.key"))) {
+        return sendJson(res, 400, {
+          error: "Root CA has not been initialized yet. Please initialize the Root CA in Admin view before issuing certificates.",
+        });
+      }
+
+      const clientCsrPath = path.join(CA_CLIENTS_DIR, id, `${id}.csr`);
+      if (!fs.existsSync(clientCsrPath)) {
+        return sendJson(res, 400, {
+          error: `Client '${id}' has not generated a CSR yet (clients/${id}/${id}.csr missing). Please generate keypair & CSR first.`,
+        });
+      }
+
       const logs: OpenSSLLog[] = [];
 
       logs.push(
