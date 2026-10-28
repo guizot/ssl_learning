@@ -241,6 +241,7 @@ select {
 @media (min-width: 640px) {
   .status-pill {
     height: 32px;
+    max-width: 140px;
   }
 }
 

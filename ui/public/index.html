@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=5.3" />
+  <link rel="stylesheet" href="/styles.css?v=5.4" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -215,6 +215,13 @@
         </div>
 
         <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
+          <div id="admin-table-header" class="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-zinc-900/60 border-b border-zinc-800 text-[10px] font-mono uppercase font-bold text-zinc-500 items-center">
+            <div class="col-span-3 text-left">Client Identity</div>
+            <div class="col-span-2 text-center">Private Key</div>
+            <div class="col-span-2 text-center">CSR</div>
+            <div class="col-span-2 text-center">Certificate</div>
+            <div class="col-span-3 text-right">Actions</div>
+          </div>
           <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
             <!-- Dynamically populated card rows -->
           </div>
@@ -582,7 +589,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=5.3" type="module"></script>
+  <script src="/app.js?v=5.5" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

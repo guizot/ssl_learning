@@ -315,12 +315,10 @@ function renderAdminView() {
 
   // Clients list in Admin View (Antigravity Manager Style)
   const tbody = document.getElementById("admin-clients-tbody");
-  const countBadge = document.getElementById("admin-clients-count-badge");
-  if (countBadge) {
-    countBadge.textContent = `${caState.clients.length} Registered`;
-  }
+  const tableHeader = document.getElementById("admin-table-header");
 
   if (!caState.clients || caState.clients.length === 0) {
+    if (tableHeader) tableHeader.style.display = "none";
     tbody.innerHTML = `
       <div class="p-8 text-center space-y-2">
         <div class="w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
@@ -335,6 +333,8 @@ function renderAdminView() {
     if (window.lucide) window.lucide.createIcons();
     return;
   }
+
+  if (tableHeader) tableHeader.style.display = "";
 
   tbody.innerHTML = caState.clients
     .map((c) => {
@@ -362,64 +362,86 @@ function renderAdminView() {
       if (c.crtExists) {
         if (!c.csrExists) {
           actionBtn = `
-            <div class="flex-1 sm:w-40 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-rose-900/50 bg-rose-950/20 text-[11px] font-mono text-rose-400 text-center">No CSR to Sign</div>
-            <button class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+            <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-rose-900/50 bg-rose-950/20 text-[11px] font-mono text-rose-400 text-center">No CSR to Sign</div>
+            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           `;
         } else {
           let btnLabel = "Re-sign";
           if (!c.crtValid) btnLabel = "Re-sign with CA";
           else if (!c.keyMatchesCrt) btnLabel = "Re-sign with Key";
           actionBtn = `
-            <button class="btn-solid btn-sm btn-re-sign flex-1 sm:w-40 h-9 sm:h-8 text-center" data-id="${escapeHtml(c.id)}">
+            <button class="btn-solid btn-sm btn-re-sign flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 text-center" data-id="${escapeHtml(c.id)}">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span>${btnLabel}</span>
             </button>
-            <button class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           `;
         }
       } else if (c.csrExists) {
         actionBtn = `
-          <button class="btn-solid btn-sm btn-sign-cert flex-1 sm:w-40 h-9 sm:h-8 text-center" data-id="${escapeHtml(c.id)}">
+          <button class="btn-solid btn-sm btn-sign-cert flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 text-center" data-id="${escapeHtml(c.id)}">
             <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
             <span>Sign &amp; Issue Cert</span>
           </button>
-          <button class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
         `;
       } else {
         actionBtn = `
-          <div class="flex-1 sm:w-40 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-zinc-800 text-[11px] font-mono text-zinc-500 text-center">Awaiting Key &amp; CSR</div>
-          <button class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+          <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-zinc-800 text-[11px] font-mono text-zinc-500 text-center">Awaiting Key &amp; CSR</div>
+          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
         `;
       }
 
       return `
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 gap-3 hover:bg-zinc-800/30 transition">
-          <div class="flex items-center gap-3 min-w-0 sm:w-36 shrink-0">
-            <div class="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
-              ${escapeHtml(initial)}
+        <div class="p-3.5 sm:px-4 sm:py-3 hover:bg-zinc-800/30 transition flex flex-col sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center gap-3">
+          <!-- Col 1: Identity (span 3) -->
+          <div class="flex items-center justify-between sm:justify-start gap-3 min-w-0 sm:col-span-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
+                ${escapeHtml(initial)}
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs font-semibold text-zinc-100 truncate">${escapeHtml(c.name)}</div>
+                <div class="text-[11px] text-zinc-500 font-mono truncate">id: ${escapeHtml(c.id)}</div>
+              </div>
             </div>
-            <div class="min-w-0">
-              <div class="text-xs font-semibold text-zinc-100 truncate">${escapeHtml(c.name)}</div>
-              <div class="text-[11px] text-zinc-500 font-mono truncate">id: ${escapeHtml(c.id)}</div>
-            </div>
+            <!-- Mobile Only Delete Button -->
+            <button class="sm:hidden inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           </div>
 
-          <div class="grid grid-cols-3 gap-2 w-full sm:flex-1 sm:max-w-md text-xs">
+          <!-- Col 2: Key Badge (span 2, Desktop only) -->
+          <div class="hidden sm:flex sm:col-span-2 justify-center">
+            ${keyBadge}
+          </div>
+
+          <!-- Col 3: CSR Badge (span 2, Desktop only) -->
+          <div class="hidden sm:flex sm:col-span-2 justify-center">
+            ${csrBadge}
+          </div>
+
+          <!-- Col 4: Cert Badge (span 2, Desktop only) -->
+          <div class="hidden sm:flex sm:col-span-2 justify-center">
+            ${crtBadge}
+          </div>
+
+          <!-- Mobile Only 3-pill grid -->
+          <div class="grid grid-cols-3 gap-2 w-full sm:hidden text-xs">
             <div class="flex flex-col gap-1 min-w-0">
               <span class="text-zinc-500 text-[10px] uppercase font-bold font-mono text-center">Key</span>
-              <div class="w-full flex">${keyBadge}</div>
+              ${keyBadge}
             </div>
             <div class="flex flex-col gap-1 min-w-0">
               <span class="text-zinc-500 text-[10px] uppercase font-bold font-mono text-center">CSR</span>
-              <div class="w-full flex">${csrBadge}</div>
+              ${csrBadge}
             </div>
             <div class="flex flex-col gap-1 min-w-0">
               <span class="text-zinc-500 text-[10px] uppercase font-bold font-mono text-center">Cert</span>
-              <div class="w-full flex">${crtBadge}</div>
+              ${crtBadge}
             </div>
           </div>
 
-          <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0">
+          <!-- Col 5: Actions (span 3) -->
+          <div class="flex items-center gap-2 sm:justify-end sm:col-span-3 w-full sm:w-auto">
             ${actionBtn}
           </div>
         </div>
