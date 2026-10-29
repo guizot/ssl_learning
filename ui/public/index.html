@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=5.4" />
+  <link rel="stylesheet" href="/styles.css?v=5.5" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -82,7 +82,7 @@
           <div class="flex items-center gap-2 px-3 h-9 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex-1 sm:flex-initial min-w-0">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             <label class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0" for="global-role-select">Role:</label>
-            <select id="global-role-select" class="w-full min-w-0 max-w-[200px] sm:max-w-xs bg-transparent border-none text-zinc-200 text-xs font-medium focus:outline-none cursor-pointer truncate">
+            <select id="global-role-select" class="w-full min-w-0 flex-1 bg-transparent border-none text-zinc-200 text-xs font-medium focus:outline-none cursor-pointer truncate">
               <option value="admin">Admin (Root CA)</option>
             </select>
           </div>
@@ -589,7 +589,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=5.5" type="module"></script>
+  <script src="/app.js?v=5.6" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
