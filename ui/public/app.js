@@ -45,6 +45,51 @@ function logTerminal(command, output) {
   termBox.scrollTop = termBox.scrollHeight;
 }
 
+// OpenSSL Command & Execution Output Section Renderer
+function renderCmdOutput(detailsId, codeId, { commands = [], outputs = [], status = "success", customHtml = null }) {
+  const detailsEl = document.getElementById(detailsId);
+  const codeEl = document.getElementById(codeId);
+  if (!codeEl) return;
+
+  codeEl.setAttribute("data-has-output", "true");
+
+  if (customHtml) {
+    codeEl.innerHTML = customHtml;
+  } else {
+    let html = "";
+    if (commands && commands.length > 0) {
+      const cmdsFormatted = commands
+        .map((c) => {
+          const trimmed = String(c || "").trim();
+          if (trimmed.startsWith("$") || trimmed.startsWith("[") || trimmed.startsWith("#")) {
+            return `<span class="text-zinc-200 font-semibold">${escapeHtml(trimmed)}</span>`;
+          }
+          return `<span class="text-zinc-200 font-semibold">$ ${escapeHtml(trimmed)}</span>`;
+        })
+        .join("\n");
+      html += cmdsFormatted;
+    }
+
+    if (outputs && outputs.length > 0) {
+      if (html) html += "\n\n";
+      const outText = outputs.join("\n");
+      let statusClass = "text-emerald-400";
+      if (status === "error" || status === "failed") {
+        statusClass = "text-rose-400";
+      } else if (status === "warning") {
+        statusClass = "text-amber-400";
+      }
+      html += `<span class="${statusClass}">${escapeHtml(outText)}</span>`;
+    }
+
+    codeEl.innerHTML = html;
+  }
+
+  if (detailsEl) {
+    detailsEl.open = true;
+  }
+}
+
 // ============================================================================
 // STATE SYNC & UI RENDER
 // ============================================================================
@@ -620,6 +665,32 @@ function renderAdminView() {
           data.opensslLogs.forEach((l) => logTerminal(l.command, l.output));
         }
         await syncCAState();
+
+        if (res.ok && data.success) {
+          renderCmdOutput("cmd-details-admin-sign", "cmd-code-admin-sign", {
+            commands: [
+              `openssl x509 -req -in clients/${id}/${id}.csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/${id}/${id}.crt -days 365 -sha256`
+            ],
+            outputs: [
+              `[✓ Success] Certificate successfully issued for ${id}!`,
+              `Signed by: CN=MyRootCA (Master Root CA)`,
+              `Output Certificate: clients/${id}/${id}.crt (Valid 365 days)`
+            ],
+            status: "success",
+          });
+        } else {
+          renderCmdOutput("cmd-details-admin-sign", "cmd-code-admin-sign", {
+            commands: [`openssl x509 -req -in clients/${id}/${id}.csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/${id}/${id}.crt -days 365 -sha256`],
+            outputs: [`[✕ Signing Failed] ${data.error || "Unable to issue certificate"}`],
+            status: "error",
+          });
+        }
+      } catch (err) {
+        renderCmdOutput("cmd-details-admin-sign", "cmd-code-admin-sign", {
+          commands: [`openssl x509 -req -in clients/${id}/${id}.csr ...`],
+          outputs: [`[✕ Error] ${err.message}`],
+          status: "error",
+        });
       } finally {
         btn.innerHTML = isReSign
           ? `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Re-sign</span>`
@@ -661,6 +732,34 @@ document.getElementById("btn-admin-init-root").addEventListener("click", async (
       data.opensslLogs.forEach((l) => logTerminal(l.command, l.output));
     }
     await syncCAState();
+
+    if (res.ok && data.success) {
+      renderCmdOutput("cmd-details-admin-root", "cmd-code-admin-root", {
+        commands: [
+          "openssl ecparam -name secp256k1 -genkey -noout -out ca/root_ca.key",
+          'openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"'
+        ],
+        outputs: [
+          "[✓ Success] Root CA initialized successfully!",
+          "Identity: CN=MyRootCA, O=GlobalTrustAuthority, C=ID",
+          "Algorithm: secp256k1 (256-bit Elliptic Curve)",
+          "Status: Master Trust Anchor is active and ready to sign client CSRs."
+        ],
+        status: "success",
+      });
+    } else {
+      renderCmdOutput("cmd-details-admin-root", "cmd-code-admin-root", {
+        commands: ['openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"'],
+        outputs: [`[✕ Failed] ${data.error || "Root CA initialization failed"}`],
+        status: "error",
+      });
+    }
+  } catch (err) {
+    renderCmdOutput("cmd-details-admin-root", "cmd-code-admin-root", {
+      commands: ['openssl req -new -x509 ...'],
+      outputs: [`[✕ Error] ${err.message}`],
+      status: "error",
+    });
   } finally {
     btn.innerHTML = `<i data-lucide="plus-circle" class="w-3.5 h-3.5"></i><span>${caState.rootCaExists ? "Re-initialize Root CA" : "Initialize Root CA"}</span>`;
     if (window.lucide) window.lucide.createIcons();
@@ -672,7 +771,11 @@ document.getElementById("btn-admin-init-root").addEventListener("click", async (
 document.getElementById("btn-admin-fake-test").addEventListener("click", async () => {
   const targetClient = caState.clients ? caState.clients[0] : null;
   if (!targetClient) {
-    await showAlertModal("No Clients Found", "Please create at least one client before simulating a fake CA attack.", "alert-triangle");
+    renderCmdOutput("cmd-details-admin-fake", "cmd-code-admin-fake", {
+      commands: [`openssl verify -CAfile ca/root_ca.crt clients/...`],
+      outputs: [`[✕ Error] No clients registered yet. Please create at least one client before simulating a fake CA attack.`],
+      status: "error",
+    });
     return;
   }
   const btn = document.getElementById("btn-admin-fake-test");
@@ -689,7 +792,24 @@ document.getElementById("btn-admin-fake-test").addEventListener("click", async (
     if (data.opensslLog) {
       logTerminal(data.opensslLog.command, data.opensslLog.output);
     }
-    document.getElementById("body-admin-fake").style.display = "flex";
+
+    renderCmdOutput("cmd-details-admin-fake", "cmd-code-admin-fake", {
+      commands: [
+        `openssl verify -CAfile ca/root_ca.crt clients/${targetClient.id}/fake_${targetClient.id}.crt`
+      ],
+      outputs: [
+        `[✕ Verification Failed - Expected Security Attack Blocked]`,
+        data.opensslLog ? data.opensslLog.output : "error 20 at 0 depth lookup: unable to get local issuer certificate",
+        `OpenSSL successfully rejected untrusted CA! Rogue attacker certificates cannot breach the trusted Root chain.`
+      ],
+      status: "error",
+    });
+  } catch (err) {
+    renderCmdOutput("cmd-details-admin-fake", "cmd-code-admin-fake", {
+      commands: [`openssl verify -CAfile ca/root_ca.crt clients/...`],
+      outputs: [`[✕ Error] ${err.message}`],
+      status: "error",
+    });
   } finally {
     btn.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span>Test Fake CA Attack</span>`;
     if (window.lucide) window.lucide.createIcons();
@@ -822,7 +942,11 @@ function renderClientIdentity(client) {
   if (btnRemoveKeyCsr) btnRemoveKeyCsr.style.display = (client.keyExists || client.csrExists) ? "inline-flex" : "none";
   if (btnRemoveCrt) btnRemoveCrt.style.display = client.crtExists ? "inline-flex" : "none";
 
-  cmdCsr.textContent = `$ openssl ecparam -name secp256k1 -genkey -noout -out clients/${client.id}/${client.id}.key && openssl req -new -key clients/${client.id}/${client.id}.key -out clients/${client.id}/${client.id}.csr -subj "/CN=${client.name}/O=Users/C=ID"`;
+  if (cmdCsr && (!cmdCsr.getAttribute("data-has-output") || cmdCsr.getAttribute("data-client-id") !== client.id)) {
+    cmdCsr.setAttribute("data-client-id", client.id);
+    cmdCsr.removeAttribute("data-has-output");
+    cmdCsr.textContent = `$ openssl ecparam -name secp256k1 -genkey -noout -out clients/${client.id}/${client.id}.key && openssl req -new -key clients/${client.id}/${client.id}.key -out clients/${client.id}/${client.id}.csr -subj "/CN=${client.name}/O=Users/C=ID"`;
+  }
   document.getElementById("client-info-cn").textContent = `CN=${client.name}`;
 
   if ((client.keyExists || client.csrExists || client.crtExists) && caState.activeDetails) {
@@ -878,7 +1002,9 @@ function renderClientIdentity(client) {
         caState.activeDetails.crtText || caState.activeDetails.crtPem;
 
       const cmdVerify = document.getElementById("cmd-client-verify");
-      if (cmdVerify) {
+      if (cmdVerify && (!cmdVerify.getAttribute("data-has-output") || cmdVerify.getAttribute("data-client-id") !== client.id)) {
+        cmdVerify.setAttribute("data-client-id", client.id);
+        cmdVerify.removeAttribute("data-has-output");
         cmdVerify.textContent = `$ openssl verify -CAfile ca/root_ca.crt clients/${client.id}/${client.id}.crt`;
       }
       const verifySec = document.getElementById("section-client-verify");
@@ -919,6 +1045,34 @@ function renderClientIdentity(client) {
     data.opensslLogs.forEach((l) => logTerminal(l.command, l.output));
   }
   await syncCAState();
+
+  if (res.ok && data.success) {
+    renderCmdOutput("cmd-details-client-csr", "cmd-client-csr", {
+      commands: [
+        `openssl ecparam -name secp256k1 -genkey -noout -out clients/${activeClient.id}/${activeClient.id}.key`,
+        `openssl req -new -key clients/${activeClient.id}/${activeClient.id}.key -out clients/${activeClient.id}/${activeClient.id}.csr -subj "/CN=${activeClient.name}/O=Users/C=ID"`
+      ],
+      outputs: [
+        `[✓ Success] Keypair and CSR generated successfully for ${activeClient.name}!`,
+        `Private Key: clients/${activeClient.id}/${activeClient.id}.key (secp256k1 EC 256-bit)`,
+        `CSR: clients/${activeClient.id}/${activeClient.id}.csr (Subject: CN=${activeClient.name})`,
+        `Next Step: Switch role to Admin to sign and issue certificate.`
+      ],
+      status: "success",
+    });
+  } else {
+    renderCmdOutput("cmd-details-client-csr", "cmd-client-csr", {
+      commands: [`openssl ecparam ... && openssl req ...`],
+      outputs: [`[✕ Generation Failed] ${data.error || "Unable to generate key and CSR"}`],
+      status: "error",
+    });
+  }
+  } catch (err) {
+    renderCmdOutput("cmd-details-client-csr", "cmd-client-csr", {
+      commands: [`openssl ecparam ...`],
+      outputs: [`[✕ Error] ${err.message}`],
+      status: "error",
+    });
   } finally {
   btn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>${activeClient.csrExists ? "Re-generate Key & CSR" : "Generate Key & CSR"}</span>`;
   if (window.lucide) window.lucide.createIcons();
@@ -942,26 +1096,53 @@ function renderClientIdentity(client) {
       if (data.opensslLog) {
         logTerminal(data.opensslLog.command, data.opensslLog.output);
       }
-      const banner = document.getElementById("client-verify-banner");
-      const bannerText = document.getElementById("client-verify-banner-text");
-      const bannerIcon = banner.querySelector("i, svg");
-      banner.style.display = "flex";
+
+      const verifyCmd = `openssl verify -CAfile ca/root_ca.crt clients/${caState.activeRole}/${caState.activeRole}.crt`;
+
+      await syncCAState();
 
       if (!data.isValid) {
-        banner.className = "rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 flex items-center gap-2";
-        if (bannerIcon) bannerIcon.setAttribute("data-lucide", "shield-x");
-        bannerText.textContent = `Verification Failed: unable to get local issuer certificate. Root CA was re-initialized; certificate needs re-signing in Admin view!`;
+        renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
+          commands: [verifyCmd],
+          outputs: [
+            `[✕ Verification Failed]`,
+            data.opensslLog ? data.opensslLog.output : "error 20 at 0 depth lookup: unable to get local issuer certificate",
+            `Root CA was re-initialized; certificate needs re-signing in Admin view!`
+          ],
+          status: "error",
+        });
       } else if (!data.keyMatchesCrt) {
-        banner.className = "rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 flex items-center gap-2";
-        if (bannerIcon) bannerIcon.setAttribute("data-lucide", "alert-triangle");
-        bannerText.textContent = `${caState.activeRole}.crt: Valid with Root CA, BUT Key Mismatched! Your private key was re-generated; certificate holds old public key. Please ask Admin to re-sign.`;
+        renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
+          commands: [
+            verifyCmd,
+            `openssl pkey -in clients/${caState.activeRole}/${caState.activeRole}.key -pubout`,
+            `openssl x509 -in clients/${caState.activeRole}/${caState.activeRole}.crt -pubkey -noout`
+          ],
+          outputs: [
+            `[⚠ Key Mismatched]`,
+            `Certificate is verified by Root CA, but public key in certificate does NOT match your local private key!`,
+            `Please ask Admin to re-sign certificate with your updated CSR.`
+          ],
+          status: "warning",
+        });
       } else {
-        banner.className = "rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-center gap-2";
-        if (bannerIcon) bannerIcon.setAttribute("data-lucide", "check");
-        bannerText.textContent = `${caState.activeRole}.crt: OK (Authentic & Validated by Root CA, Matches Private Key)`;
+        renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
+          commands: [verifyCmd],
+          outputs: [
+            `[✓ Verified OK]`,
+            `clients/${caState.activeRole}/${caState.activeRole}.crt: OK`,
+            `Authentic & Validated by Root CA (secp256k1 key matches certificate)`
+          ],
+          status: "success",
+        });
       }
       if (window.lucide) window.lucide.createIcons();
-      await syncCAState();
+    } catch (err) {
+      renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
+        commands: [`openssl verify -CAfile ca/root_ca.crt clients/${caState.activeRole}/${caState.activeRole}.crt`],
+        outputs: [`[✕ Error] ${err.message}`],
+        status: "error",
+      });
     } finally {
       btn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span>Verify with Root CA</span>`;
       if (window.lucide) window.lucide.createIcons();
@@ -997,6 +1178,16 @@ async function removeClientFile(fileType) {
     logTerminal(data.opensslLog.command, data.opensslLog.output);
   }
   await syncCAState();
+
+  if (res.ok && data.success) {
+    renderCmdOutput("cmd-details-client-csr", "cmd-client-csr", {
+      commands: [`rm -f clients/${activeClient.id}/${activeClient.id}.${isKeyCsr ? "{key,csr}" : "crt"}`],
+      outputs: [
+        `[✓ Success] File(s) removed: ${data.removedFiles ? data.removedFiles.join(", ") : fileType}`
+      ],
+      status: "warning",
+    });
+  }
 }
 
 document.getElementById("btn-client-remove-key-csr")?.addEventListener("click", () => {
@@ -1041,27 +1232,47 @@ function renderClientSendTab(client) {
 
   // Check sender certificate requirement for digital signature
   validateSenderCertForSigning(client);
-  updateSendCmdPreview();
+
+  const cmdSendEl = document.getElementById("cmd-client-send");
+  if (cmdSendEl && (!cmdSendEl.getAttribute("data-has-output") || cmdSendEl.getAttribute("data-client-id") !== client.id)) {
+    cmdSendEl.setAttribute("data-client-id", client.id);
+    cmdSendEl.removeAttribute("data-has-output");
+    updateSendCmdPreview();
+  }
 }
 
 function validateSenderCertForSigning(client) {
   const signCheckbox = document.getElementById("send-sign-checkbox");
   const senderCertWarning = document.getElementById("sender-cert-warning");
+  const sendContainer = document.getElementById("send-sign-container");
   const sendBtn = document.getElementById("btn-client-send-doc");
 
-  if (signCheckbox.checked && (!client.crtExists || !client.crtValid || !client.keyMatchesCrt)) {
-    senderCertWarning.style.display = "block";
-    if (!client.crtExists) {
-      senderCertWarning.innerHTML = `<strong>Sender Certificate Required:</strong> To attach a signature, your CSR must be signed by Root CA (${client.id}.crt).`;
-    } else if (!client.crtValid) {
-      senderCertWarning.innerHTML = `<strong>Sender Certificate Broken:</strong> Root CA was re-initialized. Your certificate signature is invalid and must be re-signed in Admin view before sending signed documents!`;
-    } else {
-      senderCertWarning.innerHTML = `<strong>Key Mismatched:</strong> Your private key was re-generated and no longer matches your certificate (${client.id}.crt). Please ask Admin to re-sign before attaching signatures!`;
+  const hasIssue = !client.crtExists || !client.crtValid || !client.keyMatchesCrt;
+
+  if (signCheckbox && signCheckbox.checked && hasIssue) {
+    if (sendContainer) {
+      sendContainer.className = "rounded-lg bg-amber-500/10 border border-amber-500/40 p-3 space-y-1.5 transition-colors";
     }
-    sendBtn.disabled = true;
+    if (senderCertWarning) {
+      senderCertWarning.style.display = "block";
+      if (!client.crtExists) {
+        senderCertWarning.innerHTML = `<strong>Sender Certificate Required:</strong> To attach a signature, your CSR must be signed by Root CA (${escapeHtml(client.id)}.crt).`;
+      } else if (!client.crtValid) {
+        senderCertWarning.innerHTML = `<strong>Sender Certificate Broken:</strong> Root CA was re-initialized. Your certificate signature is invalid and must be re-signed in Admin view before sending signed documents!`;
+      } else {
+        senderCertWarning.innerHTML = `<strong>Key Mismatched:</strong> Your private key was re-generated and no longer matches your certificate (${escapeHtml(client.id)}.crt). Please ask Admin to re-sign before attaching signatures!`;
+      }
+    }
+    if (sendBtn) sendBtn.disabled = true;
   } else {
-    senderCertWarning.style.display = "none";
-    sendBtn.disabled = false;
+    if (sendContainer) {
+      sendContainer.className = "rounded-lg bg-zinc-950 border border-zinc-800 p-3 space-y-1.5 transition-colors";
+    }
+    if (senderCertWarning) {
+      senderCertWarning.style.display = "none";
+      senderCertWarning.innerHTML = "";
+    }
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -1080,12 +1291,18 @@ function updateSendCmdPreview() {
   }
 }
 
-document.getElementById("send-recipient-select").addEventListener("change", updateSendCmdPreview);
-document.getElementById("send-sign-checkbox").addEventListener("change", () => {
+function onSendFormChange() {
+  const cmdSendEl = document.getElementById("cmd-client-send");
+  if (cmdSendEl) cmdSendEl.removeAttribute("data-has-output");
   const client = caState.clients.find((c) => c.id === caState.activeRole);
   if (client) validateSenderCertForSigning(client);
   updateSendCmdPreview();
-});
+}
+
+document.getElementById("send-recipient-select").addEventListener("change", onSendFormChange);
+document.getElementById("send-sign-checkbox").addEventListener("change", onSendFormChange);
+document.getElementById("send-doc-title")?.addEventListener("input", onSendFormChange);
+document.getElementById("send-doc-message")?.addEventListener("input", onSendFormChange);
 
 document.getElementById("btn-client-send-doc").addEventListener("click", async () => {
   const senderId = caState.activeRole;
@@ -1095,11 +1312,19 @@ document.getElementById("btn-client-send-doc").addEventListener("click", async (
   const isSigned = document.getElementById("send-sign-checkbox").checked;
 
   if (!recipientId) {
-    await showAlertModal("Recipient Required", "Please choose a valid recipient to send the encrypted document.", "alert-triangle");
+    renderCmdOutput("cmd-details-client-send", "cmd-client-send", {
+      commands: [`openssl cms -encrypt ...`],
+      outputs: [`[✕ Recipient Required] Please choose a valid recipient to send the encrypted document.`],
+      status: "error",
+    });
     return;
   }
   if (!message) {
-    await showAlertModal("Message Required", "Please enter a document message to encrypt before sending.", "alert-triangle");
+    renderCmdOutput("cmd-details-client-send", "cmd-client-send", {
+      commands: [`openssl cms -encrypt ...`],
+      outputs: [`[✕ Message Required] Please enter confidential text to encrypt before sending.`],
+      status: "error",
+    });
     return;
   }
 
@@ -1117,7 +1342,15 @@ document.getElementById("btn-client-send-doc").addEventListener("click", async (
     const data = await res.json();
 
     if (!res.ok) {
-      await showAlertModal("Send Failed", data.error || "Failed to send message", "shield-alert");
+      renderCmdOutput("cmd-details-client-send", "cmd-client-send", {
+        commands: [
+          isSigned
+            ? `openssl cms -sign -in messages/tmp.txt -signer clients/${senderId}/${senderId}.crt -inkey clients/${senderId}/${senderId}.key -nodetach | openssl cms -encrypt -out messages/msg.enc clients/${recipientId}/${recipientId}.crt`
+            : `openssl cms -encrypt -in messages/tmp.txt -out messages/msg.enc clients/${recipientId}/${recipientId}.crt`
+        ],
+        outputs: [`[✕ Send Failed] ${data.error || "Failed to send message"}`],
+        status: "error",
+      });
       return;
     }
 
@@ -1125,14 +1358,27 @@ document.getElementById("btn-client-send-doc").addEventListener("click", async (
       logTerminal(data.opensslLog.command, data.opensslLog.output);
     }
 
-    const successBanner = document.getElementById("send-success-banner");
-    const successText = document.getElementById("send-success-text");
-    successBanner.style.display = "flex";
-    successText.textContent = isSigned
-      ? `✓ Document digitally signed and delivered to ${data.message.recipientName}'s Inbox! Switch role to ${data.message.recipientName} to open it.`
-      : `✓ Document encrypted and delivered to ${data.message.recipientName}'s Inbox! Switch role to ${data.message.recipientName} to open it.`;
+    const sendCmds = isSigned
+      ? [
+          `openssl cms -sign -in messages/tmp_raw_${data.message.id}.txt -signer clients/${senderId}/${senderId}.crt -inkey clients/${senderId}/${senderId}.key -out messages/tmp_signed_${data.message.id}.smime -nodetach`,
+          `openssl cms -encrypt -in messages/tmp_signed_${data.message.id}.smime -out messages/${data.message.encFilename} clients/${recipientId}/${recipientId}.crt`
+        ]
+      : [
+          `openssl cms -encrypt -in messages/tmp_raw_${data.message.id}.txt -out messages/${data.message.encFilename} clients/${recipientId}/${recipientId}.crt`
+        ];
 
     await syncCAState();
+
+    renderCmdOutput("cmd-details-client-send", "cmd-client-send", {
+      commands: sendCmds,
+      outputs: [
+        isSigned
+          ? `[✓ Success] Digitally signed with clients/${senderId}/${senderId}.crt & encrypted for clients/${recipientId}/${recipientId}.crt`
+          : `[✓ Success] Encrypted document delivered to clients/${recipientId}/${recipientId}.crt`,
+        `Delivered to: ${data.message.recipientName}'s Inbox (messages/${data.message.encFilename}, ${data.message.ciphertextSize} bytes)`
+      ],
+      status: "success",
+    });
   } finally {
     btn.innerHTML = `<i data-lucide="send" class="w-3.5 h-3.5"></i><span>Encrypt &amp; Send</span>`;
     if (window.lucide) window.lucide.createIcons();
@@ -1193,42 +1439,33 @@ async function loadAndRenderInbox(clientId) {
               ${escapeHtml(m.ciphertextBase64Preview)}
             </div>
 
-            <!-- Interception Attack Warning Banner -->
-            <div class="result-banner invalid msg-attack-banner" id="attack-banner-${escapeHtml(m.id)}" style="display: none; margin-top: 4px;">
-              <span class="res-icon">✕</span>
-              <span class="res-text">Access Denied! OpenSSL cipher operation failed. Mallory's key cannot unlock your mail!</span>
-            </div>
-
-            <!-- Tampering Attack Warning Banner -->
-            <div class="result-banner invalid msg-tamper-banner" id="tamper-banner-${escapeHtml(m.id)}" style="display: none; margin-top: 4px;">
-              <span class="res-icon">✕</span>
-              <span class="res-text" id="tamper-text-${escapeHtml(m.id)}">Tampering Detected! OpenSSL verification failure: digest failure.</span>
-            </div>
-
-            <!-- Legitimate Plaintext Box -->
-            <div class="inbox-plaintext-result msg-plain-box" id="plain-box-${escapeHtml(m.id)}" style="display: none;">
-              <div id="sig-ver-badge-${escapeHtml(m.id)}" class="sig-meta-box" style="display: none;">
-                <span class="sig-badge-verified"><i data-lucide="check-circle" class="w-3 h-3 inline-block mr-1"></i>Signature Authenticated: CN=${escapeHtml(m.senderName)} (Validated by Root CA)</span>
+            <!-- Collapsible OpenSSL Command for this message -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden mt-2" id="cmd-details-msg-${escapeHtml(m.id)}">
+              <summary class="px-3 py-1.5 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                  <span>OpenSSL Command</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+              </summary>
+              <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+                <code id="cmd-code-msg-${escapeHtml(m.id)}" class="whitespace-pre-wrap">$ openssl cms -decrypt -in messages/${escapeHtml(m.encFilename)} -inkey clients/${escapeHtml(m.recipientId)}/${escapeHtml(m.recipientId)}.key -recip clients/${escapeHtml(m.recipientId)}/${escapeHtml(m.recipientId)}.crt${m.isSigned ? `\n$ openssl cms -verify -in messages/tmp_dec_${escapeHtml(m.id)}.tmp -CAfile ca/root_ca.crt` : ""}</code>
               </div>
-              <div class="text-xs text-emerald-400 font-semibold mb-1 flex items-center gap-1">
-                <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                <span>Decrypted with ${escapeHtml(m.recipientId)}.key:</span>
-              </div>
-              <div class="mono-display msg-plain-text" id="plain-text-${escapeHtml(m.id)}">-</div>
-            </div>
+            </details>
 
             <div class="inbox-actions">
-              <button class="btn-solid btn-sm btn-decrypt-legit inline-flex items-center gap-1.5" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}">
+              <button class="btn-solid btn-sm btn-decrypt-legit inline-flex items-center gap-1.5" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" data-enc="${escapeHtml(m.encFilename)}" data-signed="${m.isSigned ? "1" : "0"}">
                 <i data-lucide="key" class="w-3.5 h-3.5"></i>
                 <span>Decrypt with Private Key</span>
               </button>
-              <button class="btn-outline btn-sm btn-danger-action btn-test-mallory inline-flex items-center gap-1.5" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}">
+              <button class="btn-outline btn-sm btn-danger-action btn-test-mallory inline-flex items-center gap-1.5" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" data-enc="${escapeHtml(m.encFilename)}">
                 <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
                 <span>Test Interception (Mallory)</span>
               </button>
               ${
                 m.isSigned
-                  ? `<button class="btn-outline btn-sm btn-danger-action btn-test-tamper inline-flex items-center gap-1.5" id="btn-tamper-${escapeHtml(m.id)}" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" style="display: none;">
+                  ? `<button class="btn-outline btn-sm btn-danger-action btn-test-tamper inline-flex items-center gap-1.5" id="btn-tamper-${escapeHtml(m.id)}" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" data-enc="${escapeHtml(m.encFilename)}" style="display: none;">
                       <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
                       <span>Test Tamper / Forged Signature</span>
                     </button>`
@@ -1240,12 +1477,18 @@ async function loadAndRenderInbox(clientId) {
       })
       .join("");
 
+    // Initialize icons immediately for all inbox message cards
+    if (window.lucide) window.lucide.createIcons();
+
     // Wire up buttons on each message card
     container.querySelectorAll(".btn-decrypt-legit").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const messageId = btn.getAttribute("data-id");
         const recipientId = btn.getAttribute("data-recip");
-        btn.textContent = "Decrypting...";
+        const encFilename = btn.getAttribute("data-enc") || `msg_${messageId}.enc`;
+        const isSigned = btn.getAttribute("data-signed") === "1";
+        btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Decrypting...</span>`;
+        if (window.lucide) window.lucide.createIcons();
         btn.disabled = true;
 
         try {
@@ -1261,23 +1504,43 @@ async function loadAndRenderInbox(clientId) {
           }
 
           if (result.success) {
-            const plainBox = document.getElementById(`plain-box-${messageId}`);
-            const plainText = document.getElementById(`plain-text-${messageId}`);
-            const sigBadgeEl = document.getElementById(`sig-ver-badge-${messageId}`);
             const tamperBtn = document.getElementById(`btn-tamper-${messageId}`);
-
-            plainText.textContent = result.plaintext;
-            plainBox.style.display = "block";
-
-            if (result.isSigned && result.signatureValid && sigBadgeEl) {
-              sigBadgeEl.style.display = "flex";
-            }
             if (tamperBtn) {
               tamperBtn.style.display = "inline-flex";
             }
+
+            const decCmd = `openssl cms -decrypt -in messages/${encFilename} -inkey clients/${recipientId}/${recipientId}.key -recip clients/${recipientId}/${recipientId}.crt -out messages/tmp_dec_${messageId}.tmp`;
+            const verCmd = result.isSigned
+              ? `openssl cms -verify -in messages/tmp_dec_${messageId}.tmp -CAfile ca/root_ca.crt`
+              : "";
+
+            renderCmdOutput(`cmd-details-msg-${messageId}`, `cmd-code-msg-${messageId}`, {
+              commands: result.isSigned ? [decCmd, verCmd] : [decCmd],
+              outputs: [
+                `[1. Decrypt] Decryption successful with clients/${recipientId}/${recipientId}.key`,
+                ...(result.isSigned
+                  ? [
+                      `[2. Verify Signature] CMS Verification successful: Signer authenticated by Root CA (CN=${result.signerName})`,
+                      `[✓ Decrypted & Verified OK] Document content unlocked and signer identity verified!`
+                    ]
+                  : [`[✓ Decrypted OK] Document content unlocked successfully!`]),
+                `\n[Decrypted Message Content]:\n${result.plaintext}`
+              ],
+              status: "success",
+            });
           } else {
-            await showAlertModal("Decryption Failed", result.error || "Unable to decrypt message", "shield-alert");
+            renderCmdOutput(`cmd-details-msg-${messageId}`, `cmd-code-msg-${messageId}`, {
+              commands: [`openssl cms -decrypt -in messages/${encFilename} -inkey clients/${recipientId}/${recipientId}.key -recip clients/${recipientId}/${recipientId}.crt`],
+              outputs: [`[✕ Decryption Failed] ${result.error || "Unable to decrypt message"}`],
+              status: "error",
+            });
           }
+        } catch (err) {
+          renderCmdOutput(`cmd-details-msg-${messageId}`, `cmd-code-msg-${messageId}`, {
+            commands: [`openssl cms -decrypt ...`],
+            outputs: [`[✕ Error] ${err.message}`],
+            status: "error",
+          });
         } finally {
           btn.innerHTML = `<i data-lucide="key" class="w-3.5 h-3.5"></i><span>Decrypt with Private Key</span>`;
           if (window.lucide) window.lucide.createIcons();
@@ -1290,7 +1553,9 @@ async function loadAndRenderInbox(clientId) {
       btn.addEventListener("click", async () => {
         const messageId = btn.getAttribute("data-id");
         const recipientId = btn.getAttribute("data-recip");
-        btn.textContent = "Testing Tamper...";
+        const encFilename = btn.getAttribute("data-enc") || `msg_${messageId}.enc`;
+        btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Testing Tamper...</span>`;
+        if (window.lucide) window.lucide.createIcons();
         btn.disabled = true;
 
         try {
@@ -1305,10 +1570,25 @@ async function loadAndRenderInbox(clientId) {
             logTerminal(result.opensslLog.command, result.opensslLog.output);
           }
 
-          const tamperBanner = document.getElementById(`tamper-banner-${messageId}`);
-          const tamperText = document.getElementById(`tamper-text-${messageId}`);
-          tamperBanner.style.display = "flex";
-          tamperText.textContent = `Tampering Detected! OpenSSL Error: digest failure. The digital signature does not match the altered content!`;
+          renderCmdOutput(`cmd-details-msg-${messageId}`, `cmd-code-msg-${messageId}`, {
+            commands: [
+              `openssl cms -decrypt -in messages/${encFilename} -inkey clients/${recipientId}/${recipientId}.key -recip clients/${recipientId}/${recipientId}.crt -out messages/tmp_dec_${messageId}.tmp`,
+              `# Attacker altered document contents in transit!`,
+              `openssl cms -verify -in messages/tmp_tampered_${messageId}.tmp -CAfile ca/root_ca.crt -out /dev/null`
+            ],
+            outputs: [
+              `[✕ Tampering Detected by OpenSSL]`,
+              `Verification failure: digest failure`,
+              `Digital signature mathematically proves the document was modified in transit!`
+            ],
+            status: "error",
+          });
+        } catch (err) {
+          renderCmdOutput(`cmd-details-msg-${messageId}`, `cmd-code-msg-${messageId}`, {
+            commands: [`openssl cms -verify ...`],
+            outputs: [`[✕ Error] ${err.message}`],
+            status: "error",
+          });
         } finally {
           btn.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span>Test Tamper / Forged Signature</span>`;
           if (window.lucide) window.lucide.createIcons();
@@ -1321,7 +1601,9 @@ async function loadAndRenderInbox(clientId) {
       btn.addEventListener("click", async () => {
         const messageId = btn.getAttribute("data-id");
         const recipientId = btn.getAttribute("data-recip");
-        btn.textContent = "Testing...";
+        const encFilename = btn.getAttribute("data-enc") || `msg_${messageId}.enc`;
+        btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Testing Interception...</span>`;
+        if (window.lucide) window.lucide.createIcons();
         btn.disabled = true;
 
         try {
@@ -1336,8 +1618,21 @@ async function loadAndRenderInbox(clientId) {
             logTerminal(result.opensslLog.command, result.opensslLog.output);
           }
 
-          const attackBanner = document.getElementById(`attack-banner-${messageId}`);
-          attackBanner.style.display = "flex";
+          renderCmdOutput(`cmd-details-msg-${messageId}`, `cmd-code-msg-${messageId}`, {
+            commands: [`openssl cms -decrypt -in messages/${encFilename} -inkey clients/mallory/mallory.key`],
+            outputs: [
+              `[✕ Mallory Attack Blocked - Access Denied]`,
+              result.error || "Decryption failed: key does not match recipient's certificate",
+              `OpenSSL cipher operation rejected attacker: Mallory's key cannot unlock your mail!`
+            ],
+            status: "error",
+          });
+        } catch (err) {
+          renderCmdOutput(`cmd-details-msg-${messageId}`, `cmd-code-msg-${messageId}`, {
+            commands: [`openssl cms -decrypt -in messages/... -inkey clients/mallory/mallory.key`],
+            outputs: [`[✕ Error] ${err.message}`],
+            status: "error",
+          });
         } finally {
           btn.innerHTML = `<i data-lucide="shield-alert" class="w-3.5 h-3.5"></i><span>Test Interception (Mallory)</span>`;
           if (window.lucide) window.lucide.createIcons();

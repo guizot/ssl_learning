@@ -158,7 +158,7 @@
         </div>
 
         <!-- Collapsible OpenSSL Command -->
-        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-root">
           <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
             <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
               <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
@@ -168,7 +168,7 @@
             <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
           </summary>
           <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code>$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
+            <code id="cmd-code-admin-root" class="whitespace-pre-wrap">$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
           </div>
         </details>
 
@@ -281,7 +281,7 @@
         </div>
 
         <!-- Collapsible OpenSSL Command -->
-        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-sign">
           <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
             <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
               <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
@@ -291,7 +291,7 @@
             <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
           </summary>
           <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code>$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
+            <code id="cmd-code-admin-sign" class="whitespace-pre-wrap">$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
           </div>
         </details>
 
@@ -341,7 +341,7 @@
         </div>
 
         <!-- Collapsible OpenSSL Command -->
-        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-fake">
           <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
             <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
               <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
@@ -351,7 +351,7 @@
             <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
           </summary>
           <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code>$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
+            <code id="cmd-code-admin-fake" class="whitespace-pre-wrap">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
           </div>
         </details>
 
@@ -360,15 +360,6 @@
             <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
             <span>Test Fake CA Attack</span>
           </button>
-        </div>
-
-        <div id="body-admin-fake" style="display: none;" class="space-y-2 pt-3 border-t border-zinc-800">
-          <div class="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 flex items-center gap-2" id="admin-fake-banner">
-            <i data-lucide="shield-x" class="w-4 h-4 shrink-0"></i>
-            <span id="admin-fake-text">
-              Verification Failure: unable to get local issuer certificate (Untrusted CA caught!)
-            </span>
-          </div>
         </div>
       </section>
     </div>
@@ -437,7 +428,7 @@
           </div>
 
           <!-- Collapsible OpenSSL Command -->
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-client-csr">
             <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
               <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                 <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
@@ -447,7 +438,7 @@
               <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
             </summary>
             <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-              <code id="cmd-client-csr">$ openssl ecparam -name secp256k1 -genkey -noout -out client.key &amp;&amp; openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
+              <code id="cmd-client-csr" class="whitespace-pre-wrap">$ openssl ecparam -name secp256k1 -genkey -noout -out client.key &amp;&amp; openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
             </div>
           </details>
 
@@ -603,7 +594,7 @@
           </div>
 
           <!-- Collapsible OpenSSL Command -->
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-client-verify">
             <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
               <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                 <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
@@ -613,7 +604,7 @@
               <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
             </summary>
             <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-              <code id="cmd-client-verify">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/[client].crt</code>
+              <code id="cmd-client-verify" class="whitespace-pre-wrap">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/[client].crt</code>
             </div>
           </details>
 
@@ -622,11 +613,6 @@
               <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
               <span>Verify with Root CA</span>
             </button>
-          </div>
-
-          <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-center gap-2" id="client-verify-banner" style="display: none;">
-            <i data-lucide="check" class="w-4 h-4 shrink-0"></i>
-            <span id="client-verify-banner-text">Certificate Validated by MyRootCA</span>
           </div>
         </section>
       </div>
@@ -643,7 +629,7 @@
           </div>
 
           <!-- Collapsible OpenSSL Command -->
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-client-send">
             <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
               <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                 <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
@@ -653,7 +639,7 @@
               <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
             </summary>
             <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-              <code id="cmd-client-send">$ openssl cms -encrypt -in document.txt -out msg.enc recipient.crt</code>
+              <code id="cmd-client-send" class="whitespace-pre-wrap">$ openssl cms -encrypt -in document.txt -out msg.enc recipient.crt</code>
             </div>
           </details>
 
@@ -696,19 +682,12 @@
               <textarea id="send-doc-message" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 min-h-[72px]" rows="3">Confidential: Authorized $500,000 budget transfer for blockchain R&amp;D.</textarea>
             </div>
 
-            <div class="rounded-lg bg-zinc-950 border border-zinc-800 p-3 space-y-2">
+            <div id="send-sign-container" class="rounded-lg bg-zinc-950 border border-zinc-800 p-3 space-y-1.5 transition-colors">
               <label class="flex items-center gap-2.5 text-xs text-zinc-300 cursor-pointer select-none" for="send-sign-checkbox">
                 <input type="checkbox" id="send-sign-checkbox" checked class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-zinc-100" />
                 <span><strong>Attach Digital Signature</strong> (Authenticates sender identity using your private key)</span>
               </label>
-              <div id="sender-cert-warning" class="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 hidden" style="display: none;">
-                <strong>Sender Certificate Required:</strong> To attach a signature, your CSR must be signed by Root CA (<span id="warn-sender-crt">client.crt</span>).
-              </div>
-            </div>
-
-            <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-center gap-2 hidden" id="send-success-banner" style="display: none;">
-              <i data-lucide="check" class="w-4 h-4 shrink-0"></i>
-              <span id="send-success-text">Document encrypted and delivered to recipient inbox!</span>
+              <p id="sender-cert-warning" class="text-[11px] text-amber-300/90 leading-relaxed font-mono" style="display: none;"></p>
             </div>
           </div>
         </section>
@@ -811,7 +790,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=6.7" type="module"></script>
+  <script src="/app.js?v=7.4" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
