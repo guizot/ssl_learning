@@ -1560,12 +1560,15 @@ async function loadAndRenderSent(clientId) {
         return `
           <div class="inbox-item-card" id="sent-card-${escapeHtml(m.id)}">
             <div class="inbox-item-head">
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div class="inbox-item-meta">
                 <span class="inbox-sender-tag">To: ${escapeHtml(m.recipientName)} (${escapeHtml(m.recipientId)}.crt)</span>
                 ${sigBadge}
                 <span class="inbox-time">${timeStr}</span>
               </div>
-              <button class="btn-ghost btn-sm btn-danger-hover btn-del-sent-msg" data-id="${escapeHtml(m.id)}">Delete</button>
+              <button class="btn-del-sent-msg" data-id="${escapeHtml(m.id)}" title="Delete message">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Delete</span>
+              </button>
             </div>
 
             ${m.title ? `<div class="inbox-title">${escapeHtml(m.title)}</div>` : ""}
@@ -1601,7 +1604,8 @@ async function loadAndRenderSent(clientId) {
       btn.addEventListener("click", async () => {
         const messageId = btn.getAttribute("data-id");
         if (!messageId) return;
-        btn.textContent = "Deleting...";
+        btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>`;
+        if (window.lucide) window.lucide.createIcons();
         try {
           await fetch(`/api/ca/inbox-message/${messageId}`, { method: "DELETE" });
           await syncCAState();
@@ -1668,12 +1672,15 @@ async function loadAndRenderInbox(clientId) {
         return `
           <div class="inbox-item-card" id="msg-card-${escapeHtml(m.id)}">
             <div class="inbox-item-head">
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div class="inbox-item-meta">
                 <span class="inbox-sender-tag">From: ${escapeHtml(m.senderName)}</span>
                 ${sigBadge}
                 <span class="inbox-time">${timeStr}</span>
               </div>
-              <button class="btn-ghost btn-sm btn-danger-hover btn-del-msg" data-id="${escapeHtml(m.id)}">Delete</button>
+              <button class="btn-del-msg" data-id="${escapeHtml(m.id)}" title="Delete message">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Delete</span>
+              </button>
             </div>
 
             ${m.title ? `<div class="inbox-title">${escapeHtml(m.title)}</div>` : ""}
@@ -1888,6 +1895,9 @@ async function loadAndRenderInbox(clientId) {
     container.querySelectorAll(".btn-del-msg").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const messageId = btn.getAttribute("data-id");
+        if (!messageId) return;
+        btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>`;
+        if (window.lucide) window.lucide.createIcons();
         await fetch(`/api/ca/inbox-message/${messageId}`, { method: "DELETE" });
         await syncCAState();
       });
