@@ -431,6 +431,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         const inboxCount = messages.filter((m) => m.recipientId === c.id).length;
+        const sentCount = messages.filter((m) => m.senderId === c.id).length;
         return {
           id: c.id,
           name: c.name,
@@ -443,6 +444,7 @@ const server = http.createServer(async (req, res) => {
           crtValid,
           keyMatchesCrt,
           inboxCount,
+          sentCount,
         };
       });
 
@@ -781,13 +783,24 @@ const server = http.createServer(async (req, res) => {
     }
 
     // -------------------------------------------------------------------------
+    // SENT: LIST MESSAGES SENT BY CLIENT
+    // -------------------------------------------------------------------------
+    if (req.method === "GET" && pathname === "/api/ca/sent") {
+      const parsed = new URL(req.url || "", `http://${req.headers.host || "localhost"}`);
+      const clientId = (parsed.searchParams.get("clientId") || "").trim();
+      const allMessages = loadCAMessages();
+      const messages = clientId ? allMessages.filter((m) => m.senderId === clientId) : allMessages;
+      return sendJson(res, 200, { messages });
+    }
+
+    // -------------------------------------------------------------------------
     // SEND ENCRYPTED DOCUMENT TO RECIPIENT INBOX (WITH OPTIONAL DIGITAL SIGNATURE)
     // -------------------------------------------------------------------------
     if (req.method === "POST" && pathname === "/api/ca/send-message") {
       const body = await readJsonBody(req);
       const senderId = (body.senderId || "").trim();
       const recipientId = (body.recipientId || "").trim();
-      const title = (body.title || "Confidential Document").trim();
+      const title = typeof body.title === "string" ? body.title.trim() : "";
       const isSigned = body.isSigned !== false; // default true
       const message =
         typeof body.message === "string" && body.message.trim()

@@ -409,7 +409,7 @@
           Identity &amp; Certificate
         </button>
         <button class="subtab-btn flex-1 py-2 px-3 rounded-lg font-medium text-center shrink-0 sm:shrink" data-subtab="send">
-          Send Encrypted Document
+          Send &amp; Sent (<span id="sent-tab-count">0</span>)
         </button>
         <button class="subtab-btn flex-1 py-2 px-3 rounded-lg font-medium text-center shrink-0 sm:shrink" data-subtab="inbox">
           Inbox (<span id="inbox-tab-count">0</span>)
@@ -673,11 +673,6 @@
             </div>
 
             <div class="space-y-1">
-              <label class="text-xs font-medium text-zinc-400" for="send-doc-title">Document Title:</label>
-              <input type="text" id="send-doc-title" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700" value="Q4 Financial Report 2026" />
-            </div>
-
-            <div class="space-y-1">
               <label class="text-xs font-medium text-zinc-400" for="send-doc-message">Confidential Content:</label>
               <textarea id="send-doc-message" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 min-h-[72px]" rows="3">Confidential: Authorized $500,000 budget transfer for blockchain R&amp;D.</textarea>
             </div>
@@ -689,6 +684,27 @@
               </label>
               <p id="sender-cert-warning" class="text-[11px] text-amber-300/90 leading-relaxed font-mono" style="display: none;"></p>
             </div>
+          </div>
+        </section>
+
+        <!-- SECTION 2: SENT DOCUMENTS (OUTBOX) -->
+        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm" id="section-sent-messages">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2">
+                <i data-lucide="send" class="w-4 h-4 text-zinc-400"></i>
+                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Sent Documents (<span id="sent-section-count">0</span>)</h3>
+              </div>
+              <p class="text-xs text-zinc-400">Outbox of encrypted documents sent by <span id="sent-owner-name">-</span> to other clients.</p>
+            </div>
+            <button id="btn-refresh-sent" class="btn-solid h-9 sm:h-8 w-full sm:w-auto shrink-0">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div id="sent-list" class="space-y-3 pt-3 border-t border-zinc-800">
+            <!-- Dynamically populated -->
           </div>
         </section>
       </div>
@@ -790,7 +806,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=7.4" type="module"></script>
+  <script src="/app.js?v=7.6" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

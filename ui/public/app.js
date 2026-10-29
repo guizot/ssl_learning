@@ -887,8 +887,10 @@ function renderClientView() {
     fsCrt.className = "f-state text-zinc-500 text-[11px]";
   }
 
-  // Update Inbox Tab Badge Count
+  // Update Inbox and Sent Tab Badge Counts
   document.getElementById("inbox-tab-count").textContent = String(activeClient.inboxCount || 0);
+  const sentTabCount = document.getElementById("sent-tab-count");
+  if (sentTabCount) sentTabCount.textContent = String(activeClient.sentCount || 0);
 
   // Update active subtab highlighting and panel visibility
   updateSubtabs();
@@ -898,6 +900,8 @@ function renderClientView() {
   renderClientSendTab(activeClient);
   if (currentSubtab === "inbox") {
     loadAndRenderInbox(activeClient.id);
+  } else if (currentSubtab === "send") {
+    loadAndRenderSent(activeClient.id);
   }
 }
 
@@ -926,6 +930,8 @@ document.querySelectorAll(".subtab-btn").forEach((btn) => {
 
     if (currentSubtab === "inbox") {
       loadAndRenderInbox(caState.activeRole);
+    } else if (currentSubtab === "send") {
+      loadAndRenderSent(caState.activeRole);
     }
   });
 });
@@ -1301,13 +1307,11 @@ function onSendFormChange() {
 
 document.getElementById("send-recipient-select").addEventListener("change", onSendFormChange);
 document.getElementById("send-sign-checkbox").addEventListener("change", onSendFormChange);
-document.getElementById("send-doc-title")?.addEventListener("input", onSendFormChange);
 document.getElementById("send-doc-message")?.addEventListener("input", onSendFormChange);
 
 document.getElementById("btn-client-send-doc").addEventListener("click", async () => {
   const senderId = caState.activeRole;
   const recipientId = document.getElementById("send-recipient-select").value;
-  const title = document.getElementById("send-doc-title").value.trim() || "Confidential Document";
   const message = document.getElementById("send-doc-message").value.trim();
   const isSigned = document.getElementById("send-sign-checkbox").checked;
 
@@ -1337,7 +1341,7 @@ document.getElementById("btn-client-send-doc").addEventListener("click", async (
     const res = await fetch("/api/ca/send-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ senderId, recipientId, title, message, isSigned }),
+      body: JSON.stringify({ senderId, recipientId, message, isSigned }),
     });
     const data = await res.json();
 
@@ -1379,10 +1383,137 @@ document.getElementById("btn-client-send-doc").addEventListener("click", async (
       ],
       status: "success",
     });
+
+    await loadAndRenderSent(senderId);
   } finally {
     btn.innerHTML = `<i data-lucide="send" class="w-3.5 h-3.5"></i><span>Encrypt &amp; Send</span>`;
     if (window.lucide) window.lucide.createIcons();
     btn.disabled = false;
+  }
+});
+
+// ============================================================================
+// SUBTAB 2 / SENT CONTROLLER
+// ============================================================================
+async function loadAndRenderSent(clientId) {
+  const container = document.getElementById("sent-list");
+  if (!container) return;
+
+  const activeClient = caState.clients.find((c) => c.id === clientId);
+  const ownerNameEl = document.getElementById("sent-owner-name");
+  if (ownerNameEl && activeClient) {
+    ownerNameEl.textContent = activeClient.name;
+  }
+
+  container.innerHTML = `<div class="hint-text text-xs text-zinc-500 py-3">Loading sent documents...</div>`;
+
+  try {
+    const res = await fetch(`/api/ca/sent?clientId=${clientId}`);
+    const data = await res.json();
+    const messages = data.messages || [];
+
+    const countEl = document.getElementById("sent-section-count");
+    if (countEl) countEl.textContent = String(messages.length);
+    const tabCountEl = document.getElementById("sent-tab-count");
+    if (tabCountEl) tabCountEl.textContent = String(messages.length);
+
+    if (messages.length === 0) {
+      container.innerHTML = `
+        <div class="p-8 text-center space-y-2">
+          <div class="w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+            <i data-lucide="send" class="w-5 h-5"></i>
+          </div>
+          <div class="text-xs text-zinc-300 font-medium">No sent documents yet</div>
+          <p class="text-[11px] text-zinc-500 max-w-xs mx-auto">
+            When you send encrypted documents to other clients, their record and OpenSSL envelope details will appear here.
+          </p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    container.innerHTML = messages
+      .map((m) => {
+        const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const sigBadge = m.isSigned
+          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 inline-block mr-1"></i>Digitally Signed</span>`
+          : `<span class="sig-badge-unsigned">Unsigned</span>`;
+
+        const cmdText = m.isSigned
+          ? `$ openssl cms -sign -in messages/tmp.txt -signer clients/${m.senderId}/${m.senderId}.crt -inkey clients/${m.senderId}/${m.senderId}.key -nodetach | openssl cms -encrypt -out messages/${m.encFilename} clients/${m.recipientId}/${m.recipientId}.crt`
+          : `$ openssl cms -encrypt -in messages/tmp.txt -out messages/${m.encFilename} clients/${m.recipientId}/${m.recipientId}.crt`;
+
+        return `
+          <div class="inbox-item-card" id="sent-card-${escapeHtml(m.id)}">
+            <div class="inbox-item-head">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="inbox-sender-tag">To: ${escapeHtml(m.recipientName)} (${escapeHtml(m.recipientId)}.crt)</span>
+                ${sigBadge}
+                <span class="inbox-time">${timeStr}</span>
+              </div>
+              <button class="btn-ghost btn-sm btn-danger-hover btn-del-sent-msg" data-id="${escapeHtml(m.id)}">Delete</button>
+            </div>
+
+            ${m.title ? `<div class="inbox-title">${escapeHtml(m.title)}</div>` : ""}
+
+            <div class="inbox-cipher-preview">
+              <span class="text-xs font-semibold text-zinc-200 flex items-center gap-1.5 mb-1"><i data-lucide="lock" class="w-3.5 h-3.5 text-zinc-400"></i>Encrypted Envelope (${m.ciphertextSize} bytes):</span>
+              ${escapeHtml(m.ciphertextBase64Preview)}
+            </div>
+
+            <!-- Collapsible OpenSSL Command for this sent message -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden mt-2" id="cmd-details-sent-${escapeHtml(m.id)}">
+              <summary class="px-3 py-1.5 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                  <span>OpenSSL Command</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+              </summary>
+              <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+                <code id="cmd-code-sent-${escapeHtml(m.id)}" class="whitespace-pre-wrap">${escapeHtml(cmdText)}</code>
+              </div>
+            </details>
+          </div>
+        `;
+      })
+      .join("");
+
+    if (window.lucide) window.lucide.createIcons();
+
+    // Wire up delete buttons
+    container.querySelectorAll(".btn-del-sent-msg").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const messageId = btn.getAttribute("data-id");
+        if (!messageId) return;
+        btn.textContent = "Deleting...";
+        try {
+          await fetch(`/api/ca/inbox-message/${messageId}`, { method: "DELETE" });
+          await syncCAState();
+          await loadAndRenderSent(clientId);
+        } catch (err) {
+          console.error("Failed to delete sent message:", err);
+        }
+      });
+    });
+  } catch (err) {
+    console.error("Failed to load sent messages:", err);
+    container.innerHTML = `<div class="hint-text text-xs text-rose-400 py-3">Failed to load sent messages.</div>`;
+  }
+}
+
+document.getElementById("btn-refresh-sent")?.addEventListener("click", () => {
+  const btn = document.getElementById("btn-refresh-sent");
+  if (btn) {
+    btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Refreshing...</span>`;
+    if (window.lucide) window.lucide.createIcons();
+    setTimeout(async () => {
+      await loadAndRenderSent(caState.activeRole);
+      btn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Refresh</span>`;
+      if (window.lucide) window.lucide.createIcons();
+    }, 200);
   }
 });
 
@@ -1432,7 +1563,7 @@ async function loadAndRenderInbox(clientId) {
               <button class="btn-ghost btn-sm btn-danger-hover btn-del-msg" data-id="${escapeHtml(m.id)}">Delete</button>
             </div>
 
-            <div class="inbox-title">${escapeHtml(m.title)}</div>
+            ${m.title ? `<div class="inbox-title">${escapeHtml(m.title)}</div>` : ""}
 
             <div class="inbox-cipher-preview">
               <span class="text-xs font-semibold text-zinc-200 flex items-center gap-1.5 mb-1"><i data-lucide="lock" class="w-3.5 h-3.5 text-zinc-400"></i>Encrypted Envelope (${m.ciphertextSize} bytes):</span>
