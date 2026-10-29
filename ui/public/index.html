@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=6.1" />
+  <link rel="stylesheet" href="/styles.css?v=6.2" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -204,13 +204,67 @@
             <div id="admin-ca-dates" class="text-xs font-mono text-zinc-200 break-all leading-relaxed">-</div>
           </div>
 
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+          <!-- Accordion 1: Root Private Key (.key) -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="admin-details-key">
             <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors">View Root Certificate PEM</span>
-              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors">Show PEM Text</span>
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="key" class="w-3.5 h-3.5"></i>
+                <span>View Root Private Key (.key PEM)</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Key</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Key</span>
             </summary>
-            <div class="p-3 sm:p-4 border-t border-zinc-800">
+            <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+              <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="admin-ca-key-pem">Copy</button>
+              <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="admin-ca-key-pem">-</pre>
+            </div>
+          </details>
+
+          <!-- Accordion 2: Root Public Key (.pub) -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="admin-details-pub">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
+                <span>View Root Public Key (.pub PEM)</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Key</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Key</span>
+            </summary>
+            <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+              <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="admin-ca-pub-pem">Copy</button>
+              <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="admin-ca-pub-pem">-</pre>
+            </div>
+          </details>
+
+          <!-- Accordion 3: Root Certificate (.crt PEM) -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="admin-details-crt">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
+                <span>View Root Certificate (.crt PEM)</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show PEM</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide PEM</span>
+            </summary>
+            <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+              <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="admin-ca-pem">Copy</button>
               <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="admin-ca-pem">-</pre>
+            </div>
+          </details>
+
+          <!-- Accordion 4: Root Certificate Decoded Text -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="admin-details-text">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                <span>View Root Certificate (Decoded X.509 Text)</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Text</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Text</span>
+            </summary>
+            <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+              <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="admin-ca-text">Copy</button>
+              <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="admin-ca-text">-</pre>
             </div>
           </details>
         </div>
@@ -440,22 +494,98 @@
               <div id="client-info-cert-status" class="text-xs font-mono text-zinc-200 leading-relaxed">Not Signed Yet</div>
             </div>
 
-            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+            <!-- Client Accordion 1: Private Key (.key) -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-key" style="display: none;">
               <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors">View Certificate Signing Request (.csr)</span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors">Show Text</span>
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="key" class="w-3.5 h-3.5"></i>
+                  <span>View Private Key (.key PEM)</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Key</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Key</span>
               </summary>
-              <div class="p-3 sm:p-4 border-t border-zinc-800">
+              <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+                <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="client-key-pem">Copy</button>
+                <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-key-pem">-</pre>
+              </div>
+            </details>
+
+            <!-- Client Accordion 2: Public Key (.pub) -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-pub" style="display: none;">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
+                  <span>View Public Key (.pub PEM)</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Key</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Key</span>
+              </summary>
+              <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+                <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="client-pub-pem">Copy</button>
+                <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-pub-pem">-</pre>
+              </div>
+            </details>
+
+            <!-- Client Accordion 3: CSR PEM -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-csr-pem" style="display: none;">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                  <span>View Certificate Request (.csr PEM)</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show PEM</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide PEM</span>
+              </summary>
+              <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+                <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="client-csr-pem">Copy</button>
+                <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-csr-pem">-</pre>
+              </div>
+            </details>
+
+            <!-- Client Accordion 4: CSR Text -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-csr-text" style="display: none;">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="file-code" class="w-3.5 h-3.5"></i>
+                  <span>View Certificate Request (Decoded Text)</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Text</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Text</span>
+              </summary>
+              <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+                <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="client-csr-text">Copy</button>
                 <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-csr-text">-</pre>
               </div>
             </details>
 
-            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-crt-details" style="display: none;">
+            <!-- Client Accordion 5: CRT PEM -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-crt-pem" style="display: none;">
               <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors">View Issued X.509 Certificate (.crt)</span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors">Show Certificate</span>
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
+                  <span>View Issued Certificate (.crt PEM)</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show PEM</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide PEM</span>
               </summary>
-              <div class="p-3 sm:p-4 border-t border-zinc-800">
+              <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+                <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="client-crt-pem">Copy</button>
+                <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-crt-pem">-</pre>
+              </div>
+            </details>
+
+            <!-- Client Accordion 6: CRT Text -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-crt-text" style="display: none;">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="file-badge" class="w-3.5 h-3.5"></i>
+                  <span>View Issued Certificate (Decoded X.509 Text)</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Text</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Text</span>
+              </summary>
+              <div class="p-3 sm:p-4 border-t border-zinc-800 relative group/code">
+                <button type="button" class="btn-copy-code absolute top-3 right-3 px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors" data-target="client-crt-text">Copy</button>
                 <pre class="font-mono text-[11px] text-zinc-400 break-all whitespace-pre-wrap" id="client-crt-text">-</pre>
               </div>
             </details>
@@ -681,7 +811,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=6.2" type="module"></script>
+  <script src="/app.js?v=6.4" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

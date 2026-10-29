@@ -357,6 +357,19 @@ const server = http.createServer(async (req, res) => {
       if (rootCaExists) {
         const textOut = runCAOpenSSL(["x509", "-in", "ca/root_ca.crt", "-text", "-noout"]).output;
         const certPem = fs.readFileSync(rootCrtPath, "utf-8").trim();
+        const keyPem = fs.existsSync(rootKeyPath) ? fs.readFileSync(rootKeyPath, "utf-8").trim() : "";
+        let pubKeyPem = "";
+        if (fs.existsSync(rootKeyPath)) {
+          try {
+            pubKeyPem = execFileSync("openssl", ["pkey", "-in", rootKeyPath, "-pubout"], {
+              cwd: CA_DIR,
+              encoding: "utf-8",
+              stdio: ["ignore", "pipe", "ignore"],
+            }).trim();
+          } catch {
+            pubKeyPem = "";
+          }
+        }
         const issuerMatch = textOut.match(/Issuer:\s*(.+)/);
         const subjectMatch = textOut.match(/Subject:\s*(.+)/);
         const notBeforeMatch = textOut.match(/Not Before:\s*([^\n]+)/);
@@ -367,6 +380,8 @@ const server = http.createServer(async (req, res) => {
           subject: subjectMatch ? subjectMatch[1].trim() : "CN=MyRootCA, O=GlobalTrustAuthority",
           validNotBefore: notBeforeMatch ? notBeforeMatch[1].trim() : "",
           validNotAfter: notAfterMatch ? notAfterMatch[1].trim() : "",
+          keyPem,
+          pubKeyPem,
           certPem,
           fullText: textOut,
         };
@@ -431,12 +446,26 @@ const server = http.createServer(async (req, res) => {
         };
       });
 
-      const activeClient = clientList.find((c) => c.id === store.activeId) || clientList[0];
+      const targetRoleId = store.activeRole && store.activeRole !== "admin" ? store.activeRole : store.activeId;
+      const activeClient = clientList.find((c) => c.id === targetRoleId) || clientList[0];
       let activeDetails: any = null;
       if (activeClient) {
         const keyP = path.join(CA_CLIENTS_DIR, activeClient.id, `${activeClient.id}.key`);
         const csrP = path.join(CA_CLIENTS_DIR, activeClient.id, `${activeClient.id}.csr`);
         const crtP = path.join(CA_CLIENTS_DIR, activeClient.id, `${activeClient.id}.crt`);
+
+        let pubKeyPem = "";
+        if (fs.existsSync(keyP)) {
+          try {
+            pubKeyPem = execFileSync("openssl", ["pkey", "-in", keyP, "-pubout"], {
+              cwd: CA_DIR,
+              encoding: "utf-8",
+              stdio: ["ignore", "pipe", "ignore"],
+            }).trim();
+          } catch {
+            pubKeyPem = "";
+          }
+        }
 
         activeDetails = {
           id: activeClient.id,
@@ -444,6 +473,7 @@ const server = http.createServer(async (req, res) => {
           crtValid: activeClient.crtValid,
           keyMatchesCrt: activeClient.keyMatchesCrt,
           keyPem: fs.existsSync(keyP) ? fs.readFileSync(keyP, "utf-8").trim() : "",
+          pubKeyPem,
           csrPem: fs.existsSync(csrP) ? fs.readFileSync(csrP, "utf-8").trim() : "",
           crtPem: fs.existsSync(crtP) ? fs.readFileSync(crtP, "utf-8").trim() : "",
           csrText: fs.existsSync(csrP)

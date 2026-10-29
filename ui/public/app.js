@@ -438,7 +438,10 @@ function renderAdminView() {
     document.getElementById("admin-ca-issuer").textContent = caState.rootCa.issuer;
     document.getElementById("admin-ca-subject").textContent = caState.rootCa.subject;
     document.getElementById("admin-ca-dates").textContent = `${caState.rootCa.validNotBefore} -> ${caState.rootCa.validNotAfter}`;
-    document.getElementById("admin-ca-pem").textContent = caState.rootCa.certPem;
+    document.getElementById("admin-ca-key-pem").textContent = caState.rootCa.keyPem || "No private key";
+    document.getElementById("admin-ca-pub-pem").textContent = caState.rootCa.pubKeyPem || "No public key";
+    document.getElementById("admin-ca-pem").textContent = caState.rootCa.certPem || "No certificate";
+    document.getElementById("admin-ca-text").textContent = caState.rootCa.fullText || "No decoded certificate";
     bodyAdminRoot.style.display = "flex";
   } else {
     fbRootKey.classList.remove("created");
@@ -812,20 +815,41 @@ function renderClientIdentity(client) {
   cmdCsr.textContent = `$ openssl ecparam -name secp256k1 -genkey -noout -out clients/${client.id}/${client.id}.key && openssl req -new -key clients/${client.id}/${client.id}.key -out clients/${client.id}/${client.id}.csr -subj "/CN=${client.name}/O=Users/C=ID"`;
   document.getElementById("client-info-cn").textContent = `CN=${client.name}`;
 
-  if ((client.csrExists || client.crtExists) && caState.activeDetails) {
+  if ((client.keyExists || client.csrExists || client.crtExists) && caState.activeDetails) {
     bodyIdentity.style.display = "flex";
     bodyIdentity.style.flexDirection = "column";
     genBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>${(client.keyExists || client.csrExists) ? "Re-generate Key &amp; CSR" : "Generate Key &amp; CSR"}</span>`;
 
-    const csrBox = document.getElementById("client-csr-text")?.closest("details");
+    // 1. Private Key & Public Key
+    const keyBox = document.getElementById("client-details-key");
+    const pubBox = document.getElementById("client-details-pub");
+    if (client.keyExists) {
+      if (keyBox) keyBox.style.display = "block";
+      if (pubBox) pubBox.style.display = "block";
+      document.getElementById("client-key-pem").textContent = caState.activeDetails.keyPem || "No private key";
+      document.getElementById("client-pub-pem").textContent = caState.activeDetails.pubKeyPem || "No public key";
+    } else {
+      if (keyBox) keyBox.style.display = "none";
+      if (pubBox) pubBox.style.display = "none";
+    }
+
+    // 2. CSR PEM & CSR Text
+    const csrPemBox = document.getElementById("client-details-csr-pem");
+    const csrTextBox = document.getElementById("client-details-csr-text");
     if (client.csrExists) {
-      if (csrBox) csrBox.style.display = "block";
+      if (csrPemBox) csrPemBox.style.display = "block";
+      if (csrTextBox) csrTextBox.style.display = "block";
+      document.getElementById("client-csr-pem").textContent = caState.activeDetails.csrPem || "No CSR PEM";
       document.getElementById("client-csr-text").textContent =
         caState.activeDetails.csrText || caState.activeDetails.csrPem;
     } else {
-      if (csrBox) csrBox.style.display = "none";
+      if (csrPemBox) csrPemBox.style.display = "none";
+      if (csrTextBox) csrTextBox.style.display = "none";
     }
 
+    // 3. CRT PEM & CRT Text
+    const crtPemBox = document.getElementById("client-details-crt-pem");
+    const crtTextBox = document.getElementById("client-details-crt-text");
     if (client.crtExists) {
       if (!client.crtValid) {
         document.getElementById("client-info-cert-status").innerHTML = `<span class="inline-flex items-center gap-1.5 text-amber-300 font-mono text-xs">⚠ Broken Chain &middot; Signed by previous Root CA (Re-sign required)</span>`;
@@ -836,9 +860,13 @@ function renderClientIdentity(client) {
       } else {
         document.getElementById("client-info-cert-status").innerHTML = `<span class="inline-flex items-center gap-1.5 text-emerald-400 font-mono text-xs">✓ Signed &amp; Active by Root CA</span>`;
       }
-      document.getElementById("client-crt-details").style.display = "block";
+
+      if (crtPemBox) crtPemBox.style.display = "block";
+      if (crtTextBox) crtTextBox.style.display = "block";
+      document.getElementById("client-crt-pem").textContent = caState.activeDetails.crtPem || "No CRT PEM";
       document.getElementById("client-crt-text").textContent =
         caState.activeDetails.crtText || caState.activeDetails.crtPem;
+
       const cmdVerify = document.getElementById("cmd-client-verify");
       if (cmdVerify) {
         cmdVerify.textContent = `$ openssl verify -CAfile ca/root_ca.crt clients/${client.id}/${client.id}.crt`;
@@ -847,7 +875,8 @@ function renderClientIdentity(client) {
       if (verifySec) verifySec.style.display = "block";
     } else {
       document.getElementById("client-info-cert-status").innerHTML = `<span class="inline-flex items-center gap-1.5 text-zinc-400 font-mono text-xs">Pending Signature &middot; Switch role to Admin to Sign</span>`;
-      document.getElementById("client-crt-details").style.display = "none";
+      if (crtPemBox) crtPemBox.style.display = "none";
+      if (crtTextBox) crtTextBox.style.display = "none";
       const verifySec = document.getElementById("section-client-verify");
       if (verifySec) verifySec.style.display = "none";
     }
@@ -1351,6 +1380,51 @@ document.getElementById("btn-ca-reset").addEventListener("click", async () => {
   await fetch("/api/ca/reset", { method: "POST" });
   logTerminal("reset", "All CA certificates, keys, and client inboxes wiped. Clean slate.");
   await syncCAState();
+});
+
+// ============================================================================
+// GLOBAL COPY TO CLIPBOARD HANDLER
+// ============================================================================
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {}
+  }
+  // Fallback for HTTP / non-secure LAN connections
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch (err) {}
+  document.body.removeChild(ta);
+  return ok;
+}
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".btn-copy-code");
+  if (!btn) return;
+  const targetId = btn.getAttribute("data-target");
+  const targetEl = document.getElementById(targetId);
+  if (!targetEl) return;
+  const text = targetEl.textContent;
+  const success = await copyTextToClipboard(text);
+  if (success) {
+    const origText = btn.textContent;
+    btn.textContent = "Copied!";
+    btn.classList.add("text-emerald-400", "border-emerald-500/40");
+    setTimeout(() => {
+      btn.textContent = origText;
+      btn.classList.remove("text-emerald-400", "border-emerald-500/40");
+    }, 1500);
+  }
 });
 
 // Initialize on page load
