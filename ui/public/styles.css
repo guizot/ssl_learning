@@ -228,6 +228,17 @@ select {
   box-sizing: border-box;
 }
 
+select.appearance-none {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+select option {
+  background-color: rgb(var(--zinc-950));
+  color: rgb(var(--zinc-200));
+}
+
 @media (min-width: 640px) {
   input[type="text"],
   input[type="password"],
@@ -441,13 +452,12 @@ select {
   font-family: "Geist Mono", monospace;
   color: rgb(var(--zinc-500));
   word-break: break-all;
-  max-height: 80px;
-  overflow-y: auto;
+  line-height: 1.5;
 }
 
 .inbox-actions {
   display: flex;
-  gap: 6px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -538,6 +548,10 @@ select {
 }
 
 @media (max-width: 640px) {
+  .inbox-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
   .inbox-actions button {
     width: 100%;
   }

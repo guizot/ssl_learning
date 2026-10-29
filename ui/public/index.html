@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=6.3" />
+  <link rel="stylesheet" href="/styles.css?v=6.4" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -659,22 +659,36 @@
           </div>
 
           <div class="space-y-3 pt-3 border-t border-zinc-800">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="space-y-1">
-                <label class="text-xs font-medium text-zinc-400" for="send-sender-display">Sender (From):</label>
-                <input type="text" id="send-sender-display" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-300" readonly value="" placeholder="Current Client" />
-              </div>
-              <div class="space-y-1">
-                <label class="text-xs font-medium text-zinc-400" for="send-recipient-select">Recipient:</label>
-                <select id="send-recipient-select" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-700">
-                  <!-- Dynamically populated -->
-                </select>
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-zinc-400" for="recipient-dropdown-trigger">Recipient:</label>
+              <div class="relative" id="recipient-dropdown-container">
+                <input type="hidden" id="send-recipient-select" value="" />
+                <button
+                  id="recipient-dropdown-trigger"
+                  type="button"
+                  class="flex items-center justify-between gap-2.5 px-3 h-9 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-mono transition-colors w-full focus:outline-none focus:border-zinc-600 cursor-pointer select-none"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                >
+                  <span id="recipient-selected-label" class="truncate font-mono">Select recipient...</span>
+                  <i data-lucide="chevron-down" id="recipient-dropdown-chevron" class="w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200"></i>
+                </button>
+
+                <!-- Custom Recipient Dropdown Menu -->
+                <div
+                  id="recipient-dropdown-menu"
+                  class="hidden absolute top-full left-0 mt-1.5 w-full z-50 rounded-lg border border-zinc-800 bg-zinc-950/95 backdrop-blur-md shadow-2xl p-1.5 space-y-0.5 text-xs max-h-60 overflow-y-auto"
+                >
+                  <div id="recipient-dropdown-items" class="space-y-0.5">
+                    <!-- Dynamically populated -->
+                  </div>
+                </div>
               </div>
             </div>
 
             <div class="space-y-1">
               <label class="text-xs font-medium text-zinc-400" for="send-doc-message">Confidential Content:</label>
-              <textarea id="send-doc-message" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700 min-h-[72px]" rows="3">Confidential: Authorized $500,000 budget transfer for blockchain R&amp;D.</textarea>
+              <textarea id="send-doc-message" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 min-h-[72px]" rows="3">Confidential: Authorized $500,000 budget transfer for blockchain R&amp;D.</textarea>
             </div>
 
             <div id="send-sign-container" class="rounded-lg bg-zinc-950 border border-zinc-800 p-3 space-y-1.5 transition-colors">
@@ -703,7 +717,7 @@
             </button>
           </div>
 
-          <div id="sent-list" class="space-y-3 pt-3 border-t border-zinc-800">
+          <div id="sent-list" class="space-y-3">
             <!-- Dynamically populated -->
           </div>
         </section>
@@ -726,7 +740,7 @@
             </button>
           </div>
 
-          <div id="inbox-list" class="space-y-3 pt-3 border-t border-zinc-800">
+          <div id="inbox-list" class="space-y-3">
             <!-- Dynamically populated -->
           </div>
         </section>
@@ -806,7 +820,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=7.6" type="module"></script>
+  <script src="/app.js?v=8.1" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

@@ -1206,8 +1206,6 @@ document.getElementById("btn-client-remove-crt")?.addEventListener("click", () =
 
 // SUBTAB 2: SEND ENCRYPTED DOCUMENT
 function renderClientSendTab(client) {
-  document.getElementById("send-sender-display").value = client.name;
-
   // Filter other certified clients (must be valid against current Root CA)
   const eligibleRecipients = caState.clients.filter(
     (c) => c.id !== client.id && c.crtExists && c.crtValid
@@ -1216,25 +1214,63 @@ function renderClientSendTab(client) {
   const warningBox = document.getElementById("no-recipients-warning");
   const sendBtn = document.getElementById("btn-client-send-doc");
   const recipSelect = document.getElementById("send-recipient-select");
-  const signCheckbox = document.getElementById("send-sign-checkbox");
-  const senderCertWarning = document.getElementById("sender-cert-warning");
+  const recipTrigger = document.getElementById("recipient-dropdown-trigger");
+  const recipLabel = document.getElementById("recipient-selected-label");
+  const recipItemsContainer = document.getElementById("recipient-dropdown-items");
 
   if (eligibleRecipients.length === 0) {
     warningBox.style.display = "flex";
     warningBox.removeAttribute("hidden");
     sendBtn.disabled = true;
-    recipSelect.innerHTML = `<option value="">No valid recipient certificates</option>`;
-    recipSelect.disabled = true;
+    if (recipSelect) recipSelect.value = "";
+    if (recipLabel) recipLabel.textContent = "No valid recipient certificates";
+    if (recipTrigger) recipTrigger.disabled = true;
+    if (recipItemsContainer) recipItemsContainer.innerHTML = "";
     document.getElementById("cmd-client-send").textContent = "$ openssl cms (blocked: no eligible recipient)";
     return;
   }
 
   warningBox.style.display = "none";
   warningBox.setAttribute("hidden", "");
-  recipSelect.disabled = false;
-  recipSelect.innerHTML = eligibleRecipients
-    .map((r) => `<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)} (${r.id}.crt)</option>`)
-    .join("");
+  if (recipTrigger) recipTrigger.disabled = false;
+
+  let currentVal = recipSelect ? recipSelect.value : "";
+  if (!currentVal || !eligibleRecipients.some((r) => r.id === currentVal)) {
+    currentVal = eligibleRecipients[0].id;
+    if (recipSelect) recipSelect.value = currentVal;
+  }
+
+  const selectedRecip = eligibleRecipients.find((r) => r.id === currentVal) || eligibleRecipients[0];
+  if (recipLabel) {
+    recipLabel.textContent = `${selectedRecip.name} (${selectedRecip.id}.crt)`;
+  }
+
+  if (recipItemsContainer) {
+    recipItemsContainer.innerHTML = eligibleRecipients
+      .map((r) => {
+        const isRecipientActive = currentVal === r.id;
+        const initial = (r.name || "C").charAt(0).toUpperCase();
+        return `
+          <button type="button" class="recipient-option-item w-full flex items-center justify-between px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer ${
+            isRecipientActive
+              ? "bg-zinc-800/70 text-zinc-100 font-medium"
+              : "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100"
+          }" data-recip-id="${escapeHtml(r.id)}" data-recip-label="${escapeHtml(r.name)} (${escapeHtml(r.id)}.crt)">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
+                ${escapeHtml(initial)}
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs font-medium text-zinc-100 truncate">${escapeHtml(r.name)}</div>
+                <div class="text-[10px] font-mono text-zinc-500 truncate">${escapeHtml(r.id)}.crt</div>
+              </div>
+            </div>
+            ${isRecipientActive ? `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>` : ""}
+          </button>
+        `;
+      })
+      .join("");
+  }
 
   // Check sender certificate requirement for digital signature
   validateSenderCertForSigning(client);
@@ -1245,6 +1281,8 @@ function renderClientSendTab(client) {
     cmdSendEl.removeAttribute("data-has-output");
     updateSendCmdPreview();
   }
+
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function validateSenderCertForSigning(client) {
@@ -1305,7 +1343,82 @@ function onSendFormChange() {
   updateSendCmdPreview();
 }
 
-document.getElementById("send-recipient-select").addEventListener("change", onSendFormChange);
+// Custom Recipient Dropdown Controller
+const recipTrigger = document.getElementById("recipient-dropdown-trigger");
+const recipMenu = document.getElementById("recipient-dropdown-menu");
+const recipChevron = document.getElementById("recipient-dropdown-chevron");
+
+function toggleRecipientDropdown(show) {
+  if (!recipMenu) return;
+  const isHidden = recipMenu.classList.contains("hidden");
+  const willShow = show !== undefined ? show : isHidden;
+  if (willShow) {
+    recipMenu.classList.remove("hidden");
+    if (recipTrigger) recipTrigger.setAttribute("aria-expanded", "true");
+    if (recipChevron) recipChevron.classList.add("rotate-180");
+  } else {
+    recipMenu.classList.add("hidden");
+    if (recipTrigger) recipTrigger.setAttribute("aria-expanded", "false");
+    if (recipChevron) recipChevron.classList.remove("rotate-180");
+  }
+}
+
+if (recipTrigger) {
+  recipTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleRecipientDropdown();
+  });
+}
+
+document.addEventListener("click", (e) => {
+  const container = document.getElementById("recipient-dropdown-container");
+  if (container && !container.contains(e.target)) {
+    toggleRecipientDropdown(false);
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    toggleRecipientDropdown(false);
+  }
+});
+
+document.getElementById("recipient-dropdown-items")?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".recipient-option-item");
+  if (!btn) return;
+  const recipId = btn.getAttribute("data-recip-id");
+  const recipLabel = btn.getAttribute("data-recip-label");
+  toggleRecipientDropdown(false);
+
+  const hiddenInput = document.getElementById("send-recipient-select");
+  if (hiddenInput) {
+    hiddenInput.value = recipId;
+  }
+  const labelEl = document.getElementById("recipient-selected-label");
+  if (labelEl) {
+    labelEl.textContent = recipLabel;
+  }
+
+  // Update checkmarks and active classes
+  document.querySelectorAll(".recipient-option-item").forEach((item) => {
+    const isThis = item.getAttribute("data-recip-id") === recipId;
+    if (isThis) {
+      item.className = "recipient-option-item w-full flex items-center justify-between px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer bg-zinc-800/70 text-zinc-100 font-medium";
+      if (!item.querySelector('[data-lucide="check"]')) {
+        item.insertAdjacentHTML("beforeend", `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>`);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    } else {
+      item.className = "recipient-option-item w-full flex items-center justify-between px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100";
+      const chk = item.querySelector('[data-lucide="check"]');
+      if (chk) chk.remove();
+    }
+  });
+
+  onSendFormChange();
+});
+
+document.getElementById("send-recipient-select")?.addEventListener("change", onSendFormChange);
 document.getElementById("send-sign-checkbox").addEventListener("change", onSendFormChange);
 document.getElementById("send-doc-message")?.addEventListener("input", onSendFormChange);
 
@@ -1463,7 +1576,7 @@ async function loadAndRenderSent(clientId) {
             </div>
 
             <!-- Collapsible OpenSSL Command for this sent message -->
-            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden mt-2" id="cmd-details-sent-${escapeHtml(m.id)}">
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-sent-${escapeHtml(m.id)}">
               <summary class="px-3 py-1.5 cursor-pointer select-none flex items-center justify-between">
                 <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                   <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
@@ -1571,7 +1684,7 @@ async function loadAndRenderInbox(clientId) {
             </div>
 
             <!-- Collapsible OpenSSL Command for this message -->
-            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden mt-2" id="cmd-details-msg-${escapeHtml(m.id)}">
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-msg-${escapeHtml(m.id)}">
               <summary class="px-3 py-1.5 cursor-pointer select-none flex items-center justify-between">
                 <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                   <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
