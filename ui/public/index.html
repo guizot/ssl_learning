@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=6.0" />
+  <link rel="stylesheet" href="/styles.css?v=6.1" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -157,12 +157,23 @@
           <p class="text-xs text-zinc-400">Anchor of trust &middot; Generates the self-signed master authority to sign client certificates.</p>
         </div>
 
-        <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
-          <code>$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
-        </div>
+        <!-- Collapsible OpenSSL Command -->
+        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+          <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+            <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+              <span>OpenSSL Command</span>
+            </span>
+            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+          </summary>
+          <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+            <code>$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
+          </div>
+        </details>
 
         <div>
-          <button id="btn-admin-init-root" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+          <button id="btn-admin-init-root" class="btn-solid h-9 sm:h-8 w-full">
             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
             <span>Initialize Root CA</span>
           </button>
@@ -215,9 +226,20 @@
           <p class="text-xs text-zinc-400">Manage client keypairs, incoming certificate signing requests, and issued X.509 certificates</p>
         </div>
 
-        <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
-          <code>$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
-        </div>
+        <!-- Collapsible OpenSSL Command -->
+        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+          <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+            <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+              <span>OpenSSL Command</span>
+            </span>
+            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+          </summary>
+          <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+            <code>$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
+          </div>
+        </details>
 
         <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
           <div id="admin-table-header" class="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-zinc-900/60 border-b border-zinc-800 text-[10px] font-mono uppercase font-bold text-zinc-500 items-center">
@@ -264,12 +286,23 @@
           <p class="text-xs text-zinc-400">Verifies how OpenSSL rejects rogue attacker certificates outside the trusted root chain</p>
         </div>
 
-        <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
-          <code>$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
-        </div>
+        <!-- Collapsible OpenSSL Command -->
+        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+          <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+            <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+              <span>OpenSSL Command</span>
+            </span>
+            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+          </summary>
+          <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+            <code>$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
+          </div>
+        </details>
 
         <div>
-          <button id="btn-admin-fake-test" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+          <button id="btn-admin-fake-test" class="btn-solid h-9 sm:h-8 w-full">
             <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
             <span>Test Fake CA Attack</span>
           </button>
@@ -349,20 +382,31 @@
             <p class="text-xs text-zinc-400">Generate personal EC private key (secp256k1) and CSR containing public key</p>
           </div>
 
-          <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code id="cmd-client-csr">$ openssl ecparam -name secp256k1 -genkey -noout -out client.key &amp;&amp; openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
-          </div>
+          <!-- Collapsible OpenSSL Command -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>OpenSSL Command</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+              <code id="cmd-client-csr">$ openssl ecparam -name secp256k1 -genkey -noout -out client.key &amp;&amp; openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
+            </div>
+          </details>
 
-          <div class="flex items-center gap-2 flex-wrap">
-            <button id="btn-client-gen-key" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+          <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+            <button id="btn-client-gen-key" class="btn-solid h-9 sm:h-8 flex-1 w-full">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span>Generate Key &amp; CSR</span>
             </button>
-            <button id="btn-client-remove-key-csr" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shadow-sm w-full sm:w-auto" style="display: none;">
+            <button id="btn-client-remove-key-csr" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shadow-sm flex-1 w-full" style="display: none;">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               <span>Remove Key &amp; CSR</span>
             </button>
-            <button id="btn-client-remove-crt" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shadow-sm w-full sm:w-auto" style="display: none;">
+            <button id="btn-client-remove-crt" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shadow-sm flex-1 w-full" style="display: none;">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               <span>Remove Cert</span>
             </button>
@@ -428,12 +472,23 @@
             <p class="text-xs text-zinc-400">Verify certificate validity and chain of trust against Root CA</p>
           </div>
 
-          <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code id="cmd-client-verify">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/[client].crt</code>
-          </div>
+          <!-- Collapsible OpenSSL Command -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>OpenSSL Command</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+              <code id="cmd-client-verify">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/[client].crt</code>
+            </div>
+          </details>
 
           <div>
-            <button id="btn-client-verify-ca" class="btn-solid h-9 sm:h-8 w-full sm:w-auto shrink-0">
+            <button id="btn-client-verify-ca" class="btn-solid h-9 sm:h-8 w-full">
               <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
               <span>Verify with Root CA</span>
             </button>
@@ -457,12 +512,23 @@
             <p class="text-xs text-zinc-400">Encrypt data using the recipient public certificate (OpenSSL CMS envelope)</p>
           </div>
 
-          <div class="cmd-pill bg-zinc-950 border border-zinc-800/80 rounded-lg px-3 py-2 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code id="cmd-client-send">$ openssl cms -encrypt -in document.txt -out msg.enc recipient.crt</code>
-          </div>
+          <!-- Collapsible OpenSSL Command -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>OpenSSL Command</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+              <code id="cmd-client-send">$ openssl cms -encrypt -in document.txt -out msg.enc recipient.crt</code>
+            </div>
+          </details>
 
           <div>
-            <button id="btn-client-send-doc" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+            <button id="btn-client-send-doc" class="btn-solid h-9 sm:h-8 w-full">
               <i data-lucide="send" class="w-3.5 h-3.5"></i>
               <span>Encrypt &amp; Send</span>
             </button>
@@ -615,7 +681,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=6.1" type="module"></script>
+  <script src="/app.js?v=6.2" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
