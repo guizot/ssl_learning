@@ -828,7 +828,7 @@ function renderClientIdentity(client) {
   if ((client.keyExists || client.csrExists || client.crtExists) && caState.activeDetails) {
     bodyIdentity.style.display = "flex";
     bodyIdentity.style.flexDirection = "column";
-    genBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>${(client.keyExists || client.csrExists) ? "Re-generate Key &amp; CSR" : "Generate Key &amp; CSR"}</span>`;
+    genBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>${(client.keyExists || client.csrExists) ? '<span class="sm:hidden">Re-gen</span><span class="hidden sm:inline">Re-generate</span> Key &amp; CSR' : 'Generate Key &amp; CSR'}</span>`;
 
     // 1. Private Key & Public Key
     const keyBox = document.getElementById("client-details-key");
