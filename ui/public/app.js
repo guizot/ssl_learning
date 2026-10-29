@@ -944,9 +944,14 @@ function renderClientIdentity(client) {
 
   const btnRemoveKeyCsr = document.getElementById("btn-client-remove-key-csr");
   const btnRemoveCrt = document.getElementById("btn-client-remove-crt");
+  const removeActions = document.getElementById("client-remove-actions");
 
-  if (btnRemoveKeyCsr) btnRemoveKeyCsr.style.display = (client.keyExists || client.csrExists) ? "inline-flex" : "none";
-  if (btnRemoveCrt) btnRemoveCrt.style.display = client.crtExists ? "inline-flex" : "none";
+  const showKeyCsr = Boolean(client.keyExists || client.csrExists);
+  const showCrt = Boolean(client.crtExists);
+
+  if (btnRemoveKeyCsr) btnRemoveKeyCsr.style.display = showKeyCsr ? "inline-flex" : "none";
+  if (btnRemoveCrt) btnRemoveCrt.style.display = showCrt ? "inline-flex" : "none";
+  if (removeActions) removeActions.style.display = (showKeyCsr || showCrt) ? "flex" : "none";
 
   if (cmdCsr && (!cmdCsr.getAttribute("data-has-output") || cmdCsr.getAttribute("data-client-id") !== client.id)) {
     cmdCsr.setAttribute("data-client-id", client.id);
@@ -958,7 +963,7 @@ function renderClientIdentity(client) {
   if ((client.keyExists || client.csrExists || client.crtExists) && caState.activeDetails) {
     bodyIdentity.style.display = "flex";
     bodyIdentity.style.flexDirection = "column";
-    genBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>${(client.keyExists || client.csrExists) ? '<span class="sm:hidden">Re-gen</span><span class="hidden sm:inline">Re-generate</span> Key &amp; CSR' : 'Generate Key &amp; CSR'}</span>`;
+    genBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>${(client.keyExists || client.csrExists) ? "Re-generate Key &amp; CSR" : "Generate Key &amp; CSR"}</span>`;
 
     // 1. Private Key & Public Key
     const keyBox = document.getElementById("client-details-key");

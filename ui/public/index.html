@@ -442,19 +442,21 @@
             </div>
           </details>
 
-          <div class="flex items-center gap-2 w-full">
-            <button id="btn-client-gen-key" class="btn-solid h-9 sm:h-8 flex-1 min-w-0">
+          <div class="space-y-2 w-full">
+            <button id="btn-client-gen-key" class="btn-solid h-9 sm:h-8 w-full">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span>Generate Key &amp; CSR</span>
             </button>
-            <button id="btn-client-remove-key-csr" class="btn-outline h-9 sm:h-8 w-9 sm:w-auto px-0 sm:px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg text-zinc-300 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 transition-colors shrink-0" style="display: none;" title="Remove Key &amp; CSR">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-              <span class="hidden sm:inline">Remove Key &amp; CSR</span>
-            </button>
-            <button id="btn-client-remove-crt" class="btn-outline h-9 sm:h-8 w-9 sm:w-auto px-0 sm:px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg text-zinc-300 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 transition-colors shrink-0" style="display: none;" title="Remove Cert">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-              <span class="hidden sm:inline">Remove Cert</span>
-            </button>
+            <div id="client-remove-actions" class="flex items-center gap-2 w-full" style="display: none;">
+              <button id="btn-client-remove-key-csr" class="btn-outline h-9 sm:h-8 flex-1 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg text-zinc-300 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 transition-colors text-xs font-medium" style="display: none;" title="Remove Key &amp; CSR">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Remove Key &amp; CSR</span>
+              </button>
+              <button id="btn-client-remove-crt" class="btn-outline h-9 sm:h-8 flex-1 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg text-zinc-300 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 transition-colors text-xs font-medium" style="display: none;" title="Remove Cert">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Remove Cert</span>
+              </button>
+            </div>
           </div>
 
           <div id="body-client-identity" style="display: none;" class="flex flex-col space-y-2.5 pt-3 border-t border-zinc-800">
@@ -820,7 +822,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=8.2" type="module"></script>
+  <script src="/app.js?v=8.3" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
