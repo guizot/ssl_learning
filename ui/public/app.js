@@ -102,6 +102,8 @@ function renderRoleSelector() {
       const curClient = (caState.clients || []).find((c) => c.id === caState.activeRole);
       if (curClient && curClient.crtExists && curClient.crtValid && curClient.keyMatchesCrt) {
         activeDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0";
+      } else if (curClient && curClient.crtExists && !curClient.keyExists) {
+        activeDot.className = "w-2 h-2 rounded-full bg-rose-500 shrink-0";
       } else if (curClient && curClient.crtExists) {
         activeDot.className = "w-2 h-2 rounded-full bg-amber-500 shrink-0";
       } else {
@@ -142,6 +144,8 @@ function renderRoleSelector() {
       if (c.crtExists) {
         if (!c.crtValid) {
           statusBadge = `<span class="text-[10px] font-mono text-amber-400">CA Mismatch</span>`;
+        } else if (!c.keyExists) {
+          statusBadge = `<span class="text-[10px] font-mono text-rose-400">Orphaned</span>`;
         } else if (!c.keyMatchesCrt) {
           statusBadge = `<span class="text-[10px] font-mono text-amber-400">Key Mismatch</span>`;
         } else {
@@ -154,7 +158,13 @@ function renderRoleSelector() {
       }
 
       if (isClientActive) {
-        const certTag = c.crtExists && c.crtValid && c.keyMatchesCrt ? "✓" : "pending";
+        let certTag = "pending";
+        if (c.crtExists) {
+          if (!c.crtValid) certTag = "ca mismatch";
+          else if (!c.keyExists) certTag = "orphaned";
+          else if (!c.keyMatchesCrt) certTag = "key mismatch";
+          else certTag = "✓";
+        }
         activeText = `${c.name} (${certTag})`;
       }
 
@@ -482,17 +492,17 @@ function renderAdminView() {
 
       const keyBadge = c.keyExists
         ? `<span class="status-pill signed">✓ secp256k1</span>`
-        : `<span class="status-pill none">Not Generated</span>`;
+        : `<span class="status-pill none">None</span>`;
 
       const csrBadge = c.csrExists
         ? `<span class="status-pill signed">✓ Ready</span>`
-        : `<span class="status-pill none">No CSR</span>`;
+        : `<span class="status-pill none">None</span>`;
 
       const crtBadge = c.crtExists
         ? !c.crtValid
           ? `<span class="status-pill border border-amber-500/40 bg-amber-500/10 text-amber-300">⚠ CA Mismatch</span>`
           : !c.keyExists
-          ? `<span class="status-pill border border-rose-500/40 bg-rose-500/10 text-rose-400">⚠ No Key</span>`
+          ? `<span class="status-pill border border-rose-500/40 bg-rose-500/10 text-rose-400">⚠ Orphaned</span>`
           : !c.keyMatchesCrt
           ? `<span class="status-pill border border-amber-500/40 bg-amber-500/10 text-amber-300">⚠ Key Mismatch</span>`
           : `<span class="status-pill signed">✓ Issued</span>`
@@ -502,7 +512,7 @@ function renderAdminView() {
       if (c.crtExists) {
         if (!c.csrExists) {
           actionBtn = `
-            <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-rose-900/50 bg-rose-950/20 text-[11px] font-mono text-rose-400 text-center">No CSR to Sign</div>
+            <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-rose-900/50 bg-rose-950/20 text-[11px] font-mono text-rose-400 text-center">Orphaned (No CSR)</div>
             <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           `;
         } else {
@@ -527,7 +537,7 @@ function renderAdminView() {
         `;
       } else {
         actionBtn = `
-          <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-zinc-800 text-[11px] font-mono text-zinc-500 text-center">Awaiting Key &amp; CSR</div>
+          <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-zinc-800 text-[11px] font-mono text-zinc-500 text-center">Awaiting CSR</div>
           <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
         `;
       }
@@ -742,7 +752,7 @@ function renderClientView() {
       fsCrt.textContent = "CA mismatch";
       fsCrt.className = "f-state text-amber-400 text-[11px]";
     } else if (!activeClient.keyExists) {
-      fsCrt.textContent = "no private key";
+      fsCrt.textContent = "orphaned";
       fsCrt.className = "f-state text-rose-400 text-[11px]";
     } else if (!activeClient.keyMatchesCrt) {
       fsCrt.textContent = "key mismatch";
@@ -753,7 +763,7 @@ function renderClientView() {
     }
   } else {
     fbCrt.classList.remove("created");
-    fsCrt.textContent = "not created";
+    fsCrt.textContent = "none";
     fsCrt.className = "f-state text-zinc-500 text-[11px]";
   }
 
