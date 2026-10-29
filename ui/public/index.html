@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=5.6" />
+  <link rel="stylesheet" href="/styles.css?v=5.7" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -74,37 +74,26 @@
         </div>
       </div>
 
-      <!-- Action Controls -->
-      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-        <!-- Row 1: Role Selector (max-width flex-1) + Theme Toggle on Right -->
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <!-- Role Selector Pill -->
-          <div class="flex items-center gap-2 px-3 h-9 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex-1 sm:flex-initial min-w-0">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-            <label class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0" for="global-role-select">Role:</label>
-            <select id="global-role-select" class="w-full min-w-0 flex-1 bg-transparent border-none text-zinc-200 text-xs font-medium focus:outline-none cursor-pointer truncate pr-5">
-              <option value="admin">Admin (Root CA)</option>
-            </select>
-          </div>
-
-          <!-- Theme Toggle Button -->
-          <button id="btn-theme-toggle" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors shrink-0" title="Toggle Theme (Auto / Dark / Light)">
-            <i id="theme-icon" data-lucide="moon" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
-          </button>
+      <!-- Action Controls: Role, Reset Icon, Theme Icon (Single Row) -->
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <!-- Role Selector Pill -->
+        <div class="flex items-center gap-2 px-3 h-9 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex-1 sm:flex-initial min-w-0">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+          <label class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0" for="global-role-select">Role:</label>
+          <select id="global-role-select" class="w-full min-w-0 flex-1 bg-transparent border-none text-zinc-200 text-xs font-medium focus:outline-none cursor-pointer truncate pr-5">
+            <option value="admin">Admin (Root CA)</option>
+          </select>
         </div>
 
-        <!-- Row 2 on Mobile: Add Client and Reset (1:1 weight side-by-side) -->
-        <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-          <button id="btn-open-add-client" class="inline-flex items-center justify-center gap-1.5 px-3 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 transition-colors w-full sm:w-auto">
-            <i data-lucide="user-plus" class="w-3.5 h-3.5 text-zinc-400"></i>
-            <span>Add Client</span>
-          </button>
+        <!-- Reset Icon Button -->
+        <button id="btn-ca-reset" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0" title="Reset all certificates">
+          <i data-lucide="rotate-ccw" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
 
-          <button id="btn-ca-reset" class="inline-flex items-center justify-center gap-1.5 px-3 h-9 sm:h-8 text-xs font-medium rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors w-full sm:w-auto" title="Reset all certificates">
-            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-            <span>Reset</span>
-          </button>
-        </div>
+        <!-- Theme Toggle Button -->
+        <button id="btn-theme-toggle" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors shrink-0" title="Toggle Theme (Auto / Dark / Light)">
+          <i id="theme-icon" data-lucide="moon" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
       </div>
     </header>
 
@@ -225,6 +214,13 @@
           <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
             <!-- Dynamically populated card rows -->
           </div>
+        </div>
+
+        <div>
+          <button id="btn-open-add-client" class="btn-solid h-9 sm:h-8 w-full sm:w-auto">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+            <span>Add Client</span>
+          </button>
         </div>
       </section>
 
@@ -589,7 +585,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=5.7" type="module"></script>
+  <script src="/app.js?v=5.8" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
