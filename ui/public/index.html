@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=5.8" />
+  <link rel="stylesheet" href="/styles.css?v=6.0" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -76,13 +76,29 @@
 
       <!-- Action Controls: Role, Reset Icon, Theme Icon (Single Row) -->
       <div class="flex items-center gap-2 w-full sm:w-auto">
-        <!-- Role Selector Pill -->
-        <div class="flex items-center gap-2 px-3 h-9 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex-1 sm:flex-initial min-w-0">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-          <label class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0" for="global-role-select">Role:</label>
-          <select id="global-role-select" class="w-full min-w-0 flex-1 bg-transparent border-none text-zinc-200 text-xs font-medium focus:outline-none cursor-pointer truncate pr-5">
-            <option value="admin">Admin (Root CA)</option>
-          </select>
+        <!-- Custom Role Selector Dropdown -->
+        <div class="relative flex-1 sm:flex-initial min-w-0" id="role-dropdown-container">
+          <button id="role-dropdown-trigger" type="button" class="flex items-center justify-between gap-2.5 px-3 h-9 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition-colors w-full focus:outline-none cursor-pointer select-none" aria-haspopup="listbox" aria-expanded="false">
+            <div class="flex items-center gap-2 min-w-0 truncate">
+              <span id="role-active-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+              <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0">Role:</span>
+              <span id="role-active-label" class="text-zinc-100 font-medium truncate">Admin (Root CA)</span>
+            </div>
+            <i data-lucide="chevron-down" id="role-dropdown-chevron" class="w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200"></i>
+          </button>
+
+          <!-- Custom Dropdown Menu -->
+          <div id="role-dropdown-menu" class="hidden absolute top-full left-0 mt-1.5 w-full sm:w-64 z-50 rounded-lg border border-zinc-800 bg-zinc-950/95 backdrop-blur-md shadow-2xl p-1.5 space-y-1 text-xs">
+            <div id="role-dropdown-items" class="space-y-0.5">
+              <!-- Dynamically populated -->
+            </div>
+            <div class="pt-1 border-t border-zinc-800/80">
+              <button id="role-dropdown-add-client" type="button" class="w-full flex items-center gap-2 px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors text-left text-[11px] font-medium cursor-pointer">
+                <i data-lucide="plus" class="w-3.5 h-3.5 text-zinc-500"></i>
+                <span>Add new client...</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Reset Icon Button -->
@@ -599,7 +615,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=5.9" type="module"></script>
+  <script src="/app.js?v=6.1" type="module"></script>
   <script>
     // Theme Switcher (System / Dark / Light)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

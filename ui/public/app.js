@@ -82,30 +82,167 @@ function renderUI() {
 }
 
 // ============================================================================
-// ROLE SELECTOR & CRUD
+// CUSTOM ROLE SELECTOR DROPDOWN & CRUD
 // ============================================================================
 function renderRoleSelector() {
-  const roleSelect = document.getElementById("global-role-select");
-  let optionsHtml = `<option value="admin" ${caState.activeRole === "admin" ? "selected" : ""}>Admin (Root CA)</option>`;
+  const activeLabel = document.getElementById("role-active-label");
+  const itemsContainer = document.getElementById("role-dropdown-items");
+  const activeDot = document.getElementById("role-active-dot");
+  if (!itemsContainer) return;
 
-  caState.clients.forEach((c) => {
-    const certTag = c.crtExists ? "✓" : "needs cert";
-    optionsHtml += `<option value="${escapeHtml(c.id)}" ${caState.activeRole === c.id ? "selected" : ""}>
-      ${escapeHtml(c.name)} (${certTag})
-    </option>`;
-  });
+  const isAdmin = caState.activeRole === "admin";
+  let activeText = "Admin (Root CA)";
 
-  roleSelect.innerHTML = optionsHtml;
+  if (activeDot) {
+    if (isAdmin) {
+      activeDot.className = caState.rootCaExists
+        ? "w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"
+        : "w-2 h-2 rounded-full bg-zinc-600 shrink-0";
+    } else {
+      const curClient = (caState.clients || []).find((c) => c.id === caState.activeRole);
+      if (curClient && curClient.crtExists && curClient.crtValid && curClient.keyMatchesCrt) {
+        activeDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0";
+      } else if (curClient && curClient.crtExists) {
+        activeDot.className = "w-2 h-2 rounded-full bg-amber-500 shrink-0";
+      } else {
+        activeDot.className = "w-2 h-2 rounded-full bg-zinc-500 shrink-0";
+      }
+    }
+  }
+
+  let itemsHtml = `
+    <button type="button" class="role-option-item w-full flex items-center justify-between px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer ${
+      isAdmin
+        ? "bg-zinc-800/70 text-zinc-100 font-medium"
+        : "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100"
+    }" data-role="admin">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 shrink-0">
+          <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="text-xs font-medium text-zinc-100 truncate">Admin (Root CA)</div>
+          <div class="text-[10px] text-zinc-500 font-mono truncate">Master Authority</div>
+        </div>
+      </div>
+      ${isAdmin ? `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>` : ""}
+    </button>
+  `;
+
+  if (caState.clients && caState.clients.length > 0) {
+    itemsHtml += `
+      <div class="my-1 border-t border-zinc-800/60"></div>
+      <div class="px-2.5 py-1 text-[10px] font-mono uppercase font-bold text-zinc-500">Registered Clients</div>
+    `;
+
+    caState.clients.forEach((c) => {
+      const isClientActive = caState.activeRole === c.id;
+      const initial = (c.name || "C").charAt(0).toUpperCase();
+      let statusBadge = "";
+      if (c.crtExists) {
+        if (!c.crtValid) {
+          statusBadge = `<span class="text-[10px] font-mono text-amber-400">CA Mismatch</span>`;
+        } else if (!c.keyMatchesCrt) {
+          statusBadge = `<span class="text-[10px] font-mono text-amber-400">Key Mismatch</span>`;
+        } else {
+          statusBadge = `<span class="text-[10px] font-mono text-emerald-400">✓ Issued</span>`;
+        }
+      } else if (c.csrExists) {
+        statusBadge = `<span class="text-[10px] font-mono text-zinc-400">CSR Ready</span>`;
+      } else {
+        statusBadge = `<span class="text-[10px] font-mono text-zinc-500">Pending</span>`;
+      }
+
+      if (isClientActive) {
+        const certTag = c.crtExists && c.crtValid && c.keyMatchesCrt ? "✓" : "pending";
+        activeText = `${c.name} (${certTag})`;
+      }
+
+      itemsHtml += `
+        <button type="button" class="role-option-item w-full flex items-center justify-between px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer ${
+          isClientActive
+            ? "bg-zinc-800/70 text-zinc-100 font-medium"
+            : "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100"
+        }" data-role="${escapeHtml(c.id)}">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
+              ${escapeHtml(initial)}
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-medium text-zinc-100 truncate">${escapeHtml(c.name)}</div>
+              <div class="text-[10px] font-mono text-zinc-500 truncate">id: ${escapeHtml(c.id)} · ${statusBadge}</div>
+            </div>
+          </div>
+          ${isClientActive ? `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>` : ""}
+        </button>
+      `;
+    });
+  }
+
+  if (activeLabel) {
+    activeLabel.textContent = activeText;
+  }
+  itemsContainer.innerHTML = itemsHtml;
+  if (window.lucide) window.lucide.createIcons();
 }
 
-document.getElementById("global-role-select").addEventListener("change", async (e) => {
-  const selectedRole = e.target.value;
+// Custom Role Dropdown Toggle & Listeners
+const roleTrigger = document.getElementById("role-dropdown-trigger");
+const roleMenu = document.getElementById("role-dropdown-menu");
+const roleChevron = document.getElementById("role-dropdown-chevron");
+
+function toggleRoleDropdown(show) {
+  if (!roleMenu) return;
+  const isHidden = roleMenu.classList.contains("hidden");
+  const willShow = show !== undefined ? show : isHidden;
+  if (willShow) {
+    roleMenu.classList.remove("hidden");
+    if (roleTrigger) roleTrigger.setAttribute("aria-expanded", "true");
+    if (roleChevron) roleChevron.classList.add("rotate-180");
+  } else {
+    roleMenu.classList.add("hidden");
+    if (roleTrigger) roleTrigger.setAttribute("aria-expanded", "false");
+    if (roleChevron) roleChevron.classList.remove("rotate-180");
+  }
+}
+
+if (roleTrigger) {
+  roleTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleRoleDropdown();
+  });
+}
+
+document.addEventListener("click", (e) => {
+  const container = document.getElementById("role-dropdown-container");
+  if (container && !container.contains(e.target)) {
+    toggleRoleDropdown(false);
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    toggleRoleDropdown(false);
+  }
+});
+
+document.getElementById("role-dropdown-items")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".role-option-item");
+  if (!btn) return;
+  const selectedRole = btn.getAttribute("data-role");
+  toggleRoleDropdown(false);
+
   await fetch("/api/ca/select-role", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ role: selectedRole }),
   });
   await syncCAState();
+});
+
+document.getElementById("role-dropdown-add-client")?.addEventListener("click", (e) => {
+  toggleRoleDropdown(false);
+  openAddClientModal();
 });
 
 // =====================================================================
