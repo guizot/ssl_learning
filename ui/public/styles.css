@@ -177,11 +177,13 @@ details summary {
 
 /* Modals Animation */
 #modal-add-client,
-#modal-confirm {
+#modal-confirm,
+#modal-send-doc {
   animation: modalFadeIn 0.15s ease-out;
 }
 #modal-add-client > div,
-#modal-confirm > div {
+#modal-confirm > div,
+#modal-send-doc > div {
   animation: modalScaleIn 0.15s ease-out;
 }
 @keyframes modalFadeIn {
@@ -372,9 +374,9 @@ select option {
 }
 
 .btn-danger-hover:hover:not(:disabled) {
-  background-color: rgba(244, 63, 94, 0.1) !important;
-  color: #fb7185 !important;
-  border-color: rgba(244, 63, 94, 0.3) !important;
+  background-color: rgb(var(--zinc-800)) !important;
+  color: rgb(var(--zinc-100)) !important;
+  border-color: rgb(var(--zinc-700)) !important;
 }
 
 .btn-danger-action {
@@ -404,17 +406,23 @@ select option {
 .inbox-item-card {
   border-radius: 8px;
   border: 1px solid rgb(var(--zinc-800));
-  background-color: rgb(var(--zinc-900));
+  background-color: rgb(var(--zinc-950));
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.inbox-item-card:hover {
+  border-color: rgb(var(--zinc-700));
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
 
 .inbox-item-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
@@ -433,14 +441,13 @@ select option {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 4px 8px;
-  height: 26px;
-  font-size: 11px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
   color: rgb(var(--zinc-400));
-  background: transparent;
-  border: 1px solid transparent;
+  background-color: rgb(var(--zinc-950));
+  border: 1px solid rgb(var(--zinc-800));
   transition: all 0.15s ease;
   flex-shrink: 0;
   cursor: pointer;
@@ -448,26 +455,44 @@ select option {
 
 .btn-del-msg:hover,
 .btn-del-sent-msg:hover {
-  color: rgb(var(--rose-400));
-  background-color: rgba(244, 63, 94, 0.1);
-  border-color: rgba(244, 63, 94, 0.2);
+  color: rgb(var(--zinc-100));
+  background-color: rgb(var(--zinc-800));
+  border-color: rgb(var(--zinc-700));
+}
+
+.btn-del-msg svg,
+.btn-del-sent-msg svg,
+.btn-del-client svg {
+  pointer-events: none;
 }
 
 .inbox-sender-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 11px;
   font-family: "Geist Mono", monospace;
-  background: rgb(var(--zinc-800));
-  border: 1px solid rgb(var(--zinc-700));
-  padding: 2px 7px;
+  background-color: rgb(var(--zinc-950));
+  border: 1px solid rgb(var(--zinc-800));
   border-radius: 8px;
-  color: rgb(var(--zinc-100));
+  color: rgb(var(--zinc-300));
   font-weight: 500;
 }
 
 .inbox-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 11px;
   font-family: "Geist Mono", monospace;
-  color: rgb(var(--zinc-500));
+  color: rgb(var(--zinc-400));
+  background-color: rgb(var(--zinc-950));
+  border: 1px solid rgb(var(--zinc-800));
+  border-radius: 8px;
 }
 
 .inbox-title {
@@ -519,13 +544,14 @@ select option {
 .sig-badge-verified {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 11px;
   font-family: "Geist Mono", monospace;
   color: rgb(var(--emerald-400));
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 2px 6px;
+  background-color: rgb(var(--zinc-950));
+  border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 8px;
   font-weight: 500;
 }
@@ -533,14 +559,16 @@ select option {
 .sig-badge-unsigned {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
   font-size: 11px;
   font-family: "Geist Mono", monospace;
-  color: rgb(var(--zinc-500));
-  background: rgb(var(--zinc-900));
+  color: rgb(var(--zinc-400));
+  background-color: rgb(var(--zinc-950));
   border: 1px solid rgb(var(--zinc-800));
-  padding: 2px 6px;
   border-radius: 8px;
+  font-weight: 500;
 }
 
 .result-banner {

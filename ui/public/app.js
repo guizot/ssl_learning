@@ -309,8 +309,8 @@ function showConfirmModal({
   message = "Are you sure you want to proceed?",
   confirmText = "Confirm",
   cancelText = "Cancel",
-  variant = "danger", // "danger" or "primary"
-  icon = "alert-triangle",
+  variant = "danger", // kept for compatibility
+  icon = "trash-2",
   alertOnly = false,
 } = {}) {
   return new Promise((resolve) => {
@@ -319,35 +319,25 @@ function showConfirmModal({
     const msgEl = document.getElementById("confirm-message");
     const proceedBtn = document.getElementById("btn-confirm-proceed");
     const proceedText = document.getElementById("confirm-proceed-text");
-    const cancelBtn = document.getElementById("btn-confirm-cancel");
-    const cancelTextEl = document.getElementById("confirm-cancel-text");
+    const closeBtn = document.getElementById("btn-close-modal-confirm");
     const iconBox = document.getElementById("confirm-icon-box");
-    const iconEl = document.getElementById("confirm-icon");
-    const proceedIcon = document.getElementById("confirm-proceed-icon");
+    const proceedIconBox = document.getElementById("confirm-proceed-icon-box");
 
-    titleEl.textContent = title;
-    msgEl.textContent = message;
-    proceedText.textContent = confirmText;
-    cancelTextEl.textContent = cancelText;
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (proceedText) proceedText.textContent = confirmText;
 
-    if (alertOnly) {
-      cancelBtn.style.display = "none";
-      proceedBtn.className = "flex-1 btn-solid h-9 sm:h-8 text-xs font-medium rounded-lg";
-      iconBox.className = "w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center shrink-0";
-      iconEl.setAttribute("data-lucide", icon || "info");
-      proceedIcon.setAttribute("data-lucide", "check");
-    } else if (variant === "danger") {
-      cancelBtn.style.display = "inline-flex";
-      iconBox.className = "w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shrink-0";
-      iconEl.setAttribute("data-lucide", icon || "alert-triangle");
-      proceedBtn.className = "flex-1 inline-flex items-center justify-center gap-1.5 h-9 sm:h-8 text-xs font-medium rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors";
-      proceedIcon.setAttribute("data-lucide", icon === "rotate-ccw" ? "rotate-ccw" : "trash-2");
-    } else {
-      cancelBtn.style.display = "inline-flex";
-      iconBox.className = "w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center justify-center shrink-0";
-      iconEl.setAttribute("data-lucide", icon || "check-circle");
-      proceedBtn.className = "flex-1 btn-solid h-9 sm:h-8 text-xs font-medium rounded-lg";
-      proceedIcon.setAttribute("data-lucide", "check");
+    const iconName = icon === "rotate-ccw" ? "rotate-ccw" : (icon === "info" ? "info" : "trash-2");
+
+    if (iconBox) {
+      iconBox.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 text-zinc-400"></i>`;
+    }
+    if (proceedIconBox) {
+      proceedIconBox.innerHTML = `<i data-lucide="${alertOnly ? 'check' : iconName}" class="w-3.5 h-3.5"></i>`;
+    }
+
+    if (proceedBtn) {
+      proceedBtn.className = "w-full btn-solid h-9 sm:h-8 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 cursor-pointer";
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -355,24 +345,41 @@ function showConfirmModal({
 
     function cleanup(result) {
       modal.style.display = "none";
-      proceedBtn.removeEventListener("click", onProceed);
-      cancelBtn.removeEventListener("click", onCancel);
-      modal.removeEventListener("click", onBackdrop);
+      if (proceedBtn) proceedBtn.onclick = null;
+      if (closeBtn) closeBtn.onclick = null;
+      modal.onclick = null;
       window.removeEventListener("keydown", onKeydown);
       resolve(result);
     }
 
-    function onProceed() { cleanup(true); }
-    function onCancel() { cleanup(false); }
-    function onBackdrop(e) { if (e.target === modal) cleanup(false); }
     function onKeydown(e) {
-      if (e.key === "Escape") cleanup(false);
-      if (e.key === "Enter") cleanup(true);
+      if (e.key === "Escape") {
+        cleanup(false);
+      } else if (e.key === "Enter") {
+        cleanup(true);
+      }
     }
 
-    proceedBtn.addEventListener("click", onProceed);
-    cancelBtn.addEventListener("click", onCancel);
-    modal.addEventListener("click", onBackdrop);
+    if (proceedBtn) {
+      proceedBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cleanup(true);
+      };
+    }
+
+    if (closeBtn) {
+      closeBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cleanup(false);
+      };
+    }
+
+    modal.onclick = (e) => {
+      if (e.target === modal) cleanup(false);
+    };
+
     window.addEventListener("keydown", onKeydown);
   });
 }
@@ -412,7 +419,6 @@ function closeAddClientModal() {
 }
 
 document.getElementById("btn-open-add-client").addEventListener("click", openAddClientModal);
-document.getElementById("btn-cancel-add-client").addEventListener("click", closeAddClientModal);
 document.getElementById("btn-close-modal-add-client").addEventListener("click", closeAddClientModal);
 modalAddClient.addEventListener("click", (e) => {
   if (e.target === modalAddClient) closeAddClientModal();
@@ -482,7 +488,8 @@ function renderAdminView() {
   const adminInitBtn = document.getElementById("btn-admin-init-root");
   const bodyAdminRoot = document.getElementById("body-admin-root");
 
-  document.getElementById("admin-clients-count").textContent = String(caState.clients.length);
+  const clientsCountEl = document.getElementById("admin-clients-count");
+  if (clientsCountEl) clientsCountEl.textContent = String(caState.clients.length);
 
   if (caState.rootCaExists && caState.rootCa) {
     fbRootKey.classList.add("created");
@@ -558,7 +565,7 @@ function renderAdminView() {
         if (!c.csrExists) {
           actionBtn = `
             <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-rose-900/50 bg-rose-950/20 text-[11px] font-mono text-rose-400 text-center">Orphaned (No CSR)</div>
-            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           `;
         } else {
           let btnLabel = "Re-sign";
@@ -569,7 +576,7 @@ function renderAdminView() {
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span>${btnLabel}</span>
             </button>
-            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           `;
         }
       } else if (c.csrExists) {
@@ -578,12 +585,12 @@ function renderAdminView() {
             <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
             <span>Sign &amp; Issue Cert</span>
           </button>
-          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
         `;
       } else {
         actionBtn = `
           <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-zinc-800 text-[11px] font-mono text-zinc-500 text-center">Awaiting CSR</div>
-          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-rose-900/50 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
         `;
       }
 
@@ -601,7 +608,7 @@ function renderAdminView() {
               </div>
             </div>
             <!-- Mobile Only Delete Button -->
-            <button class="sm:hidden inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+            <button class="sm:hidden inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           </div>
 
           <!-- Col 2: Key Badge (span 2, Desktop only) -->
@@ -702,20 +709,25 @@ function renderAdminView() {
   });
 
   tbody.querySelectorAll(".btn-del-client").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.onclick = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const id = btn.getAttribute("data-id");
       const ok = await showConfirmModal({
         title: "Delete Client",
         message: `Delete client "${id}" and wipe all their keys, CSR, and certificates? This action cannot be undone.`,
         confirmText: "Delete Client",
-        cancelText: "Cancel",
-        variant: "danger",
         icon: "trash-2",
       });
       if (!ok) return;
-      await fetch(`/api/ca/client/${id}`, { method: "DELETE" });
-      await syncCAState();
-    });
+      btn.disabled = true;
+      try {
+        await fetch(`/api/ca/client/${id}`, { method: "DELETE" });
+        await syncCAState();
+      } catch (err) {
+        console.error("Failed to delete client:", err);
+      }
+    };
   });
 }
 
@@ -928,10 +940,14 @@ document.querySelectorAll(".subtab-btn").forEach((btn) => {
     currentSubtab = btn.getAttribute("data-subtab");
     updateSubtabs();
 
-    if (currentSubtab === "inbox") {
-      loadAndRenderInbox(caState.activeRole);
-    } else if (currentSubtab === "send") {
-      loadAndRenderSent(caState.activeRole);
+    const client = caState?.clients?.find((c) => c.id === caState.activeRole);
+    if (client) {
+      if (currentSubtab === "inbox") {
+        loadAndRenderInbox(client.id);
+      } else if (currentSubtab === "send") {
+        renderClientSendTab(client);
+        loadAndRenderSent(client.id);
+      }
     }
   });
 });
@@ -1211,6 +1227,9 @@ document.getElementById("btn-client-remove-crt")?.addEventListener("click", () =
 
 // SUBTAB 2: SEND ENCRYPTED DOCUMENT
 function renderClientSendTab(client) {
+  // Check sender certificate requirement for digital signature upfront
+  validateSenderCertForSigning(client);
+
   // Filter other certified clients (must be valid against current Root CA)
   const eligibleRecipients = caState.clients.filter(
     (c) => c.id !== client.id && c.crtExists && c.crtValid
@@ -1232,6 +1251,7 @@ function renderClientSendTab(client) {
     if (recipTrigger) recipTrigger.disabled = true;
     if (recipItemsContainer) recipItemsContainer.innerHTML = "";
     document.getElementById("cmd-client-send").textContent = "$ openssl cms (blocked: no eligible recipient)";
+    if (window.lucide) window.lucide.createIcons();
     return;
   }
 
@@ -1277,9 +1297,6 @@ function renderClientSendTab(client) {
       .join("");
   }
 
-  // Check sender certificate requirement for digital signature
-  validateSenderCertForSigning(client);
-
   const cmdSendEl = document.getElementById("cmd-client-send");
   if (cmdSendEl && (!cmdSendEl.getAttribute("data-has-output") || cmdSendEl.getAttribute("data-client-id") !== client.id)) {
     cmdSendEl.setAttribute("data-client-id", client.id);
@@ -1295,6 +1312,11 @@ function validateSenderCertForSigning(client) {
   const senderCertWarning = document.getElementById("sender-cert-warning");
   const sendContainer = document.getElementById("send-sign-container");
   const sendBtn = document.getElementById("btn-client-send-doc");
+
+  const eligibleRecipients = (caState?.clients || []).filter(
+    (c) => c.id !== client.id && c.crtExists && c.crtValid
+  );
+  const hasEligibleRecipients = eligibleRecipients.length > 0;
 
   const hasIssue = !client.crtExists || !client.crtValid || !client.keyMatchesCrt;
 
@@ -1321,7 +1343,9 @@ function validateSenderCertForSigning(client) {
       senderCertWarning.style.display = "none";
       senderCertWarning.innerHTML = "";
     }
-    if (sendBtn) sendBtn.disabled = false;
+    if (sendBtn) {
+      sendBtn.disabled = !hasEligibleRecipients;
+    }
   }
 }
 
@@ -1427,6 +1451,43 @@ document.getElementById("send-recipient-select")?.addEventListener("change", onS
 document.getElementById("send-sign-checkbox").addEventListener("change", onSendFormChange);
 document.getElementById("send-doc-message")?.addEventListener("input", onSendFormChange);
 
+// Send Document Modal handlers
+const modalSendDoc = document.getElementById("modal-send-doc");
+
+function openSendModal() {
+  const client = caState.clients?.find((c) => c.id === caState.activeRole);
+  if (client) {
+    renderClientSendTab(client);
+  }
+  if (modalSendDoc) {
+    modalSendDoc.style.display = "flex";
+  }
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeSendModal() {
+  if (modalSendDoc) {
+    modalSendDoc.style.display = "none";
+  }
+}
+
+document.getElementById("btn-open-send-modal")?.addEventListener("click", openSendModal);
+document.getElementById("btn-close-modal-send")?.addEventListener("click", closeSendModal);
+
+modalSendDoc?.addEventListener("click", (e) => {
+  if (e.target === modalSendDoc) closeSendModal();
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modalSendDoc?.style.display === "flex") {
+    const recipMenuEl = document.getElementById("recipient-dropdown-menu");
+    if (recipMenuEl && !recipMenuEl.classList.contains("hidden")) {
+      return;
+    }
+    closeSendModal();
+  }
+});
+
 document.getElementById("btn-client-send-doc").addEventListener("click", async () => {
   const senderId = caState.activeRole;
   const recipientId = document.getElementById("send-recipient-select").value;
@@ -1503,6 +1564,7 @@ document.getElementById("btn-client-send-doc").addEventListener("click", async (
     });
 
     await loadAndRenderSent(senderId);
+    closeSendModal();
   } finally {
     btn.innerHTML = `<i data-lucide="send" class="w-3.5 h-3.5"></i><span>Encrypt &amp; Send</span>`;
     if (window.lucide) window.lucide.createIcons();
@@ -1553,9 +1615,13 @@ async function loadAndRenderSent(clientId) {
 
     container.innerHTML = messages
       .map((m) => {
-        const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const d = new Date(m.createdAt);
+        const dateStr = d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+        const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const dateTimeStr = `${dateStr}, ${timeStr}`;
+
         const sigBadge = m.isSigned
-          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 inline-block mr-1"></i>Digitally Signed</span>`
+          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i>Digitally Signed</span>`
           : `<span class="sig-badge-unsigned">Unsigned</span>`;
 
         const cmdText = m.isSigned
@@ -1568,12 +1634,11 @@ async function loadAndRenderSent(clientId) {
               <div class="inbox-item-meta">
                 <span class="inbox-sender-tag">To: ${escapeHtml(m.recipientName)} (${escapeHtml(m.recipientId)}.crt)</span>
                 ${sigBadge}
-                <span class="inbox-time">${timeStr}</span>
+                <span class="inbox-time"><i data-lucide="clock" class="w-3 h-3 text-zinc-500"></i>${dateTimeStr}</span>
+                <button class="btn-del-sent-msg" data-id="${escapeHtml(m.id)}" title="Delete document">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
               </div>
-              <button class="btn-del-sent-msg" data-id="${escapeHtml(m.id)}" title="Delete message">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span class="hidden sm:inline">Delete</span>
-              </button>
             </div>
 
             ${m.title ? `<div class="inbox-title">${escapeHtml(m.title)}</div>` : ""}
@@ -1590,8 +1655,8 @@ async function loadAndRenderSent(clientId) {
                   <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
                   <span>OpenSSL Command</span>
                 </span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
               </summary>
               <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
                 <code id="cmd-code-sent-${escapeHtml(m.id)}" class="whitespace-pre-wrap">${escapeHtml(cmdText)}</code>
@@ -1606,9 +1671,19 @@ async function loadAndRenderSent(clientId) {
 
     // Wire up delete buttons
     container.querySelectorAll(".btn-del-sent-msg").forEach((btn) => {
-      btn.addEventListener("click", async () => {
+      btn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const messageId = btn.getAttribute("data-id");
         if (!messageId) return;
+        const ok = await showConfirmModal({
+          title: "Delete Document",
+          message: "Delete this sent document record from outbox?",
+          confirmText: "Delete Document",
+          icon: "trash-2",
+        });
+        if (!ok) return;
+        btn.disabled = true;
         btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>`;
         if (window.lucide) window.lucide.createIcons();
         try {
@@ -1618,7 +1693,7 @@ async function loadAndRenderSent(clientId) {
         } catch (err) {
           console.error("Failed to delete sent message:", err);
         }
-      });
+      };
     });
   } catch (err) {
     console.error("Failed to load sent messages:", err);
@@ -1669,9 +1744,13 @@ async function loadAndRenderInbox(clientId) {
 
     container.innerHTML = messages
       .map((m) => {
-        const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const d = new Date(m.createdAt);
+        const dateStr = d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+        const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        const dateTimeStr = `${dateStr}, ${timeStr}`;
+
         const sigBadge = m.isSigned
-          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 inline-block mr-1"></i>Digitally Signed</span>`
+          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i>Digitally Signed</span>`
           : `<span class="sig-badge-unsigned">Unsigned</span>`;
 
         return `
@@ -1680,12 +1759,11 @@ async function loadAndRenderInbox(clientId) {
               <div class="inbox-item-meta">
                 <span class="inbox-sender-tag">From: ${escapeHtml(m.senderName)}</span>
                 ${sigBadge}
-                <span class="inbox-time">${timeStr}</span>
+                <span class="inbox-time"><i data-lucide="clock" class="w-3 h-3 text-zinc-500"></i>${dateTimeStr}</span>
+                <button class="btn-del-msg" data-id="${escapeHtml(m.id)}" title="Delete document">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
               </div>
-              <button class="btn-del-msg" data-id="${escapeHtml(m.id)}" title="Delete message">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span class="hidden sm:inline">Delete</span>
-              </button>
             </div>
 
             ${m.title ? `<div class="inbox-title">${escapeHtml(m.title)}</div>` : ""}
@@ -1702,8 +1780,8 @@ async function loadAndRenderInbox(clientId) {
                   <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
                   <span>OpenSSL Command</span>
                 </span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show Command</span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide Command</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
               </summary>
               <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
                 <code id="cmd-code-msg-${escapeHtml(m.id)}" class="whitespace-pre-wrap">$ openssl cms -decrypt -in messages/${escapeHtml(m.encFilename)} -inkey clients/${escapeHtml(m.recipientId)}/${escapeHtml(m.recipientId)}.key -recip clients/${escapeHtml(m.recipientId)}/${escapeHtml(m.recipientId)}.crt${m.isSigned ? `\n$ openssl cms -verify -in messages/tmp_dec_${escapeHtml(m.id)}.tmp -CAfile ca/root_ca.crt` : ""}</code>
@@ -1898,14 +1976,29 @@ async function loadAndRenderInbox(clientId) {
     });
 
     container.querySelectorAll(".btn-del-msg").forEach((btn) => {
-      btn.addEventListener("click", async () => {
+      btn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const messageId = btn.getAttribute("data-id");
         if (!messageId) return;
+        const ok = await showConfirmModal({
+          title: "Delete Document",
+          message: "Delete this received encrypted document from your inbox?",
+          confirmText: "Delete Document",
+          icon: "trash-2",
+        });
+        if (!ok) return;
+        btn.disabled = true;
         btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>`;
         if (window.lucide) window.lucide.createIcons();
-        await fetch(`/api/ca/inbox-message/${messageId}`, { method: "DELETE" });
-        await syncCAState();
-      });
+        try {
+          await fetch(`/api/ca/inbox-message/${messageId}`, { method: "DELETE" });
+          await syncCAState();
+          await loadAndRenderInbox(clientId);
+        } catch (err) {
+          console.error("Failed to delete inbox message:", err);
+        }
+      };
     });
   } catch (err) {
     console.error("Failed to load inbox:", err);

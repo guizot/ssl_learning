@@ -6,10 +6,10 @@
   "scripts": {
     "clean": "node -e \"import fs from 'node:fs'; import path from 'node:path'; const dir = 'module0-openssl-keys/generated'; if (fs.existsSync(dir)) { fs.readdirSync(dir).forEach(f => { if (f.endsWith('.txt') || f.endsWith('.bin') || f.startsWith('verify_') || f.startsWith('tampered_')) fs.unlinkSync(path.join(dir, f)); }); console.log('[Clean] Stale temporary files cleaned from generated/ folder.'); }\"",
     "clean:all": "node -e \"import fs from 'node:fs'; import path from 'node:path'; const dir = 'module0-openssl-keys/generated'; if (fs.existsSync(dir)) { fs.readdirSync(dir).forEach(f => fs.unlinkSync(path.join(dir, f))); console.log('[Clean] All files cleaned from generated/ folder.'); }\"",
-    "ui": "node ui/server.ts",
+    "ui": "node --experimental-strip-types ui/server.ts",
     "module0:ca": "./module0-ca/ca_cli_demo.sh",
     "module0:openssl": "./module0-openssl-keys/generate_with_openssl.sh",
-    "module0:account": "node module0-openssl-keys/pem_to_account.ts",
-    "module1": "node module1-cryptography/demo.ts"
+    "module0:account": "node --experimental-strip-types module0-openssl-keys/pem_to_account.ts",
+    "module1": "node --experimental-strip-types module1-cryptography/demo.ts"
   }
 }
