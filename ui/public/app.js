@@ -12,6 +12,7 @@ let caState = {
 };
 
 let currentSubtab = "identity";
+let currentAdminSubtab = "root";
 
 // Helper: Escape HTML to prevent injection
 function escapeHtml(str) {
@@ -112,10 +113,14 @@ function renderUI() {
     const adminEl = document.getElementById("view-admin");
     adminEl.style.display = "flex";
     adminEl.style.flexDirection = "column";
-    document.getElementById("view-client").style.display = "none";
+    const clientEl = document.getElementById("view-client");
+    if (clientEl) clientEl.style.display = "none";
+    document.querySelectorAll(".subtab-panel").forEach((p) => (p.style.display = "none"));
     renderAdminView();
   } else {
-    document.getElementById("view-admin").style.display = "none";
+    const adminEl = document.getElementById("view-admin");
+    if (adminEl) adminEl.style.display = "none";
+    document.querySelectorAll(".admin-subtab-panel").forEach((p) => (p.style.display = "none"));
     const clientEl = document.getElementById("view-client");
     clientEl.style.display = "flex";
     clientEl.style.flexDirection = "column";
@@ -490,6 +495,7 @@ function renderAdminView() {
 
   const clientsCountEl = document.getElementById("admin-clients-count");
   if (clientsCountEl) clientsCountEl.textContent = String(caState.clients.length);
+  updateAdminSubtabs();
 
   if (caState.rootCaExists && caState.rootCa) {
     fbRootKey.classList.add("created");
@@ -917,9 +923,9 @@ function renderClientView() {
   }
 }
 
-// Subtabs navigation controller
+// Subtabs navigation controller (Client)
 function updateSubtabs() {
-  document.querySelectorAll(".subtab-btn").forEach((b) => {
+  document.querySelectorAll("#client-subtabs-nav .subtab-btn").forEach((b) => {
     if (b.getAttribute("data-subtab") === currentSubtab) {
       b.classList.add("active");
     } else {
@@ -935,7 +941,7 @@ function updateSubtabs() {
   }
 }
 
-document.querySelectorAll(".subtab-btn").forEach((btn) => {
+document.querySelectorAll("#client-subtabs-nav .subtab-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     currentSubtab = btn.getAttribute("data-subtab");
     updateSubtabs();
@@ -949,6 +955,31 @@ document.querySelectorAll(".subtab-btn").forEach((btn) => {
         loadAndRenderSent(client.id);
       }
     }
+  });
+});
+
+// Subtabs navigation controller (Admin)
+function updateAdminSubtabs() {
+  document.querySelectorAll("#admin-subtabs-nav .admin-subtab-btn").forEach((b) => {
+    if (b.getAttribute("data-admin-subtab") === currentAdminSubtab) {
+      b.classList.add("active");
+    } else {
+      b.classList.remove("active");
+    }
+  });
+
+  document.querySelectorAll(".admin-subtab-panel").forEach((p) => (p.style.display = "none"));
+  const activePanel = document.getElementById(`admin-subtab-${currentAdminSubtab}`);
+  if (activePanel) {
+    activePanel.style.display = "flex";
+    activePanel.style.flexDirection = "column";
+  }
+}
+
+document.querySelectorAll("#admin-subtabs-nav .admin-subtab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentAdminSubtab = btn.getAttribute("data-admin-subtab");
+    updateAdminSubtabs();
   });
 });
 

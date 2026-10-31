@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=8.3" />
+  <link rel="stylesheet" href="/styles.css?v=8.6" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -145,7 +145,19 @@
         </div>
       </section>
 
-      <!-- CARD 1: ROOT CA MASTER AUTHORITY -->
+      <!-- ADMIN SEGMENTED SUBTABS -->
+      <nav class="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg overflow-x-auto text-[11px] sm:text-xs font-medium" id="admin-subtabs-nav">
+        <button class="subtab-btn admin-subtab-btn active flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-medium text-center shrink-0 sm:shrink whitespace-nowrap" data-admin-subtab="root">
+          Root Certificate Authority
+        </button>
+        <button class="subtab-btn admin-subtab-btn flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-medium text-center shrink-0 sm:shrink whitespace-nowrap" data-admin-subtab="vault">
+          Client Certificate Vault (<span id="admin-clients-count">0</span>)
+        </button>
+      </nav>
+
+      <!-- ADMIN SUBTAB 1: ROOT CERTIFICATE AUTHORITY -->
+      <div id="admin-subtab-root" class="admin-subtab-panel space-y-4">
+        <!-- CARD 1: ROOT CA MASTER AUTHORITY -->
       <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
         <div class="section-header flex items-center justify-between cursor-pointer select-none">
           <div class="space-y-0.5">
@@ -324,73 +336,6 @@
         </div>
       </section>
 
-      <!-- CARD 2: CLIENT CERTIFICATE VAULT & CSRS -->
-      <section class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="section-header flex items-center justify-between cursor-pointer select-none">
-          <div class="space-y-0.5">
-            <div class="flex items-center gap-2">
-              <i data-lucide="layers" class="w-4 h-4 text-zinc-400"></i>
-              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Certificate Vault &amp; CSRs</h2>
-            </div>
-            <p class="text-xs text-zinc-400">Manage client keypairs, incoming certificate signing requests, and issued X.509 certificates</p>
-          </div>
-          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
-            <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
-          </button>
-        </div>
-
-        <div class="section-content space-y-3.5">
-          <!-- Collapsible OpenSSL Command -->
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-sign">
-            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
-                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-                <span>OpenSSL Command</span>
-              </span>
-              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
-              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
-            </summary>
-            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-              <code id="cmd-code-admin-sign" class="whitespace-pre-wrap">$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
-            </div>
-          </details>
-
-          <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
-            <div id="admin-table-header" class="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-zinc-900/60 border-b border-zinc-800 text-[10px] font-mono uppercase font-bold text-zinc-500 items-center">
-              <div class="col-span-3 text-left">Client Identity</div>
-              <div class="col-span-2 text-center">Private Key</div>
-              <div class="col-span-2 text-center">CSR</div>
-              <div class="col-span-2 text-center">Certificate</div>
-              <div class="col-span-3 text-right">Actions</div>
-            </div>
-            <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
-              <!-- Dynamically populated card rows -->
-            </div>
-
-            <!-- Bottom Placeholder Row: Add Client -->
-            <div class="border-t border-zinc-800/80 bg-zinc-950/60 hover:bg-zinc-900/60 transition-colors">
-              <button id="btn-open-add-client" class="group w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3 text-left transition-colors cursor-pointer focus:outline-none">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-8 h-8 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/60 flex items-center justify-center text-zinc-400 group-hover:text-zinc-200 group-hover:border-zinc-500 transition-colors shrink-0">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                  </div>
-                  <div class="min-w-0">
-                    <div class="text-xs font-semibold text-zinc-400 group-hover:text-zinc-200 transition-colors flex items-center gap-1.5">
-                      <span>Add new client...</span>
-                    </div>
-                    <div class="text-[11px] text-zinc-500 font-mono truncate">Register new client identity or domain certificate</div>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2 text-zinc-500 group-hover:text-zinc-300 font-mono text-[11px] shrink-0 pl-2">
-                  <span class="hidden sm:inline-block border border-zinc-800/80 rounded px-2 py-0.5 bg-zinc-900 text-zinc-400 group-hover:border-zinc-700 group-hover:text-zinc-300 transition-colors text-[10px]">+ Add Client</span>
-                  <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors sm:hidden"></i>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- CARD 3: SECURITY & UNTRUSTED CA ATTACK TEST -->
       <section class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
         <div class="section-header flex items-center justify-between cursor-pointer select-none">
@@ -430,6 +375,77 @@
           </div>
         </div>
       </section>
+      </div>
+
+      <!-- ADMIN SUBTAB 2: CLIENT CERTIFICATE VAULT & CSRS -->
+      <div id="admin-subtab-vault" class="admin-subtab-panel space-y-4" style="display: none;">
+        <!-- CARD 2: CLIENT CERTIFICATE VAULT & CSRS -->
+        <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+          <div class="section-header flex items-center justify-between cursor-pointer select-none">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-zinc-400"></i>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Certificate Vault &amp; CSRs</h2>
+              </div>
+              <p class="text-xs text-zinc-400">Manage client keypairs, incoming certificate signing requests, and issued X.509 certificates</p>
+            </div>
+            <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+            </button>
+          </div>
+
+          <div class="section-content space-y-3.5">
+            <!-- Collapsible OpenSSL Command -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-sign">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                  <span>OpenSSL Command</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
+              </summary>
+              <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+                <code id="cmd-code-admin-sign" class="whitespace-pre-wrap">$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
+              </div>
+            </details>
+
+            <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
+              <div id="admin-table-header" class="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-zinc-900/60 border-b border-zinc-800 text-[10px] font-mono uppercase font-bold text-zinc-500 items-center">
+                <div class="col-span-3 text-left">Client Identity</div>
+                <div class="col-span-2 text-center">Private Key</div>
+                <div class="col-span-2 text-center">CSR</div>
+                <div class="col-span-2 text-center">Certificate</div>
+                <div class="col-span-3 text-right">Actions</div>
+              </div>
+              <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
+                <!-- Dynamically populated card rows -->
+              </div>
+
+              <!-- Bottom Placeholder Row: Add Client -->
+              <div class="border-t border-zinc-800/80 bg-zinc-950/60 hover:bg-zinc-900/60 transition-colors">
+                <button id="btn-open-add-client" class="group w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3 text-left transition-colors cursor-pointer focus:outline-none">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-8 h-8 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/60 flex items-center justify-center text-zinc-400 group-hover:text-zinc-200 group-hover:border-zinc-500 transition-colors shrink-0">
+                      <i data-lucide="plus" class="w-4 h-4"></i>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold text-zinc-400 group-hover:text-zinc-200 transition-colors flex items-center gap-1.5">
+                        <span>Add new client...</span>
+                      </div>
+                      <div class="text-[11px] text-zinc-500 font-mono truncate">Register new client identity or domain certificate</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 text-zinc-500 group-hover:text-zinc-300 font-mono text-[11px] shrink-0 pl-2">
+                    <span class="hidden sm:inline-block border border-zinc-800/80 rounded px-2 py-0.5 bg-zinc-900 text-zinc-400 group-hover:border-zinc-700 group-hover:text-zinc-300 transition-colors text-[10px]">+ Add Client</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors sm:hidden"></i>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <!-- ===================================================================== -->
@@ -709,8 +725,7 @@
               </div>
             </details>
           </div>
-        </div>
-      </section>
+        </section>
       </div>
 
       <!-- SUBTAB 2: SEND & SENT DOCUMENTS -->
@@ -947,7 +962,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=10.3" type="module"></script>
+  <script src="/app.js?v=10.6" type="module"></script>
   <script>
     // Theme Switcher (System / Light / Dark)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

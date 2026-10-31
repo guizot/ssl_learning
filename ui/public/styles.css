@@ -657,6 +657,7 @@ select option {
 /* Layout Enforcements */
 .role-view,
 .subtab-panel,
+.admin-subtab-panel,
 #body-admin-root,
 #body-client-identity {
   display: flex !important;
@@ -667,6 +668,7 @@ select option {
 
 .role-view[style*="display: none"],
 .subtab-panel[style*="display: none"],
+.admin-subtab-panel[style*="display: none"],
 #body-admin-root[style*="display: none"],
 #body-client-identity[style*="display: none"] {
   display: none !important;
