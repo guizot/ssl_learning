@@ -534,7 +534,7 @@ function renderAdminView() {
         </div>
         <div class="text-xs text-zinc-300 font-medium">No Clients Registered Yet</div>
         <p class="text-[11px] text-zinc-500 max-w-xs mx-auto">
-          Click <strong>'Add new client...'</strong> below to register your first client (e.g. Alice, Bob, or a domain).
+          Click <strong>'Add Client'</strong> above to register your first client (e.g. Alice, Bob, or a domain).
         </p>
       </div>
     `;
