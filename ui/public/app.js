@@ -1028,25 +1028,13 @@ function renderClientIdentity(client) {
       document.getElementById("client-crt-text").textContent =
         caState.activeDetails.crtText || caState.activeDetails.crtPem;
 
-      const cmdVerify = document.getElementById("cmd-client-verify");
-      if (cmdVerify && (!cmdVerify.getAttribute("data-has-output") || cmdVerify.getAttribute("data-client-id") !== client.id)) {
-        cmdVerify.setAttribute("data-client-id", client.id);
-        cmdVerify.removeAttribute("data-has-output");
-        cmdVerify.textContent = `$ openssl verify -CAfile ca/root_ca.crt clients/${client.id}/${client.id}.crt`;
-      }
-      const verifySec = document.getElementById("section-client-verify");
-      if (verifySec) verifySec.style.display = "block";
     } else {
       document.getElementById("client-info-cert-status").innerHTML = `<span class="inline-flex items-center gap-1.5 text-zinc-400 font-mono text-xs">Pending Signature &middot; Switch role to Admin to Sign</span>`;
       if (crtPemBox) crtPemBox.style.display = "none";
       if (crtTextBox) crtTextBox.style.display = "none";
-      const verifySec = document.getElementById("section-client-verify");
-      if (verifySec) verifySec.style.display = "none";
     }
   } else {
     bodyIdentity.style.display = "none";
-    const verifySec = document.getElementById("section-client-verify");
-    if (verifySec) verifySec.style.display = "none";
     genBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Generate Key &amp; CSR</span>`;
   }
   if (window.lucide) window.lucide.createIcons();
@@ -1107,77 +1095,7 @@ function renderClientIdentity(client) {
   }
   });
 
-  document.getElementById("btn-client-verify-ca").addEventListener("click", async () => {
-    const btn = document.getElementById("btn-client-verify-ca");
-    btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Verifying...</span>`;
-    if (window.lucide) window.lucide.createIcons();
-    btn.disabled = true;
-
-    try {
-      const res = await fetch("/api/ca/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: caState.activeRole, isFake: false }),
-      });
-      const data = await res.json();
-      if (data.opensslLog) {
-        logTerminal(data.opensslLog.command, data.opensslLog.output);
-      }
-
-      const verifyCmd = `openssl verify -CAfile ca/root_ca.crt clients/${caState.activeRole}/${caState.activeRole}.crt`;
-
-      await syncCAState();
-
-      if (!data.isValid) {
-        renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
-          commands: [verifyCmd],
-          outputs: [
-            `[✕ Verification Failed]`,
-            data.opensslLog ? data.opensslLog.output : "error 20 at 0 depth lookup: unable to get local issuer certificate",
-            `Root CA was re-initialized; certificate needs re-signing in Admin view!`
-          ],
-          status: "error",
-        });
-      } else if (!data.keyMatchesCrt) {
-        renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
-          commands: [
-            verifyCmd,
-            `openssl pkey -in clients/${caState.activeRole}/${caState.activeRole}.key -pubout`,
-            `openssl x509 -in clients/${caState.activeRole}/${caState.activeRole}.crt -pubkey -noout`
-          ],
-          outputs: [
-            `[⚠ Key Mismatched]`,
-            `Certificate is verified by Root CA, but public key in certificate does NOT match your local private key!`,
-            `Please ask Admin to re-sign certificate with your updated CSR.`
-          ],
-          status: "warning",
-        });
-      } else {
-        renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
-          commands: [verifyCmd],
-          outputs: [
-            `[✓ Verified OK]`,
-            `clients/${caState.activeRole}/${caState.activeRole}.crt: OK`,
-            `Authentic & Validated by Root CA (secp256k1 key matches certificate)`
-          ],
-          status: "success",
-        });
-      }
-      if (window.lucide) window.lucide.createIcons();
-    } catch (err) {
-      renderCmdOutput("cmd-details-client-verify", "cmd-client-verify", {
-        commands: [`openssl verify -CAfile ca/root_ca.crt clients/${caState.activeRole}/${caState.activeRole}.crt`],
-        outputs: [`[✕ Error] ${err.message}`],
-        status: "error",
-      });
-    } finally {
-      btn.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span>Verify with Root CA</span>`;
-      if (window.lucide) window.lucide.createIcons();
-      btn.disabled = false;
-    }
-  });
-
-// Remove artifact buttons (key_csr or crt)
+  // Remove artifact buttons (key_csr or crt)
 async function removeClientFile(fileType) {
   const activeClient = caState.clients.find((c) => c.id === caState.activeRole);
   if (!activeClient) return;
@@ -1621,7 +1539,7 @@ async function loadAndRenderSent(clientId) {
         const dateTimeStr = `${dateStr}, ${timeStr}`;
 
         const sigBadge = m.isSigned
-          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i>Digitally Signed</span>`
+          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 text-zinc-400"></i>Digitally Signed</span>`
           : `<span class="sig-badge-unsigned">Unsigned</span>`;
 
         const cmdText = m.isSigned
@@ -1750,7 +1668,7 @@ async function loadAndRenderInbox(clientId) {
         const dateTimeStr = `${dateStr}, ${timeStr}`;
 
         const sigBadge = m.isSigned
-          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 text-emerald-400"></i>Digitally Signed</span>`
+          ? `<span class="sig-badge-verified"><i data-lucide="shield-check" class="w-3 h-3 text-zinc-400"></i>Digitally Signed</span>`
           : `<span class="sig-badge-unsigned">Unsigned</span>`;
 
         return `
@@ -1793,13 +1711,13 @@ async function loadAndRenderInbox(clientId) {
                 <i data-lucide="key" class="w-3.5 h-3.5"></i>
                 <span>Decrypt with Private Key</span>
               </button>
-              <button class="btn-outline btn-sm btn-danger-action btn-test-mallory inline-flex items-center gap-1.5" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" data-enc="${escapeHtml(m.encFilename)}">
+              <button class="btn-outline btn-sm btn-test-mallory inline-flex items-center gap-1.5" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" data-enc="${escapeHtml(m.encFilename)}">
                 <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
                 <span>Test Interception (Mallory)</span>
               </button>
               ${
                 m.isSigned
-                  ? `<button class="btn-outline btn-sm btn-danger-action btn-test-tamper inline-flex items-center gap-1.5" id="btn-tamper-${escapeHtml(m.id)}" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" data-enc="${escapeHtml(m.encFilename)}" style="display: none;">
+                  ? `<button class="btn-outline btn-sm btn-test-tamper inline-flex items-center gap-1.5" id="btn-tamper-${escapeHtml(m.id)}" data-id="${escapeHtml(m.id)}" data-recip="${escapeHtml(m.recipientId)}" data-enc="${escapeHtml(m.encFilename)}" style="display: none;">
                       <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
                       <span>Test Tamper / Forged Signature</span>
                     </button>`
@@ -2082,6 +2000,19 @@ document.addEventListener("click", async (e) => {
       btn.classList.remove("text-emerald-400", "border-emerald-500/40");
     }, 1500);
   }
+});
+
+// Section collapse / expand toggle handler
+document.addEventListener("click", (e) => {
+  const header = e.target.closest(".section-header");
+  if (!header || !header.querySelector(".section-collapse-btn")) return;
+  // Ignore clicks on other buttons, links, or inputs inside the header
+  if (e.target.closest("button, a, input, select, textarea") && !e.target.closest(".section-collapse-btn")) {
+    return;
+  }
+  const card = header.closest(".section-card");
+  if (!card) return;
+  card.classList.toggle("collapsed");
 });
 
 // Initialize on page load

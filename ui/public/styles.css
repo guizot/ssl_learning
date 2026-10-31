@@ -381,12 +381,13 @@ select option {
 
 .btn-danger-action {
   background-color: rgb(var(--zinc-900)) !important;
-  color: #fb7185 !important;
-  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  color: rgb(var(--zinc-200)) !important;
+  border: 1px solid rgb(var(--zinc-800)) !important;
 }
 .btn-danger-action:hover:not(:disabled) {
-  background-color: rgba(244, 63, 94, 0.12) !important;
-  border-color: rgba(244, 63, 94, 0.6) !important;
+  background-color: rgb(var(--zinc-800)) !important;
+  border-color: rgb(var(--zinc-700)) !important;
+  color: rgb(var(--zinc-50)) !important;
 }
 
 .btn-sm {
@@ -549,9 +550,9 @@ select option {
   padding: 0 10px;
   font-size: 11px;
   font-family: "Geist Mono", monospace;
-  color: rgb(var(--emerald-400));
+  color: rgb(var(--zinc-300));
   background-color: rgb(var(--zinc-950));
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgb(var(--zinc-800));
   border-radius: 8px;
   font-weight: 500;
 }
@@ -588,6 +589,69 @@ select option {
   border: 1px solid rgba(244, 63, 94, 0.3);
   background-color: rgba(244, 63, 94, 0.1);
   color: #fb7185;
+}
+
+/* Section Collapsible Cards */
+.section-header {
+  position: relative;
+  transition: opacity 0.15s ease;
+}
+.section-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: transparent;
+  color: rgb(var(--zinc-400));
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.section-collapse-btn:hover,
+.section-header:hover .section-collapse-btn {
+  background-color: rgb(var(--zinc-800));
+  color: rgb(var(--zinc-100));
+  border-color: rgb(var(--zinc-700));
+}
+.section-collapse-btn svg,
+.section-collapse-btn i {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* When section is collapsed: chevron points down (rotate 0). When open: chevron points up (rotate 180deg) */
+.section-card.collapsed .section-collapse-btn svg,
+.section-card.collapsed .section-collapse-btn i {
+  transform: rotate(0deg);
+}
+.section-card:not(.collapsed) .section-collapse-btn svg,
+.section-card:not(.collapsed) .section-collapse-btn i {
+  transform: rotate(180deg);
+}
+.section-card.collapsed .section-content {
+  display: none !important;
+}
+
+/* Client Identity Action Buttons: 3 columns on web (desktop), 2 rows on mobile */
+@media (min-width: 640px) {
+  .client-actions-container {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .client-actions-container > #btn-client-gen-key {
+    flex: 1 1 0% !important;
+    width: auto !important;
+  }
+  #client-remove-actions:not([style*="display: none"]):not(.hidden) {
+    display: contents !important;
+  }
+  #client-remove-actions > button {
+    flex: 1 1 0% !important;
+    width: auto !important;
+  }
 }
 
 /* Layout Enforcements */

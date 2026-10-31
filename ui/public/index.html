@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=7.3" />
+  <link rel="stylesheet" href="/styles.css?v=8.3" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -104,8 +104,8 @@
         </button>
 
         <!-- Theme Toggle Button -->
-        <button id="btn-theme-toggle" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors shrink-0" title="Toggle Theme (Auto / Dark / Light)">
-          <i id="theme-icon" data-lucide="moon" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        <button id="btn-theme-toggle" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors shrink-0" title="Toggle Theme (System / Light / Dark)">
+          <i id="theme-icon" data-lucide="monitor" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
         </button>
       </div>
     </header>
@@ -116,72 +116,91 @@
     <div id="view-admin" class="role-view space-y-5">
 
       <!-- Store Status Card -->
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="database" class="w-4 h-4 text-zinc-400"></i>
-            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Certificate Store &amp; Artifacts</h2>
+      <section class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="database" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Certificate Store &amp; Artifacts</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Store: <span class="text-zinc-300 truncate">module0-ca/generated/ca/</span></p>
           </div>
-          <p class="text-xs text-zinc-400">Store: <span class="text-zinc-300 truncate">module0-ca/generated/ca/</span></p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+          </button>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 sm:grid sm:grid-cols-2 sm:gap-2 w-full text-[11px] sm:text-xs font-mono">
-          <div id="fb-root-key" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
-            <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-            <span class="text-zinc-300">root_ca.key</span>
-            <span id="fs-root-key" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
-          </div>
-          <div id="fb-root-crt" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
-            <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-            <span class="text-zinc-300">root_ca.crt</span>
-            <span id="fs-root-crt" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
+        <div class="section-content">
+          <div class="flex flex-wrap items-center gap-1.5 sm:grid sm:grid-cols-2 sm:gap-2 w-full text-[11px] sm:text-xs font-mono">
+            <div id="fb-root-key" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
+              <span class="text-zinc-300">root_ca.key</span>
+              <span id="fs-root-key" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
+            </div>
+            <div id="fb-root-crt" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
+              <span class="text-zinc-300">root_ca.crt</span>
+              <span id="fs-root-crt" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- CARD 1: ROOT CA MASTER AUTHORITY -->
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="shield" class="w-4 h-4 text-zinc-400"></i>
-            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Root Certificate Authority</h2>
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="shield" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Root Certificate Authority</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Anchor of trust &middot; Generates the self-signed master authority to sign client certificates.</p>
           </div>
-          <p class="text-xs text-zinc-400">Anchor of trust &middot; Generates the self-signed master authority to sign client certificates.</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+          </button>
         </div>
 
-        <!-- Collapsible OpenSSL Command -->
-        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-root">
-          <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-            <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
-              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-              <span>OpenSSL Command</span>
-            </span>
-            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
-            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
-          </summary>
-          <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code id="cmd-code-admin-root" class="whitespace-pre-wrap">$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
-          </div>
-        </details>
+        <div class="section-content space-y-3.5">
+          <!-- Collapsible OpenSSL Command -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-root">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>OpenSSL Command</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+              <code id="cmd-code-admin-root" class="whitespace-pre-wrap">$ openssl req -new -x509 -key ca/root_ca.key -out ca/root_ca.crt -days 365 -subj "/CN=MyRootCA/O=GlobalTrustAuthority/C=ID"</code>
+            </div>
+          </details>
 
-        <div>
-          <button id="btn-admin-init-root" class="btn-solid h-9 sm:h-8 w-full">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-            <span>Initialize Root CA</span>
-          </button>
+          <div>
+            <button id="btn-admin-init-root" class="btn-solid h-9 sm:h-8 w-full">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>Initialize Root CA</span>
+            </button>
+          </div>
         </div>
       </section>
 
       <!-- CARD 1B: ROOT CA CERTIFICATE DETAILS & ARTIFACTS -->
-      <section id="body-admin-root" style="display: none;" class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="file-badge" class="w-4 h-4 text-zinc-400"></i>
-            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Root Certificate Details &amp; Keys</h2>
+      <section id="body-admin-root" style="display: none;" class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="file-badge" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Root Certificate Details &amp; Keys</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Decoded X.509 authority identity, validity period, cryptographic keys, and certificate PEM</p>
           </div>
-          <p class="text-xs text-zinc-400">Decoded X.509 authority identity, validity period, cryptographic keys, and certificate PEM</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+          </button>
         </div>
 
-        <div class="space-y-2.5">
+        <div class="section-content space-y-2.5">
           <!-- Accordion: Issuer (Authority DN) -->
           <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="admin-details-issuer">
             <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
@@ -306,95 +325,109 @@
       </section>
 
       <!-- CARD 2: CLIENT CERTIFICATE VAULT & CSRS -->
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="layers" class="w-4 h-4 text-zinc-400"></i>
-            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Certificate Vault &amp; CSRs</h2>
+      <section class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="layers" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Certificate Vault &amp; CSRs</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Manage client keypairs, incoming certificate signing requests, and issued X.509 certificates</p>
           </div>
-          <p class="text-xs text-zinc-400">Manage client keypairs, incoming certificate signing requests, and issued X.509 certificates</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+          </button>
         </div>
 
-        <!-- Collapsible OpenSSL Command -->
-        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-sign">
-          <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-            <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
-              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-              <span>OpenSSL Command</span>
-            </span>
-            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
-            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
-          </summary>
-          <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code id="cmd-code-admin-sign" class="whitespace-pre-wrap">$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
-          </div>
-        </details>
+        <div class="section-content space-y-3.5">
+          <!-- Collapsible OpenSSL Command -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-sign">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>OpenSSL Command</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+              <code id="cmd-code-admin-sign" class="whitespace-pre-wrap">$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
+            </div>
+          </details>
 
-        <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
-          <div id="admin-table-header" class="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-zinc-900/60 border-b border-zinc-800 text-[10px] font-mono uppercase font-bold text-zinc-500 items-center">
-            <div class="col-span-3 text-left">Client Identity</div>
-            <div class="col-span-2 text-center">Private Key</div>
-            <div class="col-span-2 text-center">CSR</div>
-            <div class="col-span-2 text-center">Certificate</div>
-            <div class="col-span-3 text-right">Actions</div>
-          </div>
-          <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
-            <!-- Dynamically populated card rows -->
-          </div>
+          <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
+            <div id="admin-table-header" class="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-zinc-900/60 border-b border-zinc-800 text-[10px] font-mono uppercase font-bold text-zinc-500 items-center">
+              <div class="col-span-3 text-left">Client Identity</div>
+              <div class="col-span-2 text-center">Private Key</div>
+              <div class="col-span-2 text-center">CSR</div>
+              <div class="col-span-2 text-center">Certificate</div>
+              <div class="col-span-3 text-right">Actions</div>
+            </div>
+            <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
+              <!-- Dynamically populated card rows -->
+            </div>
 
-          <!-- Bottom Placeholder Row: Add Client -->
-          <div class="border-t border-zinc-800/80 bg-zinc-950/60 hover:bg-zinc-900/60 transition-colors">
-            <button id="btn-open-add-client" class="group w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3 text-left transition-colors cursor-pointer focus:outline-none">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-8 h-8 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/60 flex items-center justify-center text-zinc-400 group-hover:text-zinc-200 group-hover:border-zinc-500 transition-colors shrink-0">
-                  <i data-lucide="plus" class="w-4 h-4"></i>
-                </div>
-                <div class="min-w-0">
-                  <div class="text-xs font-semibold text-zinc-400 group-hover:text-zinc-200 transition-colors flex items-center gap-1.5">
-                    <span>Add new client...</span>
+            <!-- Bottom Placeholder Row: Add Client -->
+            <div class="border-t border-zinc-800/80 bg-zinc-950/60 hover:bg-zinc-900/60 transition-colors">
+              <button id="btn-open-add-client" class="group w-full flex items-center justify-between p-3.5 sm:px-4 sm:py-3 text-left transition-colors cursor-pointer focus:outline-none">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-8 h-8 rounded-lg border border-dashed border-zinc-700 bg-zinc-900/60 flex items-center justify-center text-zinc-400 group-hover:text-zinc-200 group-hover:border-zinc-500 transition-colors shrink-0">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
                   </div>
-                  <div class="text-[11px] text-zinc-500 font-mono truncate">Register new client identity or domain certificate</div>
+                  <div class="min-w-0">
+                    <div class="text-xs font-semibold text-zinc-400 group-hover:text-zinc-200 transition-colors flex items-center gap-1.5">
+                      <span>Add new client...</span>
+                    </div>
+                    <div class="text-[11px] text-zinc-500 font-mono truncate">Register new client identity or domain certificate</div>
+                  </div>
                 </div>
-              </div>
-              <div class="flex items-center gap-2 text-zinc-500 group-hover:text-zinc-300 font-mono text-[11px] shrink-0 pl-2">
-                <span class="hidden sm:inline-block border border-zinc-800/80 rounded px-2 py-0.5 bg-zinc-900 text-zinc-400 group-hover:border-zinc-700 group-hover:text-zinc-300 transition-colors text-[10px]">+ Add Client</span>
-                <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors sm:hidden"></i>
-              </div>
-            </button>
+                <div class="flex items-center gap-2 text-zinc-500 group-hover:text-zinc-300 font-mono text-[11px] shrink-0 pl-2">
+                  <span class="hidden sm:inline-block border border-zinc-800/80 rounded px-2 py-0.5 bg-zinc-900 text-zinc-400 group-hover:border-zinc-700 group-hover:text-zinc-300 transition-colors text-[10px]">+ Add Client</span>
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors sm:hidden"></i>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- CARD 3: SECURITY & UNTRUSTED CA ATTACK TEST -->
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-400"></i>
-            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Untrusted CA Detection</h2>
+      <section class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Untrusted CA Detection</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Verifies how OpenSSL rejects rogue attacker certificates outside the trusted root chain</p>
           </div>
-          <p class="text-xs text-zinc-400">Verifies how OpenSSL rejects rogue attacker certificates outside the trusted root chain</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+          </button>
         </div>
 
-        <!-- Collapsible OpenSSL Command -->
-        <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-fake">
-          <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-            <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
-              <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-              <span>OpenSSL Command</span>
-            </span>
-            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
-            <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
-          </summary>
-          <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-            <code id="cmd-code-admin-fake" class="whitespace-pre-wrap">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
-          </div>
-        </details>
+        <div class="section-content space-y-3.5">
+          <!-- Collapsible OpenSSL Command -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-fake">
+            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>OpenSSL Command</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+              <code id="cmd-code-admin-fake" class="whitespace-pre-wrap">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/fake_[client].crt</code>
+            </div>
+          </details>
 
-        <div>
-          <button id="btn-admin-fake-test" class="btn-solid h-9 sm:h-8 w-full">
-            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
-            <span>Test Fake CA Attack</span>
-          </button>
+          <div>
+            <button id="btn-admin-fake-test" class="btn-solid h-9 sm:h-8 w-full">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+              <span>Test Fake CA Attack</span>
+            </button>
+          </div>
         </div>
       </section>
     </div>
@@ -405,33 +438,40 @@
     <div id="view-client" class="role-view space-y-5" style="display: none;">
 
       <!-- Client Store Status Card -->
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="database" class="w-4 h-4 text-zinc-400"></i>
-            <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Storage &amp; Artifacts</h2>
+      <section class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="database" class="w-4 h-4 text-zinc-400"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Storage &amp; Artifacts</h2>
+            </div>
+            <p class="text-xs text-zinc-400">Store: <span class="text-zinc-300 truncate" id="client-view-store">module0-ca/generated/clients/bob/</span></p>
+            <span id="client-view-name" class="hidden"></span>
+            <span id="client-view-cn" class="hidden"></span>
           </div>
-          <p class="text-xs text-zinc-400">Store: <span class="text-zinc-300 truncate" id="client-view-store">module0-ca/generated/clients/bob/</span></p>
-          <span id="client-view-name" class="hidden"></span>
-          <span id="client-view-cn" class="hidden"></span>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+          </button>
         </div>
 
-        <!-- Files Pills -->
-        <div class="flex flex-wrap items-center gap-1.5 sm:grid sm:grid-cols-3 sm:gap-2 w-full text-[11px] sm:text-xs font-mono">
-          <div id="fb-client-key" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
-            <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-            <span id="fn-client-key" class="text-zinc-300">client.key</span>
-            <span id="fs-client-key" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
-          </div>
-          <div id="fb-client-csr" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
-            <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-            <span id="fn-client-csr" class="text-zinc-300">client.csr</span>
-            <span id="fs-client-csr" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
-          </div>
-          <div id="fb-client-crt" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
-            <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-            <span id="fn-client-crt" class="text-zinc-300">client.crt</span>
-            <span id="fs-client-crt" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
+        <div class="section-content">
+          <!-- Files Pills -->
+          <div class="flex flex-wrap items-center gap-1.5 sm:grid sm:grid-cols-3 sm:gap-2 w-full text-[11px] sm:text-xs font-mono">
+            <div id="fb-client-key" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
+              <span id="fn-client-key" class="text-zinc-300">client.key</span>
+              <span id="fs-client-key" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
+            </div>
+            <div id="fb-client-csr" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
+              <span id="fn-client-csr" class="text-zinc-300">client.csr</span>
+              <span id="fs-client-csr" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
+            </div>
+            <div id="fb-client-crt" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
+              <span id="fn-client-crt" class="text-zinc-300">client.crt</span>
+              <span id="fs-client-crt" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
+            </div>
           </div>
         </div>
       </section>
@@ -451,59 +491,71 @@
 
       <!-- SUBTAB 1: IDENTITY & CERTIFICATE -->
       <div id="subtab-identity" class="subtab-panel space-y-4">
-        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div class="space-y-0.5">
-            <div class="flex items-center gap-2">
-              <i data-lucide="key" class="w-4 h-4 text-zinc-400"></i>
-              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Generate Keypair &amp; CSR</h2>
+        <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+          <div class="section-header flex items-center justify-between cursor-pointer select-none">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2">
+                <i data-lucide="key" class="w-4 h-4 text-zinc-400"></i>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Generate Keypair &amp; CSR</h2>
+              </div>
+              <p class="text-xs text-zinc-400">Generate personal EC private key (secp256k1) and CSR containing public key</p>
             </div>
-            <p class="text-xs text-zinc-400">Generate personal EC private key (secp256k1) and CSR containing public key</p>
+            <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+            </button>
           </div>
 
-          <!-- Collapsible OpenSSL Command -->
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-client-csr">
-            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
-                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-                <span>OpenSSL Command</span>
-              </span>
-              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
-              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
-            </summary>
-            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-              <code id="cmd-client-csr" class="whitespace-pre-wrap">$ openssl ecparam -name secp256k1 -genkey -noout -out client.key &amp;&amp; openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
-            </div>
-          </details>
+          <div class="section-content space-y-3.5">
+            <!-- Collapsible OpenSSL Command -->
+            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-client-csr">
+              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
+                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                  <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                  <span>OpenSSL Command</span>
+                </span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
+              </summary>
+              <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+                <code id="cmd-client-csr" class="whitespace-pre-wrap">$ openssl ecparam -name secp256k1 -genkey -noout -out client.key &amp;&amp; openssl req -new -key client.key -out client.csr -subj "/CN=Client/O=Users/C=ID"</code>
+              </div>
+            </details>
 
-          <div class="space-y-2 w-full">
-            <button id="btn-client-gen-key" class="btn-solid h-9 sm:h-8 w-full">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Generate Key &amp; CSR</span>
-            </button>
-            <div id="client-remove-actions" class="flex items-center gap-2 w-full" style="display: none;">
-              <button id="btn-client-remove-key-csr" class="btn-solid h-9 sm:h-8 flex-1" style="display: none;" title="Remove Key &amp; CSR">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span>Remove Key &amp; CSR</span>
+            <div class="client-actions-container space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2 w-full">
+              <button id="btn-client-gen-key" class="btn-solid h-9 sm:h-8 w-full sm:flex-1">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Generate Key &amp; CSR</span>
               </button>
-              <button id="btn-client-remove-crt" class="btn-solid h-9 sm:h-8 flex-1" style="display: none;" title="Remove Cert">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span>Remove Cert</span>
-              </button>
+              <div id="client-remove-actions" class="flex sm:contents items-center gap-2 w-full" style="display: none;">
+                <button id="btn-client-remove-key-csr" class="btn-solid h-9 sm:h-8 flex-1" style="display: none;" title="Remove Key &amp; CSR">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <span>Remove Key &amp; CSR</span>
+                </button>
+                <button id="btn-client-remove-crt" class="btn-solid h-9 sm:h-8 flex-1" style="display: none;" title="Remove Cert">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  <span>Remove Cert</span>
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
         <!-- SECTION 1B: CLIENT IDENTITY & CERTIFICATE DETAILS -->
-        <section id="body-client-identity" style="display: none;" class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div class="space-y-0.5">
-            <div class="flex items-center gap-2">
-              <i data-lucide="file-badge" class="w-4 h-4 text-zinc-400"></i>
-              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Certificate Details &amp; Keys</h2>
+        <section id="body-client-identity" style="display: none;" class="section-card collapsed rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+          <div class="section-header flex items-center justify-between cursor-pointer select-none">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2">
+                <i data-lucide="file-badge" class="w-4 h-4 text-zinc-400"></i>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Client Certificate Details &amp; Keys</h2>
+              </div>
+              <p class="text-xs text-zinc-400">Decoded X.509 subject identity, cryptographic algorithm, trust status, and key artifacts</p>
             </div>
-            <p class="text-xs text-zinc-400">Decoded X.509 subject identity, cryptographic algorithm, trust status, and key artifacts</p>
+            <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+              <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
+            </button>
           </div>
 
-          <div class="space-y-2.5">
+          <div class="section-content space-y-2.5">
             <!-- Accordion: Common Name (Identity) -->
             <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-cn">
               <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
@@ -657,46 +709,14 @@
               </div>
             </details>
           </div>
-        </section>
-
-        <!-- SECTION 2: VERIFY CERTIFICATE CHAIN (DEDICATED SECTION) -->
-        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm" id="section-client-verify" style="display: none;">
-          <div class="space-y-0.5">
-            <div class="flex items-center gap-2">
-              <i data-lucide="shield-check" class="w-4 h-4 text-zinc-400"></i>
-              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Verify Certificate Chain</h2>
-            </div>
-            <p class="text-xs text-zinc-400">Verify certificate validity and chain of trust against Root CA</p>
-          </div>
-
-          <!-- Collapsible OpenSSL Command -->
-          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-client-verify">
-            <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
-                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-                <span>OpenSSL Command</span>
-              </span>
-              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
-              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
-            </summary>
-            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-              <code id="cmd-client-verify" class="whitespace-pre-wrap">$ openssl verify -CAfile ca/root_ca.crt clients/[client]/[client].crt</code>
-            </div>
-          </details>
-
-          <div>
-            <button id="btn-client-verify-ca" class="btn-solid h-9 sm:h-8 w-full">
-              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-              <span>Verify with Root CA</span>
-            </button>
-          </div>
-        </section>
+        </div>
+      </section>
       </div>
 
       <!-- SUBTAB 2: SEND & SENT DOCUMENTS -->
       <div id="subtab-send" class="subtab-panel space-y-4" style="display: none;">
         <!-- SENT DOCUMENTS (OUTBOX) -->
-        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm" id="section-sent-messages">
+        <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm" id="section-sent-messages">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
@@ -705,27 +725,31 @@
               </div>
               <p class="text-xs text-zinc-400">Outbox of encrypted documents sent by <span id="sent-owner-name">-</span> to other clients.</p>
             </div>
-            <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:w-auto">
-              <button id="btn-open-send-modal" class="btn-solid h-9 sm:h-8 px-3 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer">
-                <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                <span>Send Document</span>
-              </button>
-              <button id="btn-refresh-sent" class="btn-solid h-9 sm:h-8 px-3 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer" title="Refresh sent list">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Refresh</span>
-              </button>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:w-auto">
+                <button id="btn-open-send-modal" class="btn-solid h-9 sm:h-8 px-3 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer">
+                  <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                  <span>Send Document</span>
+                </button>
+                <button id="btn-refresh-sent" class="btn-solid h-9 sm:h-8 px-3 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 w-full sm:w-auto cursor-pointer" title="Refresh sent list">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          <div id="sent-list" class="space-y-3">
-            <!-- Dynamically populated -->
+          <div class="section-content">
+            <div id="sent-list" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
           </div>
         </section>
       </div>
 
       <!-- SUBTAB 3: INBOX -->
       <div id="subtab-inbox" class="subtab-panel space-y-4" style="display: none;">
-        <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
@@ -734,14 +758,18 @@
               </div>
               <p class="text-xs text-zinc-400">Encrypted with your public certificate. Only your private key can unlock them.</p>
             </div>
-            <button id="btn-refresh-inbox" class="btn-solid h-9 sm:h-8 px-3 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto cursor-pointer" title="Refresh inbox">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Refresh</span>
-            </button>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <button id="btn-refresh-inbox" class="btn-solid h-9 sm:h-8 px-3 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto cursor-pointer" title="Refresh inbox">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
-          <div id="inbox-list" class="space-y-3">
-            <!-- Dynamically populated -->
+          <div class="section-content">
+            <div id="inbox-list" class="space-y-3">
+              <!-- Dynamically populated -->
+            </div>
           </div>
         </section>
       </div>
@@ -919,26 +947,34 @@
     </div>
   </div>
 
-  <script src="/app.js?v=9.0" type="module"></script>
+  <script src="/app.js?v=10.3" type="module"></script>
   <script>
-    // Theme Switcher (System / Dark / Light)
+    // Theme Switcher (System / Light / Dark)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
     function applyTheme(theme) {
       const root = document.documentElement;
-      const icon = document.getElementById("theme-icon");
+      const themeBtn = document.getElementById("btn-theme-toggle");
+      let iconName = "monitor";
+
       if (theme === "dark") {
         root.classList.add("dark");
         root.classList.remove("light");
-        if (icon) icon.setAttribute("data-lucide", "moon");
+        iconName = "moon";
       } else if (theme === "light") {
         root.classList.add("light");
         root.classList.remove("dark");
-        if (icon) icon.setAttribute("data-lucide", "sun");
+        iconName = "sun";
       } else {
         root.classList.remove("dark", "light");
-        const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        if (icon) icon.setAttribute("data-lucide", isDark ? "moon" : "sun");
+        iconName = "monitor";
       }
+
+      if (themeBtn) {
+        themeBtn.innerHTML = `<i id="theme-icon" data-lucide="${iconName}" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>`;
+        const label = theme === "system" ? "System (Auto)" : (theme === "light" ? "Light" : "Dark");
+        themeBtn.title = `Theme: ${label} (Click to toggle)`;
+      }
+
       localStorage.setItem("ca_lab_theme", theme);
       if (window.lucide) window.lucide.createIcons();
     }
