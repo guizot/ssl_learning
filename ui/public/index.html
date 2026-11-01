@@ -52,7 +52,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=8.7" />
+  <link rel="stylesheet" href="/styles.css?v=8.8" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -397,33 +397,10 @@
             </div>
           </div>
 
-          <div class="section-content space-y-3.5">
-            <!-- Collapsible OpenSSL Command -->
-            <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-sign">
-              <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
-                <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
-                  <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-                  <span>OpenSSL Command</span>
-                </span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
-                <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
-              </summary>
-              <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
-                <code id="cmd-code-admin-sign" class="whitespace-pre-wrap">$ openssl x509 -req -in clients/[id]/[id].csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/[id]/[id].crt -days 365 -sha256</code>
-              </div>
-            </details>
-
-            <div id="admin-clients-table" class="rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden">
-              <div id="admin-table-header" class="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-zinc-900/60 border-b border-zinc-800 text-[10px] font-mono uppercase font-bold text-zinc-500 items-center">
-                <div class="col-span-3 text-left">Client Identity</div>
-                <div class="col-span-2 text-center">Private Key</div>
-                <div class="col-span-2 text-center">CSR</div>
-                <div class="col-span-2 text-center">Certificate</div>
-                <div class="col-span-3 text-right">Actions</div>
-              </div>
-              <div id="admin-clients-tbody" class="divide-y divide-zinc-800/60 text-xs font-mono">
-                <!-- Dynamically populated card rows -->
-              </div>
+          <div class="section-content">
+            <!-- Standalone Client Cards List (Sent/Inbox style) -->
+            <div id="admin-clients-list" class="space-y-3">
+              <!-- Dynamically populated standalone client cards -->
             </div>
           </div>
         </section>
@@ -944,7 +921,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=10.7" type="module"></script>
+  <script src="/app.js?v=10.9" type="module"></script>
   <script>
     // Theme Switcher (System / Light / Dark)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

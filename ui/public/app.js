@@ -521,13 +521,12 @@ function renderAdminView() {
   }
   if (window.lucide) window.lucide.createIcons();
 
-  // Clients list in Admin View (Antigravity Manager Style)
-  const tbody = document.getElementById("admin-clients-tbody");
-  const tableHeader = document.getElementById("admin-table-header");
+  // Clients list in Admin View (Individual Standalone Cards - Sent/Inbox style)
+  const container = document.getElementById("admin-clients-list");
+  if (!container) return;
 
   if (!caState.clients || caState.clients.length === 0) {
-    if (tableHeader) tableHeader.style.display = "none";
-    tbody.innerHTML = `
+    container.innerHTML = `
       <div class="p-8 text-center space-y-2">
         <div class="w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
           <i data-lucide="users" class="w-5 h-5"></i>
@@ -542,114 +541,122 @@ function renderAdminView() {
     return;
   }
 
-  if (tableHeader) tableHeader.style.display = "";
-
-  tbody.innerHTML = caState.clients
+  container.innerHTML = caState.clients
     .map((c) => {
       const initial = (c.name || "C").charAt(0).toUpperCase();
 
       const keyBadge = c.keyExists
-        ? `<span class="status-pill signed">✓ secp256k1</span>`
-        : `<span class="status-pill none">None</span>`;
+        ? `<span class="vault-badge success"><i data-lucide="key" class="w-3 h-3"></i>secp256k1</span>`
+        : `<span class="vault-badge muted">No Key</span>`;
 
       const csrBadge = c.csrExists
-        ? `<span class="status-pill signed">✓ Ready</span>`
-        : `<span class="status-pill none">None</span>`;
+        ? `<span class="vault-badge success"><i data-lucide="file-text" class="w-3 h-3"></i>CSR Ready</span>`
+        : `<span class="vault-badge muted">No CSR</span>`;
 
       const crtBadge = c.crtExists
         ? !c.crtValid
-          ? `<span class="status-pill border border-amber-500/40 bg-amber-500/10 text-amber-300">⚠ CA Mismatch</span>`
+          ? `<span class="vault-badge warning"><i data-lucide="alert-triangle" class="w-3 h-3"></i>CA Mismatch</span>`
           : !c.keyExists
-          ? `<span class="status-pill border border-rose-500/40 bg-rose-500/10 text-rose-400">⚠ Orphaned</span>`
+          ? `<span class="vault-badge danger"><i data-lucide="alert-triangle" class="w-3 h-3"></i>Orphaned</span>`
           : !c.keyMatchesCrt
-          ? `<span class="status-pill border border-amber-500/40 bg-amber-500/10 text-amber-300">⚠ Key Mismatch</span>`
-          : `<span class="status-pill signed">✓ Issued</span>`
-        : `<span class="status-pill none">Pending</span>`;
+          ? `<span class="vault-badge warning"><i data-lucide="alert-triangle" class="w-3 h-3"></i>Key Mismatch</span>`
+          : `<span class="vault-badge success"><i data-lucide="shield-check" class="w-3 h-3"></i>Issued</span>`
+        : `<span class="vault-badge muted">Pending</span>`;
+
+      let statusDesc = "Registered client identity · Awaiting keypair generation in Client role";
+      if (c.crtExists) {
+        if (!c.keyExists) {
+          statusDesc = "Certificate file exists on disk, but client private key was deleted (Orphaned)";
+        } else if (!c.crtValid) {
+          statusDesc = "Root CA was re-initialized; certificate needs re-signing with active Root CA authority";
+        } else if (!c.keyMatchesCrt) {
+          statusDesc = "Certificate signature is valid, but public key does not match local client private key";
+        } else {
+          statusDesc = "Authentic & Validated by Root CA · Certificate valid for 365 days";
+        }
+      } else if (c.csrExists) {
+        statusDesc = "CSR ready for signature · Awaiting Root CA signing and X.509 issuance";
+      } else if (c.keyExists) {
+        statusDesc = "Client private key generated · Awaiting CSR generation in Client role";
+      }
 
       let actionBtn = "";
       if (c.crtExists) {
         if (!c.csrExists) {
           actionBtn = `
-            <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-rose-900/50 bg-rose-950/20 text-[11px] font-mono text-rose-400 text-center">Orphaned (No CSR)</div>
-            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+            <div class="h-9 sm:h-8 inline-flex items-center justify-center px-3 rounded-lg border border-dashed border-rose-900/50 bg-rose-950/20 text-[11px] font-mono text-rose-400">Orphaned (No CSR)</div>
           `;
         } else {
           let btnLabel = "Re-sign";
           if (!c.crtValid) btnLabel = "Re-sign with CA";
           else if (!c.keyMatchesCrt) btnLabel = "Re-sign with Key";
           actionBtn = `
-            <button class="btn-solid btn-sm btn-re-sign flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 text-center" data-id="${escapeHtml(c.id)}">
+            <button class="btn-solid btn-sm btn-re-sign inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 cursor-pointer" data-id="${escapeHtml(c.id)}">
               <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
               <span>${btnLabel}</span>
             </button>
-            <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           `;
         }
       } else if (c.csrExists) {
         actionBtn = `
-          <button class="btn-solid btn-sm btn-sign-cert flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 text-center" data-id="${escapeHtml(c.id)}">
+          <button class="btn-solid btn-sm btn-sign-cert inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 cursor-pointer" data-id="${escapeHtml(c.id)}">
             <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
             <span>Sign &amp; Issue Cert</span>
           </button>
-          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
         `;
       } else {
         actionBtn = `
-          <div class="flex-1 sm:flex-initial sm:w-36 h-9 sm:h-8 flex items-center justify-center px-3 rounded-lg border border-dashed border-zinc-800 text-[11px] font-mono text-zinc-500 text-center">Awaiting CSR</div>
-          <button class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
+          <div class="h-9 sm:h-8 inline-flex items-center justify-center px-3 rounded-lg border border-dashed border-zinc-800 text-[11px] font-mono text-zinc-500">Awaiting CSR</div>
         `;
       }
 
+      const opensslCmd = `$ openssl x509 -req -in clients/${escapeHtml(c.id)}/${escapeHtml(c.id)}.csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/${escapeHtml(c.id)}/${escapeHtml(c.id)}.crt -days 365 -sha256`;
+
       return `
-        <div class="p-3.5 sm:px-4 sm:py-3 hover:bg-zinc-800/30 transition flex flex-col sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center gap-3">
-          <!-- Col 1: Identity (span 3) -->
-          <div class="flex items-center justify-between sm:justify-start gap-3 min-w-0 sm:col-span-3">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <div class="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
-                ${escapeHtml(initial)}
+        <div class="inbox-item-card" id="client-card-${escapeHtml(c.id)}">
+          <div class="inbox-item-head">
+            <div class="inbox-item-meta">
+              <div class="flex items-center gap-2.5 mr-2">
+                <div class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
+                  ${escapeHtml(initial)}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-semibold text-zinc-100 truncate">${escapeHtml(c.name)}</div>
+                  <div class="text-[11px] text-zinc-500 font-mono truncate">id: ${escapeHtml(c.id)}</div>
+                </div>
               </div>
-              <div class="min-w-0">
-                <div class="text-xs font-semibold text-zinc-100 truncate">${escapeHtml(c.name)}</div>
-                <div class="text-[11px] text-zinc-500 font-mono truncate">id: ${escapeHtml(c.id)}</div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${keyBadge}
+                ${csrBadge}
+                ${crtBadge}
+                <button class="btn-del-client" data-id="${escapeHtml(c.id)}" title="Delete client ${escapeHtml(c.name)}">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
               </div>
             </div>
-            <!-- Mobile Only Delete Button -->
-            <button class="sm:hidden inline-flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0 btn-del-client text-xs" data-id="${escapeHtml(c.id)}" title="Delete client">✕</button>
           </div>
 
-          <!-- Col 2: Key Badge (span 2, Desktop only) -->
-          <div class="hidden sm:flex sm:col-span-2 justify-center">
-            ${keyBadge}
+          <div class="text-xs text-zinc-400 font-mono flex items-center gap-1.5 py-0.5">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-zinc-500 shrink-0"></i>
+            <span>${escapeHtml(statusDesc)}</span>
           </div>
 
-          <!-- Col 3: CSR Badge (span 2, Desktop only) -->
-          <div class="hidden sm:flex sm:col-span-2 justify-center">
-            ${csrBadge}
-          </div>
-
-          <!-- Col 4: Cert Badge (span 2, Desktop only) -->
-          <div class="hidden sm:flex sm:col-span-2 justify-center">
-            ${crtBadge}
-          </div>
-
-          <!-- Mobile Only 3-pill grid -->
-          <div class="grid grid-cols-3 gap-2 w-full sm:hidden text-xs">
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-zinc-500 text-[10px] uppercase font-bold font-mono text-center">Key</span>
-              ${keyBadge}
+          <!-- Collapsible OpenSSL Command for this client -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-admin-${escapeHtml(c.id)}">
+            <summary class="px-3 py-1.5 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>OpenSSL Command</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 overflow-x-auto text-[11px] font-mono text-zinc-400">
+              <code id="cmd-code-admin-${escapeHtml(c.id)}" class="whitespace-pre-wrap">${opensslCmd}</code>
             </div>
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-zinc-500 text-[10px] uppercase font-bold font-mono text-center">CSR</span>
-              ${csrBadge}
-            </div>
-            <div class="flex flex-col gap-1 min-w-0">
-              <span class="text-zinc-500 text-[10px] uppercase font-bold font-mono text-center">Cert</span>
-              ${crtBadge}
-            </div>
-          </div>
+          </details>
 
-          <!-- Col 5: Actions (span 3) -->
-          <div class="flex items-center gap-2 sm:justify-end sm:col-span-3 w-full sm:w-auto">
+          <div class="flex items-center gap-2 pt-0.5">
             ${actionBtn}
           </div>
         </div>
@@ -659,8 +666,8 @@ function renderAdminView() {
 
   if (window.lucide) window.lucide.createIcons();
 
-  // Attach table button actions
-  tbody.querySelectorAll(".btn-sign-cert, .btn-re-sign").forEach((btn) => {
+  // Attach card button actions
+  container.querySelectorAll(".btn-sign-cert, .btn-re-sign").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.getAttribute("data-id");
       const isReSign = btn.classList.contains("btn-re-sign");
@@ -680,7 +687,7 @@ function renderAdminView() {
         await syncCAState();
 
         if (res.ok && data.success) {
-          renderCmdOutput("cmd-details-admin-sign", "cmd-code-admin-sign", {
+          renderCmdOutput(`cmd-details-admin-${id}`, `cmd-code-admin-${id}`, {
             commands: [
               `openssl x509 -req -in clients/${id}/${id}.csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/${id}/${id}.crt -days 365 -sha256`
             ],
@@ -692,14 +699,14 @@ function renderAdminView() {
             status: "success",
           });
         } else {
-          renderCmdOutput("cmd-details-admin-sign", "cmd-code-admin-sign", {
+          renderCmdOutput(`cmd-details-admin-${id}`, `cmd-code-admin-${id}`, {
             commands: [`openssl x509 -req -in clients/${id}/${id}.csr -CA ca/root_ca.crt -CAkey ca/root_ca.key -CAcreateserial -out clients/${id}/${id}.crt -days 365 -sha256`],
             outputs: [`[✕ Signing Failed] ${data.error || "Unable to issue certificate"}`],
             status: "error",
           });
         }
       } catch (err) {
-        renderCmdOutput("cmd-details-admin-sign", "cmd-code-admin-sign", {
+        renderCmdOutput(`cmd-details-admin-${id}`, `cmd-code-admin-${id}`, {
           commands: [`openssl x509 -req -in clients/${id}/${id}.csr ...`],
           outputs: [`[✕ Error] ${err.message}`],
           status: "error",
@@ -714,7 +721,7 @@ function renderAdminView() {
     });
   });
 
-  tbody.querySelectorAll(".btn-del-client").forEach((btn) => {
+  container.querySelectorAll(".btn-del-client").forEach((btn) => {
     btn.onclick = async (e) => {
       e.preventDefault();
       e.stopPropagation();
