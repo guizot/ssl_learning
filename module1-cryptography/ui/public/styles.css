@@ -724,4 +724,7 @@ select option {
   .inbox-actions button {
     width: 100%;
   }
+  body {
+    padding-bottom: max(32px, env(safe-area-inset-bottom, 24px));
+  }
 }

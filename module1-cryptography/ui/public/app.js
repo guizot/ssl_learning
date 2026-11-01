@@ -23,6 +23,12 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+function formatShortAddress(addr) {
+  if (!addr || typeof addr !== "string") return "-";
+  if (addr.length <= 16) return addr;
+  return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
+}
+
 function renderCmdOutput(detailsId, codeId, { commands = [], outputs = [], status = "success", customHtml = null }) {
   const detailsEl = document.getElementById(detailsId);
   const codeEl = document.getElementById(codeId);
@@ -923,14 +929,24 @@ function renderTxCardsList(container, txs, mode) {
       const verifyBannerHtml = tx.verifyReason
         ? `
           <div class="result-banner ${tx.verifiedState === "valid" ? "valid" : "invalid"}">
-            <i data-lucide="${tx.verifiedState === "valid" ? "check-circle-2" : "x-circle"}" class="w-4 h-4 shrink-0"></i>
-            <div class="space-y-0.5 text-xs font-mono">
-              <div class="font-semibold">${escapeHtml(tx.verifyReason)}</div>
+            <i data-lucide="${tx.verifiedState === "valid" ? "check-circle-2" : "x-circle"}" class="w-4 h-4 shrink-0 mt-0.5 self-start"></i>
+            <div class="space-y-1.5 text-xs font-mono w-full min-w-0">
+              <div class="font-semibold leading-snug break-words">${escapeHtml(tx.verifyReason)}</div>
               ${
                 tx.derivedAddress
-                  ? `<div class="text-[11px] opacity-85">Proof 1 (SHA3-256 PubKey &rarr; Address): ${escapeHtml(tx.derivedAddress)} ${
-                      tx.addressMatch ? "== Claimed Sender (MATCH)" : "!= Claimed Sender (MISMATCH)"
-                    } | Proof 2 (ECDSA Verify): ${tx.signatureMatch ? "VALID" : "FAILED"}</div>`
+                  ? `
+                <div class="text-[11px] opacity-90 space-y-1 border-t border-current/15 pt-1.5 mt-1">
+                  <div class="flex items-start gap-1 flex-wrap">
+                    <span class="text-zinc-400 font-semibold">Proof 1 (Address Match):</span>
+                    <span class="break-all" title="${escapeHtml(tx.derivedAddress)}">${escapeHtml(formatShortAddress(tx.derivedAddress))}</span>
+                    <span class="${tx.addressMatch ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}">(${tx.addressMatch ? "MATCH == Sender" : "MISMATCH != Sender"})</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-zinc-400 font-semibold">Proof 2 (ECDSA Verify):</span>
+                    <span class="${tx.signatureMatch ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}">${tx.signatureMatch ? "VALID (Authentic)" : "FAILED (Unsigned/Forged)"}</span>
+                  </div>
+                </div>
+              `
                   : ""
               }
             </div>
@@ -1014,7 +1030,7 @@ function renderTxCardsList(container, txs, mode) {
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-xs font-semibold text-zinc-100">${escapeHtml(tx.fromName)} &rarr; ${escapeHtml(tx.toName)}</span>
                 <span class="vault-badge success font-mono">${tx.amount} Coins</span>
-                <span class="text-[11px] text-zinc-500 font-mono">Nonce #${tx.nonce} &middot; ${escapeHtml(timeStr)}</span>
+                <span class="vault-badge muted font-mono">Nonce #${tx.nonce} &middot; ${escapeHtml(timeStr)}</span>
               </div>
               <div class="flex items-center gap-1.5 flex-wrap">
                 ${sigBadge}
@@ -1024,10 +1040,21 @@ function renderTxCardsList(container, txs, mode) {
             </div>
           </div>
 
-          <div class="text-xs text-zinc-400 font-mono space-y-0.5 break-all">
-            <div><span class="text-zinc-500">From:</span> ${escapeHtml(tx.fromAddress)}</div>
-            <div><span class="text-zinc-500">To  :</span> ${escapeHtml(tx.toAddress)}</div>
-            <div><span class="text-zinc-500">Memo:</span> ${escapeHtml(tx.memo)}</div>
+          <div class="text-xs text-zinc-400 font-mono space-y-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-zinc-500 font-semibold shrink-0">From:</span>
+              <span class="text-zinc-300 font-mono" title="${escapeHtml(tx.fromAddress)}">${escapeHtml(formatShortAddress(tx.fromAddress))}</span>
+              <span class="text-[10px] text-zinc-500">(${escapeHtml(tx.fromName)})</span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-zinc-500 font-semibold shrink-0">To  :</span>
+              <span class="text-zinc-300 font-mono" title="${escapeHtml(tx.toAddress)}">${escapeHtml(formatShortAddress(tx.toAddress))}</span>
+              <span class="text-[10px] text-zinc-500">(${escapeHtml(tx.toName)})</span>
+            </div>
+            <div class="flex items-start gap-1.5 flex-wrap">
+              <span class="text-zinc-500 font-semibold shrink-0">Memo:</span>
+              <span class="text-zinc-200 break-words">${escapeHtml(tx.memo)}</span>
+            </div>
           </div>
 
           ${verifyBannerHtml}
