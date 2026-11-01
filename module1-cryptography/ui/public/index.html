@@ -89,51 +89,6 @@
       </div>
     </header>
 
-    <!-- EDUCATIONAL HERO: THE LEAP FROM WEB2 CA TO WEB3 MATH -->
-    <section class="card-panel p-5 bg-zinc-900/60 border border-zinc-800">
-      <div class="flex flex-col md:flex-row items-stretch gap-5">
-        
-        <!-- Left: Web2 CA paradigm -->
-        <div class="flex-1 p-4 rounded-lg bg-zinc-950/70 border border-zinc-800/80 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-zinc-400"></i>
-              Web2 Centralized Identity (Module 0)
-            </span>
-            <span class="badge-zinc text-[10px]">Web2 PKI</span>
-          </div>
-          <div class="space-y-1.5 text-xs text-zinc-300">
-            <p>1. You create an OpenSSL private/public keypair.</p>
-            <p>2. You produce a <strong>CSR</strong> and submit it to a <strong>Certificate Authority</strong> (DigiCert, Let's Encrypt).</p>
-            <p>3. The CA signs an X.509 certificate. <em>Clients must trust the CA's root certificate!</em></p>
-          </div>
-        </div>
-
-        <!-- Arrow divider -->
-        <div class="hidden md:flex flex-col items-center justify-center text-zinc-600">
-          <i data-lucide="arrow-right" class="w-4 h-4"></i>
-        </div>
-
-        <!-- Right: Web3 Zero-CA paradigm -->
-        <div class="flex-1 p-4 rounded-lg bg-zinc-950/70 border border-zinc-800/80 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
-              <i data-lucide="key-round" class="w-3.5 h-3.5 text-zinc-400"></i>
-              Web3 Decentralized Identity (Module 1)
-            </span>
-            <span class="badge-zinc text-[10px]">Zero CA</span>
-          </div>
-          <div class="space-y-1.5 text-xs text-zinc-300">
-            <p>1. Generate random scalar on <code class="text-zinc-200">secp256k1</code> (Private Key).</p>
-            <p>2. Multiply by curve generator G → Public Key (X, Y).</p>
-            <p>3. Address = <code class="text-zinc-200 font-mono">0x + SHA3-256(PubKey)[12..32]</code>.</p>
-            <p class="text-zinc-400 font-medium pt-0.5">Math alone guarantees identity &amp; ownership. No third party needed!</p>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
     <!-- NAVIGATION TABS -->
     <nav class="nav-tabs-scroll flex items-center gap-1.5 p-1 bg-zinc-900 border border-zinc-800 rounded-xl overflow-x-auto flex-nowrap whitespace-nowrap">
       <button class="tab-btn active shrink-0 whitespace-nowrap" data-tab="tab-wallets">
