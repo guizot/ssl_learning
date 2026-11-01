@@ -659,6 +659,7 @@ function renderWalletClientView() {
   const badgeStep3 = document.getElementById("badge-step3-status");
   const btnStep3 = document.getElementById("btn-step3-gen-addr");
   const labelStep3 = document.getElementById("label-step3-btn");
+  const btnFaucet = document.getElementById("btn-step3-faucet");
   const btnRemoveAddr = document.getElementById("btn-step3-remove-addr");
   const codeStep3 = document.getElementById("cmd-code-step3");
   if (codeStep3 && !codeStep3.getAttribute("data-has-output")) {
@@ -671,11 +672,13 @@ function renderWalletClientView() {
       ? `<i data-lucide="check" class="w-3 h-3"></i>${escapeHtml(activeWallet.address.slice(0, 10))}...`
       : `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Pub Mismatch`;
     labelStep3.textContent = "3. Re-derive Blockchain Address (.addr)";
+    if (btnFaucet) btnFaucet.style.display = "inline-flex";
     btnRemoveAddr.style.display = "inline-flex";
   } else {
     badgeStep3.className = "vault-badge muted";
     badgeStep3.textContent = activeWallet.pubExists ? "Ready for Step 3" : "Requires Step 2";
     labelStep3.textContent = "3. Derive Blockchain Address (0x...)";
+    if (btnFaucet) btnFaucet.style.display = "none";
     btnRemoveAddr.style.display = "none";
   }
 
@@ -814,13 +817,41 @@ document.getElementById("btn-step3-gen-addr")?.addEventListener("click", async (
           `[✓ Step 3 Complete] Self-Certifying Web3 Address Derived!`,
           `Full SHA3-256 : ${data.sha3HashHex}`,
           `Last 20 Bytes : ${data.addressBytesHex}`,
-          `Final Address : ${data.address} (Funded with ${data.balance} Coins)`,
-          `Notice: No Certificate Authority (CA) was needed! Your address is mathematically bound to your Public Key.`,
+          `Final Address : ${data.address} (Balance: ${data.balance} Coins)`,
+          `Next: Click "Request Testnet Faucet (+100 Coins)" below if you want to fund this address for transactions.`,
         ],
         status: "success",
       });
       const detAddr = document.getElementById("client-details-addr");
       if (detAddr) detAddr.open = true;
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("btn-step3-faucet")?.addEventListener("click", async () => {
+  const btn = document.getElementById("btn-step3-faucet");
+  const id = m1State.activeRole;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/m1/wallet/faucet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    await syncM1State();
+
+    if (res.ok && data.success) {
+      renderCmdOutput("cmd-details-step3", "cmd-code-step3", {
+        commands: [`faucet --credit +100 --to ${data.address}`],
+        outputs: [
+          `[✓ Testnet Faucet] Credited +${data.amountAdded} Coins to ${data.address}`,
+          `Updated Wallet Balance: ${data.balance} Coins`,
+        ],
+        status: "success",
+      });
     }
   } finally {
     btn.disabled = false;

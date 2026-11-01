@@ -529,12 +529,6 @@ const server = http.createServer(async (req, res) => {
       const addrP = path.join(wDir, `${id}.addr`);
       fs.writeFileSync(addrP, pubInfo.derivedAddress + "\n", "utf-8");
 
-      // Credit initial test coins if balance is 0
-      if (walletMeta.balance === 0) {
-        walletMeta.balance = 100;
-        saveStore(store);
-      }
-
       return sendJson(res, 200, {
         success: true,
         id,
@@ -542,6 +536,39 @@ const server = http.createServer(async (req, res) => {
         sha3HashHex: pubInfo.sha3HashHex,
         discardedBytesHex: pubInfo.discardedBytesHex,
         addressBytesHex: pubInfo.addressBytesHex,
+        balance: walletMeta.balance,
+      });
+    }
+
+    // =========================================================================
+    // 7b. POST /api/m1/wallet/faucet (Request Testnet Faucet +100 Coins)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/wallet/faucet") {
+      const body = await readJsonBody(req);
+      const store = loadStore();
+      const id = (body.id || store.activeId || "").trim();
+      const walletMeta = store.wallets.find((w) => w.id === id);
+      if (!walletMeta) {
+        return sendJson(res, 400, { error: "Wallet not found" });
+      }
+
+      const wDir = getWalletDir(id);
+      const addrP = path.join(wDir, `${id}.addr`);
+      if (!fs.existsSync(addrP)) {
+        return sendJson(res, 400, {
+          error: `Blockchain address wallets/${id}/${id}.addr does not exist yet! Complete Step 3 first.`,
+        });
+      }
+
+      const address = fs.readFileSync(addrP, "utf-8").trim();
+      walletMeta.balance += 100;
+      saveStore(store);
+
+      return sendJson(res, 200, {
+        success: true,
+        id,
+        address,
+        amountAdded: 100,
         balance: walletMeta.balance,
       });
     }
@@ -573,6 +600,11 @@ const server = http.createServer(async (req, res) => {
       }
       if (fileType === "addr" || fileType === "all") {
         if (fs.existsSync(addrP)) { fs.unlinkSync(addrP); removedFiles.push(`${walletId}.addr`); }
+        const walletMeta = store.wallets.find((w) => w.id === walletId);
+        if (walletMeta) {
+          walletMeta.balance = 0;
+          saveStore(store);
+        }
       }
 
       return sendJson(res, 200, {
