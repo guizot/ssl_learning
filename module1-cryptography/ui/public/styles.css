@@ -1,0 +1,284 @@
+/* Module 1: Blockchain Cryptography & Wallets (Zero-CA Foundation) */
+
+:root {
+  color-scheme: dark;
+  --zinc-50: 250 250 250;
+  --zinc-100: 244 244 245;
+  --zinc-200: 228 228 231;
+  --zinc-300: 212 212 216;
+  --zinc-400: 161 161 170;
+  --zinc-500: 113 113 122;
+  --zinc-600: 82 82 91;
+  --zinc-700: 63 63 70;
+  --zinc-800: 39 39 42;
+  --zinc-900: 24 24 27;
+  --zinc-950: 9 9 11;
+
+  --emerald-400: 52 211 153;
+  --emerald-500: 16 185 129;
+  --emerald-600: 5 150 105;
+
+  --amber-400: 251 191 36;
+  --amber-500: 245 158 11;
+
+  --rose-400: 251 113 133;
+  --rose-500: 244 63 94;
+
+  --indigo-400: 129 140 248;
+  --indigo-500: 99 102 241;
+
+  --bg-app: rgb(var(--zinc-950));
+  --bg-card: rgb(var(--zinc-900));
+  --bg-sub: rgb(var(--zinc-800));
+  --border: rgb(var(--zinc-800));
+  --border-hover: rgb(var(--zinc-700));
+  --text-main: rgb(var(--zinc-100));
+  --text-muted: rgb(var(--zinc-400));
+  --text-dim: rgb(var(--zinc-500));
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not(.dark) {
+    color-scheme: light;
+    --zinc-50: 9 9 11;
+    --zinc-100: 24 24 27;
+    --zinc-200: 39 39 42;
+    --zinc-300: 63 63 70;
+    --zinc-400: 82 82 91;
+    --zinc-500: 113 113 122;
+    --zinc-600: 161 161 170;
+    --zinc-700: 212 212 216;
+    --zinc-800: 228 228 231;
+    --zinc-900: 250 250 250;
+    --zinc-950: 255 255 255;
+    --emerald-400: 5 150 105;
+    --emerald-500: 16 185 129;
+  }
+}
+
+html, body {
+  background-color: rgb(var(--zinc-950));
+  color: rgb(var(--zinc-100));
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, pre, .font-mono {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Glass & Card styles */
+.glass-panel {
+  background-color: rgb(var(--zinc-900) / 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgb(var(--zinc-800));
+  border-radius: 0.75rem;
+}
+
+.card-panel {
+  background-color: rgb(var(--zinc-900));
+  border: 1px solid rgb(var(--zinc-800));
+  border-radius: 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-panel:hover {
+  border-color: rgb(var(--zinc-700));
+}
+
+/* Custom interactive buttons */
+.btn-primary {
+  background-color: rgb(var(--zinc-100));
+  color: rgb(var(--zinc-950));
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: rgb(var(--zinc-200));
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: rgb(var(--zinc-900));
+  border: 1px solid rgb(var(--zinc-800));
+  color: rgb(var(--zinc-200));
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  border-color: rgb(var(--zinc-700));
+  background-color: rgb(var(--zinc-800));
+}
+
+.btn-danger {
+  background-color: rgb(var(--rose-500) / 0.1);
+  border: 1px solid rgb(var(--rose-500) / 0.3);
+  color: rgb(var(--rose-400));
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background-color: rgb(var(--rose-500) / 0.2);
+  border-color: rgb(var(--rose-400));
+}
+
+/* Tabs */
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(var(--zinc-400));
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.tab-btn * {
+  white-space: nowrap;
+}
+
+.nav-tabs-scroll {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem;
+  background-color: rgb(var(--zinc-900));
+  border: 1px solid rgb(var(--zinc-800));
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+
+.tab-btn:hover {
+  color: rgb(var(--zinc-200));
+  background-color: rgb(var(--zinc-800) / 0.5);
+}
+
+.tab-btn.active {
+  color: rgb(var(--zinc-50));
+  background-color: rgb(var(--zinc-800));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Badges */
+.badge-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background-color: rgb(var(--emerald-500) / 0.12);
+  color: rgb(var(--emerald-400));
+  border: 1px solid rgb(var(--emerald-500) / 0.25);
+}
+
+.badge-rose {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background-color: rgb(var(--rose-500) / 0.12);
+  color: rgb(var(--rose-400));
+  border: 1px solid rgb(var(--rose-500) / 0.25);
+}
+
+.badge-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background-color: rgb(var(--amber-500) / 0.12);
+  color: rgb(var(--amber-400));
+  border: 1px solid rgb(var(--amber-500) / 0.25);
+}
+
+.badge-zinc {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background-color: rgb(var(--zinc-800));
+  color: rgb(var(--zinc-300));
+  border: 1px solid rgb(var(--zinc-700));
+}
+
+/* Code block highlight */
+.code-box {
+  background-color: rgb(var(--zinc-950));
+  border: 1px solid rgb(var(--zinc-800));
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.775rem;
+  line-height: 1.5;
+  color: rgb(var(--zinc-300));
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--zinc-800));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--zinc-700));
+}

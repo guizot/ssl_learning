@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Module 1: Blockchain Cryptography &amp; Wallets</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            zinc: {
+              50: 'rgb(var(--zinc-50) / <alpha-value>)',
+              100: 'rgb(var(--zinc-100) / <alpha-value>)',
+              200: 'rgb(var(--zinc-200) / <alpha-value>)',
+              300: 'rgb(var(--zinc-300) / <alpha-value>)',
+              400: 'rgb(var(--zinc-400) / <alpha-value>)',
+              500: 'rgb(var(--zinc-500) / <alpha-value>)',
+              600: 'rgb(var(--zinc-600) / <alpha-value>)',
+              700: 'rgb(var(--zinc-700) / <alpha-value>)',
+              800: 'rgb(var(--zinc-800) / <alpha-value>)',
+              900: 'rgb(var(--zinc-900) / <alpha-value>)',
+              950: 'rgb(var(--zinc-950) / <alpha-value>)',
+            },
+            emerald: {
+              400: 'rgb(var(--emerald-400) / <alpha-value>)',
+              500: 'rgb(var(--emerald-500) / <alpha-value>)',
+            },
+            rose: {
+              400: 'rgb(var(--rose-400) / <alpha-value>)',
+              500: 'rgb(var(--rose-500) / <alpha-value>)',
+            },
+            amber: {
+              400: 'rgb(var(--amber-400) / <alpha-value>)',
+              500: 'rgb(var(--amber-500) / <alpha-value>)',
+            }
+          },
+          fontFamily: {
+            sans: ["Geist", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+            mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Geist & Geist Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased selection:bg-zinc-800 selection:text-zinc-50">
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+
+    <!-- TOP HEADER -->
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+      <div class="flex items-center gap-3.5">
+        <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 shadow-sm shrink-0">
+          <i data-lucide="boxes" class="w-5 h-5 text-zinc-300"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-zinc-100 truncate">
+            Blockchain Cryptography &amp; Wallets
+          </h1>
+        </div>
+      </div>
+
+      <!-- Header actions & Module switcher -->
+      <div class="flex items-center flex-wrap gap-2.5">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+          <span>Node Port: <strong class="text-zinc-200">3001</strong></span>
+        </div>
+
+        <button id="btnResetState" class="btn-secondary text-xs !py-1.5" title="Reset state to initial default">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>Reset Lab</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- EDUCATIONAL HERO: THE LEAP FROM WEB2 CA TO WEB3 MATH -->
+    <section class="card-panel p-5 bg-zinc-900/60 border border-zinc-800">
+      <div class="flex flex-col md:flex-row items-stretch gap-5">
+        
+        <!-- Left: Web2 CA paradigm -->
+        <div class="flex-1 p-4 rounded-lg bg-zinc-950/70 border border-zinc-800/80 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-zinc-400"></i>
+              Web2 Centralized Identity (Module 0)
+            </span>
+            <span class="badge-zinc text-[10px]">Web2 PKI</span>
+          </div>
+          <div class="space-y-1.5 text-xs text-zinc-300">
+            <p>1. You create an OpenSSL private/public keypair.</p>
+            <p>2. You produce a <strong>CSR</strong> and submit it to a <strong>Certificate Authority</strong> (DigiCert, Let's Encrypt).</p>
+            <p>3. The CA signs an X.509 certificate. <em>Clients must trust the CA's root certificate!</em></p>
+          </div>
+        </div>
+
+        <!-- Arrow divider -->
+        <div class="hidden md:flex flex-col items-center justify-center text-zinc-600">
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </div>
+
+        <!-- Right: Web3 Zero-CA paradigm -->
+        <div class="flex-1 p-4 rounded-lg bg-zinc-950/70 border border-zinc-800/80 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+              <i data-lucide="key-round" class="w-3.5 h-3.5 text-zinc-400"></i>
+              Web3 Decentralized Identity (Module 1)
+            </span>
+            <span class="badge-zinc text-[10px]">Zero CA</span>
+          </div>
+          <div class="space-y-1.5 text-xs text-zinc-300">
+            <p>1. Generate random scalar on <code class="text-zinc-200">secp256k1</code> (Private Key).</p>
+            <p>2. Multiply by curve generator G → Public Key (X, Y).</p>
+            <p>3. Address = <code class="text-zinc-200 font-mono">0x + SHA3-256(PubKey)[12..32]</code>.</p>
+            <p class="text-zinc-400 font-medium pt-0.5">Math alone guarantees identity &amp; ownership. No third party needed!</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="nav-tabs-scroll flex items-center gap-1.5 p-1 bg-zinc-900 border border-zinc-800 rounded-xl overflow-x-auto flex-nowrap whitespace-nowrap">
+      <button class="tab-btn active shrink-0 whitespace-nowrap" data-tab="tab-wallets">
+        <i data-lucide="wallet" class="w-4 h-4 shrink-0"></i>
+        <span class="whitespace-nowrap">Wallets &amp; Keys</span>
+        <span id="badgeWalletCount" class="badge-zinc text-[11px] py-0 px-1.5 shrink-0">0</span>
+      </button>
+      <button class="tab-btn shrink-0 whitespace-nowrap" data-tab="tab-signer">
+        <i data-lucide="pen-tool" class="w-4 h-4 shrink-0"></i>
+        <span class="whitespace-nowrap">Transaction Signer</span>
+      </button>
+      <button class="tab-btn shrink-0 whitespace-nowrap" data-tab="tab-validator">
+        <i data-lucide="cpu" class="w-4 h-4 shrink-0"></i>
+        <span class="whitespace-nowrap">Zero-Trust Validator</span>
+      </button>
+      <button class="tab-btn shrink-0 whitespace-nowrap" data-tab="tab-attacks">
+        <i data-lucide="zap" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+        <span class="whitespace-nowrap">Attack Simulator</span>
+      </button>
+      <button class="tab-btn shrink-0 whitespace-nowrap" data-tab="tab-ledger">
+        <i data-lucide="list-ordered" class="w-4 h-4 shrink-0"></i>
+        <span class="whitespace-nowrap">Node Ledger</span>
+        <span id="badgeTxCount" class="badge-zinc text-[11px] py-0 px-1.5 shrink-0">0</span>
+      </button>
+    </nav>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 1: WALLETS & KEYS -->
+    <!-- ===================================================================== -->
+    <div id="tab-wallets" class="tab-content space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-zinc-100 flex items-center gap-2">
+            <span>Cryptographic Keystores &amp; Public Addresses</span>
+          </h2>
+          <p class="text-xs text-zinc-400">
+            Each wallet is an autonomous cryptographic identity derived purely from an elliptic curve point.
+          </p>
+        </div>
+        <button id="btnOpenCreateWalletModal" class="btn-primary text-xs shrink-0">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Create New Wallet</span>
+        </button>
+      </div>
+
+      <!-- Wallets Grid -->
+      <div id="walletsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered dynamically via JS -->
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: TRANSACTION SIGNER -->
+    <!-- ===================================================================== -->
+    <div id="tab-signer" class="tab-content hidden space-y-6">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-100">
+          Interactive Transaction Pipeline
+        </h2>
+        <p class="text-xs text-zinc-400">
+          Observe how raw transaction data is converted into canonical form, hashed with SHA-256, and signed using ECDSA.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Step 1 & 2: Transaction Builder -->
+        <div class="card-panel p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 text-[11px] font-bold flex items-center justify-center">1</span>
+              Compose Transaction
+            </span>
+            <span class="text-xs text-zinc-500 font-mono">secp256k1</span>
+          </div>
+
+          <div class="space-y-3.5">
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-1.5">Sender (Signing Wallet)</label>
+              <select id="signSenderSelect" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-zinc-400 mb-1.5">Recipient (Destination Address)</label>
+              <div class="flex gap-2">
+                <select id="signRecipientSelect" class="w-1/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700">
+                  <!-- Populated via JS -->
+                </select>
+                <input id="signRecipientInput" type="text" placeholder="0x..." class="w-2/3 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-700" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Amount (Coins)</label>
+                <input id="signAmountInput" type="number" placeholder="e.g. 15" min="1" step="1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Nonce (Sequence)</label>
+                <input id="signNonceInput" type="text" readonly disabled value="0" class="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-zinc-400" />
+              </div>
+            </div>
+
+            <button id="btnSignTx" class="w-full btn-primary !py-2.5 text-xs font-semibold mt-2">
+              <i data-lucide="key" class="w-4 h-4"></i>
+              <span>Sign Transaction with Sender's Private Key</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3 & 4: Cryptographic Output -->
+        <div class="card-panel p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-zinc-800 text-zinc-300 text-[11px] font-bold flex items-center justify-center">2</span>
+              Cryptographic Artifacts &amp; Signature
+            </span>
+            <span id="signerStatusBadge" class="badge-zinc text-[10px]">Awaiting Signature</span>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <div class="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
+                <span>Deterministic Canonical JSON:</span>
+                <span class="text-zinc-500">Exact bytes hashed</span>
+              </div>
+              <pre id="signCanonicalJson" class="code-box h-20 text-[11px] text-zinc-400">// Click "Sign Transaction" to view deterministic JSON</pre>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
+                <span>SHA-256 Transaction Digest:</span>
+                <span class="text-zinc-500">32 bytes</span>
+              </div>
+              <pre id="signTxHash" class="code-box text-[11px] text-zinc-400">// sha256(canonicalJson)</pre>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
+                <span>ECDSA Signature (DER Hex):</span>
+                <span class="text-zinc-500">secp256k1 (r, s)</span>
+              </div>
+              <pre id="signSignatureHex" class="code-box text-[11px] text-zinc-300 font-mono">// signature generated by privateKey</pre>
+            </div>
+
+            <div class="pt-2 flex gap-2">
+              <button id="btnBroadcastTx" disabled class="flex-1 btn-primary !py-2 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+                <i data-lucide="radio" class="w-4 h-4"></i>
+                <span>Broadcast to Network Node</span>
+              </button>
+              <button id="btnSendToValidator" disabled class="btn-secondary !py-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed" title="Load into Validator tab">
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                <span>Test in Validator</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 3: ZERO-TRUST VALIDATOR -->
+    <!-- ===================================================================== -->
+    <div id="tab-validator" class="tab-content hidden space-y-6">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-100">
+          Zero-Trust Network Validator Node
+        </h2>
+        <p class="text-xs text-zinc-400">
+          When a miner or validator receives a transaction from an unknown peer, it runs these exact mathematical proofs without contacting any central CA.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left: Payload Input (5 cols) -->
+        <div class="lg:col-span-5 card-panel p-5 space-y-3.5">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+              Transaction Payload (JSON)
+            </span>
+            <button id="btnLoadSampleTx" class="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors">
+              Load Latest Signed Tx
+            </button>
+          </div>
+
+          <textarea id="valPayloadInput" rows="14" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs font-mono text-zinc-200 focus:outline-none focus:border-zinc-700 resize-none" placeholder='{ "data": { ... }, "signatureHex": "...", "senderPublicKeyHex": "..." }'></textarea>
+
+          <button id="btnVerifyPayload" class="w-full btn-primary !py-2 text-xs font-semibold">
+            <i data-lucide="check-check" class="w-4 h-4"></i>
+            <span>Execute Cryptographic Verification</span>
+          </button>
+        </div>
+
+        <!-- Right: Verification Checks (7 cols) -->
+        <div class="lg:col-span-7 card-panel p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+            <span class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+              Verification Pipeline &amp; Proofs
+            </span>
+            <span id="valOverallBadge" class="badge-zinc text-[11px]">Ready to Verify</span>
+          </div>
+
+          <!-- Step 1: Public Key Malformation Check -->
+          <div class="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-zinc-200 flex items-center gap-2">
+                <span id="iconCheck1Container" class="flex items-center"><i data-lucide="circle" class="w-4 h-4 text-zinc-500"></i></span>
+                Proof 1: secp256k1 Curve Point Validation
+              </span>
+              <span id="badgeCheck1" class="badge-zinc text-[10px]">Pending</span>
+            </div>
+            <p class="text-[11px] text-zinc-400 pl-6">
+              Reconstructs SPKI DER from 65 uncompressed bytes and ensures public key point satisfies y² = x³ + 7 (mod p).
+            </p>
+          </div>
+
+          <!-- Step 2: Address Derivation Match -->
+          <div class="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-zinc-200 flex items-center gap-2">
+                <span id="iconCheck2Container" class="flex items-center"><i data-lucide="circle" class="w-4 h-4 text-zinc-500"></i></span>
+                Proof 2: Identity &amp; Address Derivation
+              </span>
+              <span id="badgeCheck2" class="badge-zinc text-[10px]">Pending</span>
+            </div>
+            <p class="text-[11px] text-zinc-400 pl-6">
+              Computes <code class="text-zinc-300 font-mono">0x + SHA3-256(coordinates)[12..32]</code> and verifies it matches the claimed <code class="text-zinc-300 font-mono">tx.data.from</code>. (No Certificate Authority!).
+            </p>
+            <div id="proof2Details" class="hidden pl-6 pt-1 text-[11px] font-mono space-y-0.5 text-zinc-400">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Step 3: ECDSA Signature Verification -->
+          <div class="p-3 rounded-lg bg-zinc-950/70 border border-zinc-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-zinc-200 flex items-center gap-2">
+                <span id="iconCheck3Container" class="flex items-center"><i data-lucide="circle" class="w-4 h-4 text-zinc-500"></i></span>
+                Proof 3: ECDSA Digital Signature Verification
+              </span>
+              <span id="badgeCheck3" class="badge-zinc text-[10px]">Pending</span>
+            </div>
+            <p class="text-[11px] text-zinc-400 pl-6">
+              Re-hashes canonical transaction JSON with SHA-256 and executes <code class="text-zinc-300 font-mono">crypto.verify("SHA256", hash, pubKey, sig)</code>.
+            </p>
+          </div>
+
+          <!-- Result Banner -->
+          <div id="valResultBanner" class="hidden p-3.5 rounded-lg border text-xs">
+            <!-- Rendered via JS -->
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 4: ATTACK SIMULATOR -->
+    <!-- ===================================================================== -->
+    <div id="tab-attacks" class="tab-content hidden space-y-6">
+      <div>
+        <h2 class="text-base font-semibold text-zinc-100 flex items-center gap-2">
+          <span>Cryptographic Security &amp; Attack Simulation Lab</span>
+        </h2>
+        <p class="text-xs text-zinc-400">
+          Test real-world adversarial attacks against the blockchain protocol. See firsthand how elliptic curve cryptography prevents tampering and theft without human intervention.
+        </p>
+      </div>
+
+      <!-- 4 Attack Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <!-- Attack 1: Tamper Amount -->
+        <div class="card-panel p-5 space-y-3 flex flex-col justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-zinc-400"></i>
+                Attack 1: Tamper Amount
+              </span>
+              <span class="badge-zinc text-[10px]">Data Integrity</span>
+            </div>
+            <h3 class="text-sm font-medium text-zinc-100">
+              Inflate 15 Coins → 1,500 Coins
+            </h3>
+            <p class="text-xs text-zinc-400">
+              Mallory intercepts Alice's legitimate payment to Bob and modifies the payload amount in transit.
+            </p>
+          </div>
+          <button class="btn-secondary w-full text-xs !py-2 btn-run-attack" data-attack="tamper_amount">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-zinc-400"></i>
+            <span>Simulate Amount Tamper Attack</span>
+          </button>
+        </div>
+
+        <!-- Attack 2: Hijack Recipient -->
+        <div class="card-panel p-5 space-y-3 flex flex-col justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="corner-down-right" class="w-4 h-4 text-zinc-400"></i>
+                Attack 2: Hijack Recipient
+              </span>
+              <span class="badge-zinc text-[10px]">Destination Redirection</span>
+            </div>
+            <h3 class="text-sm font-medium text-zinc-100">
+              Redirect Funds to Mallory's Address
+            </h3>
+            <p class="text-xs text-zinc-400">
+              Mallory intercepts the transaction and replaces Bob's address with her own wallet address.
+            </p>
+          </div>
+          <button class="btn-secondary w-full text-xs !py-2 btn-run-attack" data-attack="hijack_recipient">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-zinc-400"></i>
+            <span>Simulate Recipient Hijack Attack</span>
+          </button>
+        </div>
+
+        <!-- Attack 3: Identity Spoofing -->
+        <div class="card-panel p-5 space-y-3 flex flex-col justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="user-x" class="w-4 h-4 text-zinc-400"></i>
+                Attack 3: Identity Spoofing
+              </span>
+              <span class="badge-zinc text-[10px]">Key Impersonation</span>
+            </div>
+            <h3 class="text-sm font-medium text-zinc-100">
+              Spend Alice's Money with Mallory's Key
+            </h3>
+            <p class="text-xs text-zinc-400">
+              Mallory crafts a transaction spending Alice's funds, signing it with Mallory's own private key.
+            </p>
+          </div>
+          <button class="btn-secondary w-full text-xs !py-2 btn-run-attack" data-attack="spoof_identity">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-zinc-400"></i>
+            <span>Simulate Identity Spoof Attack</span>
+          </button>
+        </div>
+
+        <!-- Attack 4: Replay Attack -->
+        <div class="card-panel p-5 space-y-3 flex flex-col justify-between">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="repeat" class="w-4 h-4 text-zinc-400"></i>
+                Attack 4: Transaction Replay
+              </span>
+              <span class="badge-zinc text-[10px]">Double-Spending &amp; Nonce</span>
+            </div>
+            <h3 class="text-sm font-medium text-zinc-100">
+              Re-broadcast Confirmed Transaction
+            </h3>
+            <p class="text-xs text-zinc-400">
+              Mallory re-submits a previously executed transaction to drain Alice's wallet a second time.
+            </p>
+          </div>
+          <button class="btn-secondary w-full text-xs !py-2 btn-run-attack" data-attack="replay_attack">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-zinc-400"></i>
+            <span>Simulate Replay Attack</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Attack Diagnostic Results Container -->
+      <div id="attackResultCard" class="hidden card-panel p-5 space-y-4">
+        <!-- Rendered dynamically via JS -->
+      </div>
+
+      <!-- Educational Callout: Bridge to Module 2 -->
+      <div class="p-4 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2">
+          <i data-lucide="link" class="w-4 h-4 text-zinc-400"></i>
+          The Bridge from Module 1 to Module 2 (Blocks &amp; Merkle Trees)
+        </h4>
+        <p class="text-xs text-zinc-300 leading-relaxed">
+          Cryptographic signatures prove <em>who authorized a transaction</em>, but they cannot establish a global chronological order across distributed nodes. To permanently prevent double-spending without a central server, we bundle validated transactions into <strong>Blocks</strong> linked by hashes (Blockchain) and structured with <strong>Merkle Trees</strong> — which we will build in <strong>Module 2</strong>!
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 5: NODE LEDGER -->
+    <!-- ===================================================================== -->
+    <div id="tab-ledger" class="tab-content hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-semibold text-zinc-100">
+            Node Transaction Ledger
+          </h2>
+          <p class="text-xs text-zinc-400">
+            History of transactions broadcasted, verified, and recorded by this local node.
+          </p>
+        </div>
+      </div>
+
+      <div id="ledgerContainer" class="space-y-3">
+        <!-- Rendered dynamically via JS -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL: CREATE NEW WALLET -->
+  <div id="modalCreateWallet" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card-panel max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <h3 class="text-sm font-bold text-zinc-100 flex items-center gap-2">
+          <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+          <span>Create New secp256k1 Wallet</span>
+        </h3>
+        <button id="btnCloseCreateWalletModal" class="text-zinc-500 hover:text-zinc-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-zinc-400 mb-1.5">Wallet Name / Alias</label>
+          <input id="inputNewWalletName" type="text" placeholder="e.g. Charlie" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-zinc-400 mb-1.5">Initial Test Balance (Coins)</label>
+          <input id="inputNewWalletBalance" type="number" value="25" min="0" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-700" />
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2">
+        <button id="btnCancelCreateWallet" class="btn-secondary text-xs !py-1.5">Cancel</button>
+        <button id="btnSubmitCreateWallet" class="btn-primary text-xs !py-1.5 font-semibold">Generate Wallet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VIEW CRYPTO DETAILS (KEYS & COORDINATES) -->
+  <div id="modalCryptoDetails" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card-panel max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div>
+          <h3 id="modalCryptoTitle" class="text-sm font-bold text-zinc-100">Cryptographic Key Details</h3>
+          <p id="modalCryptoSubtitle" class="text-xs font-mono text-zinc-400"></p>
+        </div>
+        <button id="btnCloseCryptoDetails" class="text-zinc-500 hover:text-zinc-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+        <div>
+          <span class="text-xs font-semibold text-zinc-400">Public Address (Web3 Identity):</span>
+          <pre id="modalCryptoAddress" class="code-box text-emerald-400 mt-1"></pre>
+        </div>
+
+        <div>
+          <span class="text-xs font-semibold text-zinc-400">Raw Public Key (65 Bytes Uncompressed: 0x04 + X + Y):</span>
+          <pre id="modalCryptoPubKey" class="code-box mt-1"></pre>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-zinc-400">Private Key (PKCS#8 PEM):</span>
+            <span class="badge-rose text-[10px]">Secret · Never Broadcast</span>
+          </div>
+          <pre id="modalCryptoPrivKey" class="code-box text-zinc-400 mt-1"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+  <script src="/app.js"></script>
+</body>
+</html>

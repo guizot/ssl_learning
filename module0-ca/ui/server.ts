@@ -5,19 +5,19 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { createWallet, verifyAddressFromPublicKey } from "../module1-cryptography/wallet.ts";
-import type { Wallet } from "../module1-cryptography/wallet.ts";
+import { createWallet, verifyAddressFromPublicKey } from "../../module1-cryptography/wallet.ts";
+import type { Wallet } from "../../module1-cryptography/wallet.ts";
 import {
   signTransaction,
   verifyTransaction,
   hashTransaction,
   serializeTransaction,
-} from "../module1-cryptography/transaction.ts";
-import type { SignedTransaction } from "../module1-cryptography/transaction.ts";
+} from "../../module1-cryptography/transaction.ts";
+import type { SignedTransaction } from "../../module1-cryptography/transaction.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ROOT_DIR = path.resolve(__dirname, "..");
+const ROOT_DIR = path.resolve(__dirname, "../..");
 const MODULE0_DIR = path.join(ROOT_DIR, "module0-openssl-keys");
 const GENERATED_DIR = path.join(MODULE0_DIR, "generated");
 const ACCOUNTS_FILE = path.join(GENERATED_DIR, "accounts.json");
