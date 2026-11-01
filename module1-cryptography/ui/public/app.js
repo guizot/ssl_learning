@@ -1,750 +1,1218 @@
-// Module 1: Blockchain Cryptography & Wallets Client Controller
+// ============================================================================
+// MODULE 1: CRYPTOGRAPHY & WALLETS - ROLE-BASED STEP-BY-STEP CONTROLLER
+// ============================================================================
 
-(function () {
-  "use strict";
+let m1State = {
+  wallets: [],
+  activeRole: "node",
+  activeId: "",
+  activeDetails: null,
+  allTransactions: [],
+};
 
-  // State
-  let state = {
-    wallets: [],
-    transactions: [],
-    latestSignedTx: null,
-  };
+let currentSubtab = "identity";
+let currentAdminSubtab = "vault";
 
-  // DOM Elements
-  const tabButtons = document.querySelectorAll(".tab-btn");
-  const tabContents = document.querySelectorAll(".tab-content");
-  const badgeWalletCount = document.getElementById("badgeWalletCount");
-  const badgeTxCount = document.getElementById("badgeTxCount");
-  const walletsContainer = document.getElementById("walletsContainer");
-  const ledgerContainer = document.getElementById("ledgerContainer");
+function escapeHtml(str) {
+  if (typeof str !== "string") return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-  // Signer elements
-  const signSenderSelect = document.getElementById("signSenderSelect");
-  const signRecipientSelect = document.getElementById("signRecipientSelect");
-  const signRecipientInput = document.getElementById("signRecipientInput");
-  const signAmountInput = document.getElementById("signAmountInput");
-  const signNonceInput = document.getElementById("signNonceInput");
-  const btnSignTx = document.getElementById("btnSignTx");
-  const signCanonicalJson = document.getElementById("signCanonicalJson");
-  const signTxHash = document.getElementById("signTxHash");
-  const signSignatureHex = document.getElementById("signSignatureHex");
-  const signerStatusBadge = document.getElementById("signerStatusBadge");
-  const btnBroadcastTx = document.getElementById("btnBroadcastTx");
-  const btnSendToValidator = document.getElementById("btnSendToValidator");
+function renderCmdOutput(detailsId, codeId, { commands = [], outputs = [], status = "success", customHtml = null }) {
+  const detailsEl = document.getElementById(detailsId);
+  const codeEl = document.getElementById(codeId);
+  if (!codeEl) return;
 
-  // Validator elements
-  const valPayloadInput = document.getElementById("valPayloadInput");
-  const btnLoadSampleTx = document.getElementById("btnLoadSampleTx");
-  const btnVerifyPayload = document.getElementById("btnVerifyPayload");
-  const valOverallBadge = document.getElementById("valOverallBadge");
-  const iconCheck1Container = document.getElementById("iconCheck1Container");
-  const badgeCheck1 = document.getElementById("badgeCheck1");
-  const iconCheck2Container = document.getElementById("iconCheck2Container");
-  const badgeCheck2 = document.getElementById("badgeCheck2");
-  const proof2Details = document.getElementById("proof2Details");
-  const iconCheck3Container = document.getElementById("iconCheck3Container");
-  const badgeCheck3 = document.getElementById("badgeCheck3");
-  const valResultBanner = document.getElementById("valResultBanner");
+  codeEl.setAttribute("data-has-output", "true");
 
-  // Modal elements
-  const modalCreateWallet = document.getElementById("modalCreateWallet");
-  const btnOpenCreateWalletModal = document.getElementById("btnOpenCreateWalletModal");
-  const btnCloseCreateWalletModal = document.getElementById("btnCloseCreateWalletModal");
-  const btnCancelCreateWallet = document.getElementById("btnCancelCreateWallet");
-  const btnSubmitCreateWallet = document.getElementById("btnSubmitCreateWallet");
-  const inputNewWalletName = document.getElementById("inputNewWalletName");
-  const inputNewWalletBalance = document.getElementById("inputNewWalletBalance");
-
-  // Crypto details modal
-  const modalCryptoDetails = document.getElementById("modalCryptoDetails");
-  const btnCloseCryptoDetails = document.getElementById("btnCloseCryptoDetails");
-  const modalCryptoTitle = document.getElementById("modalCryptoTitle");
-  const modalCryptoSubtitle = document.getElementById("modalCryptoSubtitle");
-  const modalCryptoAddress = document.getElementById("modalCryptoAddress");
-  const modalCryptoPubKey = document.getElementById("modalCryptoPubKey");
-  const modalCryptoPrivKey = document.getElementById("modalCryptoPrivKey");
-
-  // Attack simulator elements
-  const attackResultCard = document.getElementById("attackResultCard");
-  const btnResetState = document.getElementById("btnResetState");
-
-  // Toast container
-  const toastContainer = document.getElementById("toastContainer");
-
-  // ---------------------------------------------------------------------------
-  // TOAST NOTIFICATIONS
-  // ---------------------------------------------------------------------------
-  function showToast(message, type = "info") {
-    const toast = document.createElement("div");
-    const colors = {
-      success: "border-emerald-500/40 bg-zinc-900 text-emerald-400",
-      error: "border-rose-500/40 bg-zinc-900 text-rose-400",
-      info: "border-zinc-800 bg-zinc-900 text-zinc-200",
-    };
-    toast.className = `px-4 py-2.5 rounded-lg border text-xs shadow-xl flex items-center gap-2 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 ${
-      colors[type] || colors.info
-    }`;
-
-    const iconName = type === "success" ? "check-circle" : type === "error" ? "alert-circle" : "info";
-    toast.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
-    toastContainer.appendChild(toast);
-    lucide.createIcons({ root: toast });
-
-    setTimeout(() => {
-      toast.classList.remove("translate-y-2", "opacity-0");
-    }, 10);
-
-    setTimeout(() => {
-      toast.classList.add("translate-y-2", "opacity-0");
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
-  }
-
-  // ---------------------------------------------------------------------------
-  // TAB NAVIGATION
-  // ---------------------------------------------------------------------------
-  function switchTab(tabId) {
-    tabButtons.forEach((btn) => {
-      if (btn.dataset.tab === tabId) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
-    });
-
-    tabContents.forEach((content) => {
-      if (content.id === tabId) {
-        content.classList.remove("hidden");
-      } else {
-        content.classList.add("hidden");
-      }
-    });
-
-    lucide.createIcons();
-  }
-
-  tabButtons.forEach((btn) => {
-    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
-  });
-
-  // ---------------------------------------------------------------------------
-  // API FETCH & STATE UPDATE
-  // ---------------------------------------------------------------------------
-  async function fetchState() {
-    try {
-      const res = await fetch("/api/m1/state");
-      const data = await res.json();
-      state.wallets = data.wallets || [];
-      state.transactions = data.transactions || [];
-
-      renderWallets();
-      updateSignerDropdowns();
-      renderLedger();
-
-      badgeWalletCount.textContent = state.wallets.length;
-      badgeTxCount.textContent = state.transactions.length;
-      lucide.createIcons();
-    } catch (err) {
-      console.error("Failed to fetch state:", err);
-      showToast("Failed to connect to local node server (Port 3001)", "error");
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // RENDER WALLETS
-  // ---------------------------------------------------------------------------
-  function renderWallets() {
-    walletsContainer.innerHTML = "";
-
-    if (state.wallets.length === 0) {
-      walletsContainer.innerHTML = `
-        <div class="col-span-full card-panel p-8 text-center space-y-3">
-          <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 mx-auto">
-            <i data-lucide="key-round" class="w-5 h-5"></i>
-          </div>
-          <div class="space-y-1">
-            <h3 class="text-sm font-semibold text-zinc-200">No Wallets in Keystore</h3>
-            <p class="text-xs text-zinc-400 max-w-md mx-auto">
-              You are starting from scratch. Generate your first secp256k1 keypair to create an autonomous public address without any Certificate Authority.
-            </p>
-          </div>
-          <div class="pt-2 flex items-center justify-center gap-2.5">
-            <button id="btnCreateFirstWallet" class="btn-primary text-xs !py-1.5 font-medium">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              <span>Create First Wallet</span>
-            </button>
-            <button id="btnSeedDemoWallets" class="btn-secondary text-xs !py-1.5 font-medium">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-zinc-400"></i>
-              <span>Seed Demo Trio (Alice, Bob &amp; Mallory)</span>
-            </button>
-          </div>
-        </div>
-      `;
-
-      document.getElementById("btnCreateFirstWallet")?.addEventListener("click", () => {
-        btnOpenCreateWalletModal.click();
-      });
-
-      document.getElementById("btnSeedDemoWallets")?.addEventListener("click", async () => {
-        try {
-          const res = await fetch("/api/m1/wallets/seed", { method: "POST" });
-          const data = await res.json();
-          if (data.success) {
-            showToast("Seeded Alice, Bob & Mallory demo wallets", "info");
-            await fetchState();
+  if (customHtml) {
+    codeEl.innerHTML = customHtml;
+  } else {
+    let html = "";
+    if (commands && commands.length > 0) {
+      const cmdsFormatted = commands
+        .map((c) => {
+          const trimmed = String(c || "").trim();
+          if (trimmed.startsWith("$") || trimmed.startsWith("[") || trimmed.startsWith("#")) {
+            return `<span class="text-zinc-200 font-semibold">${escapeHtml(trimmed)}</span>`;
           }
-        } catch {
-          showToast("Failed to seed wallets", "error");
-        }
-      });
-
-      lucide.createIcons();
-      return;
+          return `<span class="text-zinc-200 font-semibold">$ ${escapeHtml(trimmed)}</span>`;
+        })
+        .join("\n");
+      html += cmdsFormatted;
     }
 
-    state.wallets.forEach((w) => {
-      const card = document.createElement("div");
-      card.className = "card-panel p-4 space-y-3.5 flex flex-col justify-between";
+    if (outputs && outputs.length > 0) {
+      if (html) html += "\n\n";
+      const outText = outputs.join("\n");
+      let statusClass = "text-emerald-400";
+      if (status === "error" || status === "failed") {
+        statusClass = "text-rose-400";
+      } else if (status === "warning") {
+        statusClass = "text-amber-400";
+      }
+      html += `<span class="${statusClass}">${escapeHtml(outText)}</span>`;
+    }
 
-      const initial = w.name.charAt(0).toUpperCase();
-      const avatarBg = "bg-zinc-800 border-zinc-700/80 text-zinc-300";
+    codeEl.innerHTML = html;
+  }
 
-      card.innerHTML = `
-        <div class="space-y-3">
-          <!-- Top info -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <div class="w-8 h-8 rounded-lg border flex items-center justify-center font-bold text-xs shrink-0 ${avatarBg}">
-                ${initial}
-              </div>
-              <div class="min-w-0">
-                <h3 class="text-xs font-semibold text-zinc-100 truncate">${escapeHtml(w.name)}</h3>
-                <span class="text-[10px] text-zinc-400 font-mono">Nonce: ${w.nonce}</span>
-              </div>
-            </div>
-            <span class="badge-zinc text-xs font-mono font-medium text-zinc-200">${w.balance} Coins</span>
-          </div>
+  if (detailsEl) {
+    detailsEl.open = true;
+  }
+}
 
-          <!-- Address -->
-          <div class="space-y-1">
-            <div class="flex items-center justify-between text-[11px] text-zinc-400">
-              <span>Public Address:</span>
-              <button class="btn-copy-address hover:text-zinc-200 transition-colors flex items-center gap-1" data-address="${w.address}">
-                <i data-lucide="copy" class="w-3 h-3"></i>
-                <span class="text-[10px]">Copy</span>
-              </button>
-            </div>
-            <div class="bg-zinc-950 p-2 rounded border border-zinc-800 text-[11px] font-mono text-zinc-300 break-all select-all">
-              ${w.address}
-            </div>
-          </div>
+// ============================================================================
+// STATE SYNC & UI RENDER
+// ============================================================================
+async function syncM1State() {
+  try {
+    const res = await fetch("/api/m1/state");
+    m1State = await res.json();
+    renderUI();
+  } catch (err) {
+    console.error("Failed to sync Module 1 state:", err);
+  }
+}
+
+function renderUI() {
+  if (
+    m1State.activeRole !== "node" &&
+    (!m1State.wallets || !m1State.wallets.some((w) => w.id === m1State.activeRole))
+  ) {
+    m1State.activeRole = "node";
+  }
+
+  renderRoleSelector();
+
+  if (m1State.activeRole === "node") {
+    const adminEl = document.getElementById("view-admin");
+    adminEl.style.display = "flex";
+    adminEl.style.flexDirection = "column";
+    const clientEl = document.getElementById("view-client");
+    if (clientEl) clientEl.style.display = "none";
+    document.querySelectorAll(".subtab-panel").forEach((p) => (p.style.display = "none"));
+    renderNodeView();
+    switchAdminSubtab(currentAdminSubtab);
+  } else {
+    const adminEl = document.getElementById("view-admin");
+    if (adminEl) adminEl.style.display = "none";
+    document.querySelectorAll(".admin-subtab-panel").forEach((p) => (p.style.display = "none"));
+    const clientEl = document.getElementById("view-client");
+    clientEl.style.display = "flex";
+    clientEl.style.flexDirection = "column";
+    renderWalletClientView();
+    switchClientSubtab(currentSubtab);
+  }
+
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
+// ============================================================================
+// ROLE SELECTOR DROPDOWN
+// ============================================================================
+function renderRoleSelector() {
+  const activeLabel = document.getElementById("role-active-label");
+  const itemsContainer = document.getElementById("role-dropdown-items");
+  const activeDot = document.getElementById("role-active-dot");
+  if (!itemsContainer) return;
+
+  const isNode = m1State.activeRole === "node";
+  let activeText = "Validator Node (Network)";
+
+  if (activeDot) {
+    if (isNode) {
+      activeDot.className =
+        (m1State.wallets || []).length > 0
+          ? "w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"
+          : "w-2 h-2 rounded-full bg-zinc-600 shrink-0";
+    } else {
+      const curW = (m1State.wallets || []).find((w) => w.id === m1State.activeRole);
+      if (curW && curW.addrExists && curW.pubExists && curW.keyExists) {
+        activeDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0";
+      } else if (curW && (curW.keyExists || curW.pubExists)) {
+        activeDot.className = "w-2 h-2 rounded-full bg-amber-500 shrink-0";
+      } else {
+        activeDot.className = "w-2 h-2 rounded-full bg-zinc-500 shrink-0";
+      }
+    }
+  }
+
+  let itemsHtml = `
+    <button type="button" class="role-option-item w-full flex items-center justify-between px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer ${
+      isNode
+        ? "bg-zinc-800/70 text-zinc-100 font-medium"
+        : "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100"
+    }" data-role="node">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 shrink-0">
+          <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
         </div>
-
-        <!-- Action buttons -->
-        <div class="pt-2 flex items-center gap-2 border-t border-zinc-800/80">
-          <button class="btn-secondary !py-1 !px-2.5 text-[11px] flex-1 btn-inspect-wallet" data-address="${w.address}">
-            <i data-lucide="key" class="w-3 h-3 text-zinc-400"></i>
-            <span>Keys &amp; Proofs</span>
-          </button>
-          <button class="btn-primary !py-1 !px-2.5 text-[11px] flex-1 btn-send-from-wallet" data-address="${w.address}">
-            <i data-lucide="send" class="w-3 h-3"></i>
-            <span>Send Coins</span>
-          </button>
+        <div class="min-w-0">
+          <div class="text-xs font-medium text-zinc-100 truncate">Validator Node (Network)</div>
+          <div class="text-[10px] text-zinc-500 font-mono truncate">Zero-CA Network Overview</div>
         </div>
-      `;
+      </div>
+      ${isNode ? `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>` : ""}
+    </button>
+  `;
 
-      walletsContainer.appendChild(card);
-    });
-
-    // Attach event handlers
-    walletsContainer.querySelectorAll(".btn-copy-address").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        navigator.clipboard.writeText(btn.dataset.address);
-        showToast("Address copied to clipboard", "success");
-      });
-    });
-
-    walletsContainer.querySelectorAll(".btn-inspect-wallet").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const wallet = state.wallets.find((w) => w.address.toLowerCase() === btn.dataset.address.toLowerCase());
-        if (wallet) openCryptoDetailsModal(wallet);
-      });
-    });
-
-    walletsContainer.querySelectorAll(".btn-send-from-wallet").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        switchTab("tab-signer");
-        signSenderSelect.value = btn.dataset.address;
-        updateSignerSenderNonce();
-      });
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // CRYPTO DETAILS MODAL
-  // ---------------------------------------------------------------------------
-  function openCryptoDetailsModal(wallet) {
-    modalCryptoTitle.textContent = `${wallet.name}'s Cryptographic Identity`;
-    modalCryptoSubtitle.textContent = `secp256k1 Curve · Node.js crypto module`;
-    modalCryptoAddress.textContent = wallet.address;
-    modalCryptoPubKey.textContent = wallet.publicKeyHex;
-    modalCryptoPrivKey.textContent = wallet.privateKeyPem || "(Private key held securely in local wallet keystore)";
-
-    modalCryptoDetails.classList.remove("hidden");
-    lucide.createIcons();
-  }
-
-  btnCloseCryptoDetails.addEventListener("click", () => modalCryptoDetails.classList.add("hidden"));
-
-  // ---------------------------------------------------------------------------
-  // CREATE NEW WALLET MODAL
-  // ---------------------------------------------------------------------------
-  btnOpenCreateWalletModal.addEventListener("click", () => {
-    inputNewWalletName.value = "";
-    inputNewWalletBalance.value = "25";
-    modalCreateWallet.classList.remove("hidden");
-    inputNewWalletName.focus();
-  });
-
-  const closeCreateWallet = () => modalCreateWallet.classList.add("hidden");
-  btnCloseCreateWalletModal.addEventListener("click", closeCreateWallet);
-  btnCancelCreateWallet.addEventListener("click", closeCreateWallet);
-
-  btnSubmitCreateWallet.addEventListener("click", async () => {
-    const name = inputNewWalletName.value.trim();
-    const balance = Number(inputNewWalletBalance.value);
-
-    if (!name) {
-      showToast("Please enter a wallet name", "error");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/m1/wallets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, initialBalance: balance }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        showToast(`Wallet '${name}' generated with secp256k1 keypair!`, "success");
-        closeCreateWallet();
-        await fetchState();
-      } else {
-        showToast(data.error || "Failed to create wallet", "error");
-      }
-    } catch (err) {
-      showToast("Error generating wallet", "error");
-    }
-  });
-
-  // ---------------------------------------------------------------------------
-  // TRANSACTION SIGNER PIPELINE
-  // ---------------------------------------------------------------------------
-  function updateSignerDropdowns() {
-    const currentSender = signSenderSelect.value;
-    const currentRecipient = signRecipientSelect.value;
-
-    if (state.wallets.length === 0) {
-      signSenderSelect.innerHTML = '<option value="">-- No wallets created yet --</option>';
-      signRecipientSelect.innerHTML = '<option value="">-- No wallets created yet --</option>';
-      signRecipientInput.value = "";
-      signNonceInput.value = "0";
-      return;
-    }
-
-    signSenderSelect.innerHTML = "";
-    signRecipientSelect.innerHTML = '<option value="">-- Select Recipient --</option>';
-
-    state.wallets.forEach((w) => {
-      const optSender = document.createElement("option");
-      optSender.value = w.address;
-      optSender.textContent = `${w.name} (${w.balance} coins, nonce: ${w.nonce})`;
-      signSenderSelect.appendChild(optSender);
-
-      const optRecipient = document.createElement("option");
-      optRecipient.value = w.address;
-      optRecipient.textContent = `${w.name} (${w.address.slice(0, 10)}...)`;
-      signRecipientSelect.appendChild(optRecipient);
-    });
-
-    if (currentSender && Array.from(signSenderSelect.options).some((o) => o.value === currentSender)) {
-      signSenderSelect.value = currentSender;
-    }
-    if (currentRecipient && Array.from(signRecipientSelect.options).some((o) => o.value === currentRecipient)) {
-      signRecipientSelect.value = currentRecipient;
-    } else if (!signRecipientInput.value && state.wallets.length > 1) {
-      // Default recipient to second wallet (e.g. Bob)
-      signRecipientSelect.value = state.wallets[1].address;
-      signRecipientInput.value = state.wallets[1].address;
-    }
-
-    updateSignerSenderNonce();
-  }
-
-  function updateSignerSenderNonce() {
-    const sender = state.wallets.find((w) => w.address.toLowerCase() === signSenderSelect.value.toLowerCase());
-    signNonceInput.value = sender ? sender.nonce : 0;
-  }
-
-  signSenderSelect.addEventListener("change", updateSignerSenderNonce);
-
-  signRecipientSelect.addEventListener("change", () => {
-    if (signRecipientSelect.value) {
-      signRecipientInput.value = signRecipientSelect.value;
-    }
-  });
-
-  // Sign Transaction Button
-  btnSignTx.addEventListener("click", async () => {
-    const senderAddress = signSenderSelect.value;
-    const to = signRecipientInput.value.trim();
-    const amount = Number(signAmountInput.value);
-
-    if (!senderAddress) {
-      showToast("Please select a sender wallet", "error");
-      return;
-    }
-    if (!to || !to.startsWith("0x") || to.length < 20) {
-      showToast("Please enter a valid recipient address (0x...)", "error");
-      return;
-    }
-    if (!amount || amount <= 0) {
-      showToast("Please enter an amount greater than 0", "error");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/m1/transactions/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ senderAddress, to, amount }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        state.latestSignedTx = data.signedTx;
-
-        signCanonicalJson.textContent = JSON.stringify(data.signedTx.data, null, 2);
-        signTxHash.textContent = data.txHash;
-        signSignatureHex.textContent = data.signedTx.signatureHex;
-
-        signerStatusBadge.className = "badge-emerald text-[10px]";
-        signerStatusBadge.textContent = "Signed & Ready";
-
-        btnBroadcastTx.disabled = false;
-        btnSendToValidator.disabled = false;
-
-        showToast("Transaction signed using ECDSA SHA-256!", "success");
-      } else {
-        showToast(data.error || "Signing failed", "error");
-      }
-    } catch (err) {
-      showToast("Error signing transaction", "error");
-    }
-  });
-
-  // Broadcast to Node Button
-  btnBroadcastTx.addEventListener("click", async () => {
-    if (!state.latestSignedTx) return;
-
-    try {
-      const res = await fetch("/api/m1/transactions/broadcast", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signedTx: state.latestSignedTx }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        showToast("Transaction confirmed and recorded on local node ledger!", "success");
-        await fetchState();
-        switchTab("tab-ledger");
-      } else {
-        showToast(data.error || "Transaction rejected by node", "error");
-      }
-    } catch (err) {
-      showToast("Error broadcasting transaction", "error");
-    }
-  });
-
-  // Test in Validator Button
-  btnSendToValidator.addEventListener("click", () => {
-    if (!state.latestSignedTx) return;
-    switchTab("tab-validator");
-    valPayloadInput.value = JSON.stringify(state.latestSignedTx, null, 2);
-    btnVerifyPayload.click();
-  });
-
-  // ---------------------------------------------------------------------------
-  // ZERO-TRUST VALIDATOR
-  // ---------------------------------------------------------------------------
-  btnLoadSampleTx.addEventListener("click", () => {
-    if (state.latestSignedTx) {
-      valPayloadInput.value = JSON.stringify(state.latestSignedTx, null, 2);
-      showToast("Loaded latest signed transaction", "info");
-    } else {
-      showToast("No transaction signed yet. Please sign one first in 'Transaction Signer'.", "info");
-    }
-  });
-
-  btnVerifyPayload.addEventListener("click", async () => {
-    const rawJson = valPayloadInput.value.trim();
-    if (!rawJson) {
-      showToast("Please enter a transaction JSON payload", "error");
-      return;
-    }
-
-    let parsedPayload;
-    try {
-      parsedPayload = JSON.parse(rawJson);
-    } catch {
-      showToast("Invalid JSON syntax", "error");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/m1/transactions/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signedTx: parsedPayload }),
-      });
-      const data = await res.json();
-
-      renderVerificationProofs(data);
-    } catch (err) {
-      showToast("Failed to verify transaction", "error");
-    }
-  });
-
-  function renderVerificationProofs(res) {
-    const proofs = res.proofs || {};
-
-    // Proof 1: Curve Point
-    if (!proofs.malformedKey) {
-      iconCheck1Container.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-zinc-300"></i>';
-      badgeCheck1.className = "badge-zinc text-[10px] text-zinc-300";
-      badgeCheck1.textContent = "Valid secp256k1 Point";
-    } else {
-      iconCheck1Container.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>';
-      badgeCheck1.className = "badge-zinc text-[10px] text-rose-400";
-      badgeCheck1.textContent = "Malformed Key";
-    }
-
-    // Proof 2: Address Derivation
-    if (proofs.addressMatches) {
-      iconCheck2Container.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-zinc-300"></i>';
-      badgeCheck2.className = "badge-zinc text-[10px] text-zinc-300";
-      badgeCheck2.textContent = "Identity Match (Zero CA)";
-    } else {
-      iconCheck2Container.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>';
-      badgeCheck2.className = "badge-zinc text-[10px] text-rose-400";
-      badgeCheck2.textContent = "Address Mismatch";
-    }
-
-    proof2Details.classList.remove("hidden");
-    proof2Details.innerHTML = `
-      <div>Claimed Sender: <span class="text-zinc-200">${escapeHtml(proofs.claimedSender || "none")}</span></div>
-      <div>Derived Address: <span class="${proofs.addressMatches ? "text-zinc-200 font-mono" : "text-rose-400 font-bold"}">${escapeHtml(proofs.derivedAddressFromPubKey || "invalid")}</span></div>
+  if (m1State.wallets && m1State.wallets.length > 0) {
+    itemsHtml += `
+      <div class="my-1 border-t border-zinc-800/60"></div>
+      <div class="px-2.5 py-1 text-[10px] font-mono uppercase font-bold text-zinc-500">Wallet Clients</div>
     `;
 
-    // Proof 3: ECDSA Signature
-    if (proofs.signatureValid) {
-      iconCheck3Container.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-zinc-300"></i>';
-      badgeCheck3.className = "badge-zinc text-[10px] text-zinc-300";
-      badgeCheck3.textContent = "Signature Authentic";
-    } else {
-      iconCheck3Container.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5 text-rose-400"></i>';
-      badgeCheck3.className = "badge-zinc text-[10px] text-rose-400";
-      badgeCheck3.textContent = "Invalid Signature";
-    }
+    m1State.wallets.forEach((w) => {
+      const isWalletActive = m1State.activeRole === w.id;
+      const initial = (w.name || "W").charAt(0).toUpperCase();
+      let statusBadge = "";
+      let stepTag = "step 0/3";
 
-    // Overall Banner
-    valResultBanner.classList.remove("hidden");
-    if (res.isValid) {
-      valOverallBadge.className = "badge-zinc text-[11px] text-zinc-200";
-      valOverallBadge.textContent = "100% Valid & Authentic";
+      if (w.addrExists && w.pubExists && w.keyExists) {
+        statusBadge = `<span class="text-[10px] font-mono text-emerald-400">✓ Ready (${w.balance} Coins)</span>`;
+        stepTag = "✓ 3/3";
+      } else if (w.pubExists && w.keyExists) {
+        statusBadge = `<span class="text-[10px] font-mono text-amber-400">Step 2/3 (.pub)</span>`;
+        stepTag = "2/3";
+      } else if (w.keyExists) {
+        statusBadge = `<span class="text-[10px] font-mono text-zinc-400">Step 1/3 (.key)</span>`;
+        stepTag = "1/3";
+      } else {
+        statusBadge = `<span class="text-[10px] font-mono text-zinc-500">Step 0/3 (Empty)</span>`;
+        stepTag = "0/3";
+      }
 
-      valResultBanner.className = "p-3.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 space-y-1";
-      valResultBanner.innerHTML = `
-        <div class="flex items-center gap-2 font-semibold text-xs">
-          <i data-lucide="shield-check" class="w-4 h-4 text-zinc-300"></i>
-          <span>Transaction Mathematically Validated</span>
-        </div>
-        <p class="text-[11px] text-zinc-400">
-          The transaction satisfies all cryptographic constraints. The sender's address was proven without contacting any Certificate Authority or third-party server.
-        </p>
+      if (isWalletActive) {
+        activeText = `${w.name} (${stepTag})`;
+      }
+
+      itemsHtml += `
+        <button type="button" class="role-option-item w-full flex items-center justify-between px-3 py-2.5 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer ${
+          isWalletActive
+            ? "bg-zinc-800/70 text-zinc-100 font-medium"
+            : "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100"
+        }" data-role="${escapeHtml(w.id)}">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
+              ${escapeHtml(initial)}
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-medium text-zinc-100 truncate">${escapeHtml(w.name)}</div>
+              <div class="text-[10px] font-mono text-zinc-500 truncate">id: ${escapeHtml(w.id)} · ${statusBadge}</div>
+            </div>
+          </div>
+          ${isWalletActive ? `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>` : ""}
+        </button>
       `;
-    } else {
-      valOverallBadge.className = "badge-zinc text-[11px] text-rose-400";
-      valOverallBadge.textContent = "Validation Failed";
-
-      valResultBanner.className = "p-3.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 space-y-1";
-      valResultBanner.innerHTML = `
-        <div class="flex items-center gap-2 font-semibold text-xs text-rose-400">
-          <i data-lucide="shield-alert" class="w-4 h-4 text-rose-400"></i>
-          <span>Transaction Rejected by Cryptographic Node</span>
-        </div>
-        <p class="text-[11px] text-zinc-400 font-mono">
-          Reason: ${escapeHtml(res.reason || "Verification failure")}
-        </p>
-      `;
-    }
-
-    lucide.createIcons();
+    });
   }
 
-  // ---------------------------------------------------------------------------
-  // ATTACK SIMULATOR
-  // ---------------------------------------------------------------------------
-  document.querySelectorAll(".btn-run-attack").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const attackType = btn.dataset.attack;
+  if (activeLabel) activeLabel.textContent = activeText;
+  itemsContainer.innerHTML = itemsHtml;
+  if (window.lucide) window.lucide.createIcons();
+}
 
-      try {
-        const res = await fetch("/api/m1/attack-simulation", {
+const roleTrigger = document.getElementById("role-dropdown-trigger");
+const roleMenu = document.getElementById("role-dropdown-menu");
+const roleChevron = document.getElementById("role-dropdown-chevron");
+
+function toggleRoleDropdown(show) {
+  if (!roleMenu) return;
+  const isHidden = roleMenu.classList.contains("hidden");
+  const willShow = show !== undefined ? show : isHidden;
+  if (willShow) {
+    roleMenu.classList.remove("hidden");
+    if (roleTrigger) roleTrigger.setAttribute("aria-expanded", "true");
+    if (roleChevron) roleChevron.classList.add("rotate-180");
+  } else {
+    roleMenu.classList.add("hidden");
+    if (roleTrigger) roleTrigger.setAttribute("aria-expanded", "false");
+    if (roleChevron) roleChevron.classList.remove("rotate-180");
+  }
+}
+
+roleTrigger?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleRoleDropdown();
+});
+
+document.addEventListener("click", (e) => {
+  const container = document.getElementById("role-dropdown-container");
+  if (container && !container.contains(e.target)) {
+    toggleRoleDropdown(false);
+  }
+});
+
+document.getElementById("role-dropdown-items")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".role-option-item");
+  if (!btn) return;
+  const selectedRole = btn.getAttribute("data-role");
+  toggleRoleDropdown(false);
+
+  await fetch("/api/m1/select-role", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role: selectedRole }),
+  });
+  await syncM1State();
+});
+
+document.getElementById("role-dropdown-add-wallet")?.addEventListener("click", () => {
+  toggleRoleDropdown(false);
+  openAddWalletModal();
+});
+
+// ============================================================================
+// MODAL MANAGERS: CONFIRM DIALOG & ADD WALLET MODAL
+// ============================================================================
+function showConfirmModal({
+  title = "Confirm Action",
+  message = "Are you sure you want to proceed?",
+  confirmText = "Confirm",
+  icon = "trash-2",
+  alertOnly = false,
+} = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("modal-confirm");
+    const titleEl = document.getElementById("confirm-title");
+    const msgEl = document.getElementById("confirm-message");
+    const proceedBtn = document.getElementById("btn-confirm-proceed");
+    const proceedText = document.getElementById("confirm-proceed-text");
+    const closeBtn = document.getElementById("btn-close-modal-confirm");
+    const iconBox = document.getElementById("confirm-icon-box");
+    const proceedIconBox = document.getElementById("confirm-proceed-icon-box");
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (proceedText) proceedText.textContent = confirmText;
+
+    const iconName = icon === "rotate-ccw" ? "rotate-ccw" : icon === "info" ? "info" : "trash-2";
+    if (iconBox) iconBox.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 text-zinc-400"></i>`;
+    if (proceedIconBox) {
+      proceedIconBox.innerHTML = `<i data-lucide="${alertOnly ? "check" : iconName}" class="w-3.5 h-3.5"></i>`;
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+    modal.style.display = "flex";
+
+    function cleanup(result) {
+      modal.style.display = "none";
+      proceedBtn.removeEventListener("click", onProceed);
+      closeBtn.removeEventListener("click", onCancel);
+      resolve(result);
+    }
+    function onProceed() {
+      cleanup(true);
+    }
+    function onCancel() {
+      cleanup(false);
+    }
+
+    proceedBtn.addEventListener("click", onProceed);
+    closeBtn.addEventListener("click", onCancel);
+  });
+}
+
+function openAddWalletModal() {
+  const modal = document.getElementById("modal-add-wallet");
+  const input = document.getElementById("input-wallet-name");
+  const errEl = document.getElementById("add-wallet-error");
+  if (errEl) errEl.style.display = "none";
+  if (input) input.value = "";
+  modal.style.display = "flex";
+  setTimeout(() => input?.focus(), 50);
+}
+
+function closeAddWalletModal() {
+  document.getElementById("modal-add-wallet").style.display = "none";
+}
+
+document.getElementById("btn-open-add-wallet")?.addEventListener("click", openAddWalletModal);
+document.getElementById("btn-close-modal-add-wallet")?.addEventListener("click", closeAddWalletModal);
+
+document.getElementById("btn-submit-add-wallet")?.addEventListener("click", async () => {
+  const input = document.getElementById("input-wallet-name");
+  const errEl = document.getElementById("add-wallet-error");
+  const name = (input?.value || "").trim();
+  if (!name) {
+    if (errEl) {
+      errEl.textContent = "Please enter a wallet name (e.g. Alice, Bob).";
+      errEl.style.display = "block";
+    }
+    return;
+  }
+
+  const btn = document.getElementById("btn-submit-add-wallet");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/m1/wallets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    closeAddWalletModal();
+    if (data.id) {
+      // Automatically switch to the newly created wallet so user can start Step 1 immediately!
+      await fetch("/api/m1/select-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: data.id }),
+      });
+      currentSubtab = "identity";
+    }
+    await syncM1State();
+  } catch (err) {
+    console.error("Failed to create wallet:", err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("input-wallet-name")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("btn-submit-add-wallet")?.click();
+  }
+});
+
+// ============================================================================
+// RESET ALL STATE
+// ============================================================================
+document.getElementById("btn-m1-reset")?.addEventListener("click", async () => {
+  const ok = await showConfirmModal({
+    title: "Reset Cryptography Lab",
+    message: "Delete all generated wallet keys (.key, .pub, .addr) and clear all transactions back to zero?",
+    confirmText: "Reset Everything",
+    icon: "rotate-ccw",
+  });
+  if (!ok) return;
+  await fetch("/api/m1/reset", { method: "POST" });
+  await syncM1State();
+});
+
+// ============================================================================
+// VIEW 1: VALIDATOR NODE (NETWORK OVERVIEW)
+// ============================================================================
+function renderNodeView() {
+  const wallets = m1State.wallets || [];
+  const txs = m1State.allTransactions || [];
+
+  document.getElementById("admin-wallets-count").textContent = String(wallets.length);
+  document.getElementById("admin-ledger-count").textContent = String(txs.length);
+
+  const fbWallets = document.getElementById("fb-node-wallets");
+  const fsWallets = document.getElementById("fs-node-wallets");
+  const fbTxs = document.getElementById("fb-node-txs");
+  const fsTxs = document.getElementById("fs-node-txs");
+
+  if (wallets.length > 0) {
+    fbWallets.classList.add("created");
+    fsWallets.textContent = `${wallets.length} registered`;
+  } else {
+    fbWallets.classList.remove("created");
+    fsWallets.textContent = "0 registered";
+  }
+
+  if (txs.length > 0) {
+    fbTxs.classList.add("created");
+    fsTxs.textContent = `${txs.length} broadcasted`;
+  } else {
+    fbTxs.classList.remove("created");
+    fsTxs.textContent = "0 broadcasted";
+  }
+
+  // Render Wallet Directory Cards
+  const wContainer = document.getElementById("admin-wallets-list");
+  if (wContainer) {
+    if (wallets.length === 0) {
+      wContainer.innerHTML = `
+        <div class="p-8 text-center space-y-2">
+          <div class="w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+          </div>
+          <div class="text-xs text-zinc-300 font-medium">No Wallets Created Yet</div>
+          <p class="text-[11px] text-zinc-500 max-w-xs mx-auto">
+            Click <strong>'Add Wallet'</strong> above to register your first wallet (e.g. Alice) and build her keys step-by-step.
+          </p>
+        </div>
+      `;
+    } else {
+      wContainer.innerHTML = wallets
+        .map((w) => {
+          const initial = (w.name || "W").charAt(0).toUpperCase();
+
+          const step1Badge = w.keyExists
+            ? `<span class="vault-badge success"><i data-lucide="key" class="w-3 h-3"></i>1. .key</span>`
+            : `<span class="vault-badge muted">1. No .key</span>`;
+
+          const step2Badge = w.pubExists
+            ? `<span class="vault-badge success"><i data-lucide="unlock" class="w-3 h-3"></i>2. .pub</span>`
+            : `<span class="vault-badge muted">2. No .pub</span>`;
+
+          const step3Badge = w.addrExists
+            ? `<span class="vault-badge success"><i data-lucide="hash" class="w-3 h-3"></i>3. .addr</span>`
+            : `<span class="vault-badge muted">3. No .addr</span>`;
+
+          let statusDesc = "Step 0/3 · Switch to this wallet role to generate Step 1 (.key)";
+          if (w.addrExists && w.pubExists && w.keyExists) {
+            statusDesc = `Address: ${w.address} · Balance: ${w.balance} Coins · Nonce: ${w.nonce}`;
+          } else if (w.pubExists && w.keyExists) {
+            statusDesc = "Step 2/3 complete (.key & .pub ready) · Awaiting Step 3 (SHA3-256 Address derivation)";
+          } else if (w.keyExists) {
+            statusDesc = "Step 1/3 complete (.key ready) · Awaiting Step 2 (Public Key derivation)";
+          }
+
+          return `
+            <div class="inbox-item-card" id="wallet-card-${escapeHtml(w.id)}">
+              <div class="inbox-item-head">
+                <div class="inbox-item-meta">
+                  <div class="flex items-center gap-2.5 mr-2">
+                    <div class="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-200 shrink-0">
+                      ${escapeHtml(initial)}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold text-zinc-100 truncate">${escapeHtml(w.name)}</div>
+                      <div class="text-[11px] text-zinc-500 font-mono truncate">id: ${escapeHtml(w.id)} · ${w.balance} Coins</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    ${step1Badge}
+                    ${step2Badge}
+                    ${step3Badge}
+                    <button class="btn-del-wallet btn-del-client" data-id="${escapeHtml(w.id)}" title="Delete wallet ${escapeHtml(w.name)}">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-xs text-zinc-400 font-mono flex items-center gap-1.5 py-0.5 break-all">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-zinc-500 shrink-0"></i>
+                <span>${escapeHtml(statusDesc)}</span>
+              </div>
+
+              <div class="flex items-center gap-2 pt-0.5">
+                <button class="btn-solid btn-sm btn-open-wallet-role inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 cursor-pointer" data-id="${escapeHtml(w.id)}">
+                  <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                  <span>Open ${escapeHtml(w.name)} (Step-by-Step)</span>
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    wContainer.querySelectorAll(".btn-open-wallet-role").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        await fetch("/api/m1/select-role", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ attackType }),
+          body: JSON.stringify({ role: id }),
         });
-        const data = await res.json();
-
-        renderAttackResult(data);
-      } catch (err) {
-        showToast("Error running attack simulation", "error");
-      }
+        await syncM1State();
+      });
     });
+
+    wContainer.querySelectorAll(".btn-del-wallet").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute("data-id");
+        const ok = await showConfirmModal({
+          title: "Delete Wallet",
+          message: `Delete wallet "${id}" and remove its .key, .pub, and .addr files?`,
+          confirmText: "Delete Wallet",
+          icon: "trash-2",
+        });
+        if (!ok) return;
+        await fetch(`/api/m1/wallet/${id}`, { method: "DELETE" });
+        await syncM1State();
+      });
+    });
+  }
+
+  // Render Network Ledger Cards
+  const lContainer = document.getElementById("admin-ledger-list");
+  if (lContainer) {
+    renderTxCardsList(lContainer, txs, "ledger");
+  }
+}
+
+// ============================================================================
+// VIEW 2: WALLET CLIENT PERSPECTIVE (STEP 1 -> STEP 2 -> STEP 3 -> SEND -> INBOX)
+// ============================================================================
+function renderWalletClientView() {
+  const activeWallet = (m1State.wallets || []).find((w) => w.id === m1State.activeRole);
+  const details = m1State.activeDetails;
+  if (!activeWallet || !details) {
+    m1State.activeRole = "node";
+    renderUI();
+    return;
+  }
+
+  document.getElementById("client-view-name").textContent = activeWallet.name;
+  document.getElementById("client-view-store").textContent = `module1-cryptography/generated/wallets/${activeWallet.id}/`;
+  document.getElementById("client-view-balance").textContent = `${activeWallet.balance} Coins`;
+  document.getElementById("sent-owner-name").textContent = activeWallet.name;
+  document.getElementById("inbox-owner-name").textContent = activeWallet.name;
+
+  document.getElementById("sent-tab-count").textContent = String((details.sentMessages || []).length);
+  document.getElementById("inbox-tab-count").textContent = String((details.inboxMessages || []).length);
+
+  // 3 File Pills at Top
+  const fbKey = document.getElementById("fb-client-key");
+  const fnKey = document.getElementById("fn-client-key");
+  const fsKey = document.getElementById("fs-client-key");
+
+  const fbPub = document.getElementById("fb-client-pub");
+  const fnPub = document.getElementById("fn-client-pub");
+  const fsPub = document.getElementById("fs-client-pub");
+
+  const fbAddr = document.getElementById("fb-client-addr");
+  const fnAddr = document.getElementById("fn-client-addr");
+  const fsAddr = document.getElementById("fs-client-addr");
+
+  fnKey.textContent = `${activeWallet.id}.key`;
+  fnPub.textContent = `${activeWallet.id}.pub`;
+  fnAddr.textContent = `${activeWallet.id}.addr`;
+
+  if (activeWallet.keyExists) {
+    fbKey.classList.add("created");
+    fsKey.textContent = `${activeWallet.keySize}B`;
+  } else {
+    fbKey.classList.remove("created");
+    fsKey.textContent = "not created";
+  }
+
+  if (activeWallet.pubExists) {
+    fbPub.classList.add("created");
+    fsPub.textContent = `${activeWallet.pubSize}B`;
+  } else {
+    fbPub.classList.remove("created");
+    fsPub.textContent = "not created";
+  }
+
+  if (activeWallet.addrExists) {
+    fbAddr.classList.add("created");
+    fsAddr.textContent = activeWallet.address ? `${activeWallet.address.slice(0, 10)}...` : "ready";
+  } else {
+    fbAddr.classList.remove("created");
+    fsAddr.textContent = "not created";
+  }
+
+  // Step 1 UI State
+  const badgeStep1 = document.getElementById("badge-step1-status");
+  const labelStep1 = document.getElementById("label-step1-btn");
+  const btnRemoveKey = document.getElementById("btn-step1-remove-key");
+  const codeStep1 = document.getElementById("cmd-code-step1");
+  if (codeStep1 && !codeStep1.getAttribute("data-has-output")) {
+    codeStep1.textContent = `$ openssl ecparam -name secp256k1 -genkey -noout -out wallets/${activeWallet.id}/${activeWallet.id}.key`;
+  }
+  if (activeWallet.keyExists) {
+    badgeStep1.className = "vault-badge success";
+    badgeStep1.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i>Created`;
+    labelStep1.textContent = "1. Re-generate Private Key (.key)";
+    btnRemoveKey.style.display = "inline-flex";
+  } else {
+    badgeStep1.className = "vault-badge muted";
+    badgeStep1.textContent = "Pending";
+    labelStep1.textContent = "1. Generate Private Key (.key)";
+    btnRemoveKey.style.display = "none";
+  }
+
+  // Step 2 UI State
+  const badgeStep2 = document.getElementById("badge-step2-status");
+  const btnStep2 = document.getElementById("btn-step2-gen-pub");
+  const labelStep2 = document.getElementById("label-step2-btn");
+  const btnRemovePub = document.getElementById("btn-step2-remove-pub");
+  const codeStep2 = document.getElementById("cmd-code-step2");
+  if (codeStep2 && !codeStep2.getAttribute("data-has-output")) {
+    codeStep2.textContent = `$ openssl ec -in wallets/${activeWallet.id}/${activeWallet.id}.key -pubout -out wallets/${activeWallet.id}/${activeWallet.id}.pub`;
+  }
+  btnStep2.disabled = !activeWallet.keyExists;
+  if (activeWallet.pubExists) {
+    badgeStep2.className = activeWallet.pubMatchesKey ? "vault-badge success" : "vault-badge warning";
+    badgeStep2.innerHTML = activeWallet.pubMatchesKey
+      ? `<i data-lucide="check" class="w-3 h-3"></i>Derived`
+      : `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Key Mismatch`;
+    labelStep2.textContent = "2. Re-derive Public Key (.pub)";
+    btnRemovePub.style.display = "inline-flex";
+  } else {
+    badgeStep2.className = "vault-badge muted";
+    badgeStep2.textContent = activeWallet.keyExists ? "Ready for Step 2" : "Requires Step 1";
+    labelStep2.textContent = "2. Derive Public Key (.pub)";
+    btnRemovePub.style.display = "none";
+  }
+
+  // Step 3 UI State
+  const badgeStep3 = document.getElementById("badge-step3-status");
+  const btnStep3 = document.getElementById("btn-step3-gen-addr");
+  const labelStep3 = document.getElementById("label-step3-btn");
+  const btnRemoveAddr = document.getElementById("btn-step3-remove-addr");
+  const codeStep3 = document.getElementById("cmd-code-step3");
+  if (codeStep3 && !codeStep3.getAttribute("data-has-output")) {
+    codeStep3.textContent = `$ sha3_256(X || Y)[12..32] -> wallets/${activeWallet.id}/${activeWallet.id}.addr`;
+  }
+  btnStep3.disabled = !activeWallet.pubExists;
+  if (activeWallet.addrExists) {
+    badgeStep3.className = activeWallet.addrMatchesPub ? "vault-badge success" : "vault-badge warning";
+    badgeStep3.innerHTML = activeWallet.addrMatchesPub
+      ? `<i data-lucide="check" class="w-3 h-3"></i>${escapeHtml(activeWallet.address.slice(0, 10))}...`
+      : `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Pub Mismatch`;
+    labelStep3.textContent = "3. Re-derive Blockchain Address (.addr)";
+    btnRemoveAddr.style.display = "inline-flex";
+  } else {
+    badgeStep3.className = "vault-badge muted";
+    badgeStep3.textContent = activeWallet.pubExists ? "Ready for Step 3" : "Requires Step 2";
+    labelStep3.textContent = "3. Derive Blockchain Address (0x...)";
+    btnRemoveAddr.style.display = "none";
+  }
+
+  // Details Inspector Card
+  const bodyIdentity = document.getElementById("body-client-identity");
+  const detKey = document.getElementById("client-details-key");
+  const detPub = document.getElementById("client-details-pub");
+  const detAddr = document.getElementById("client-details-addr");
+
+  if (activeWallet.keyExists || activeWallet.pubExists || activeWallet.addrExists) {
+    bodyIdentity.style.display = "flex";
+  } else {
+    bodyIdentity.style.display = "none";
+  }
+
+  if (activeWallet.keyExists) {
+    detKey.style.display = "block";
+    document.getElementById("client-priv-hex").textContent = details.privateKeyHex || "-";
+    document.getElementById("client-key-pem").textContent = details.keyPem || "-";
+  } else {
+    detKey.style.display = "none";
+  }
+
+  if (activeWallet.pubExists) {
+    detPub.style.display = "block";
+    document.getElementById("client-pub-x").textContent = details.xCoordHex || "-";
+    document.getElementById("client-pub-y").textContent = details.yCoordHex || "-";
+    document.getElementById("client-pub-pem").textContent = details.pubPem || "-";
+  } else {
+    detPub.style.display = "none";
+  }
+
+  if (activeWallet.addrExists) {
+    detAddr.style.display = "block";
+    document.getElementById("client-sha3-discarded").textContent = details.discardedBytesHex || "";
+    document.getElementById("client-sha3-kept").textContent = details.addressBytesHex || "";
+    document.getElementById("client-addr-val").textContent = details.address || "-";
+  } else {
+    detAddr.style.display = "none";
+  }
+
+  // Render Sent & Inbox lists
+  const sentContainer = document.getElementById("sent-list");
+  if (sentContainer) {
+    renderTxCardsList(sentContainer, details.sentMessages || [], "sent");
+  }
+  const inboxContainer = document.getElementById("inbox-list");
+  if (inboxContainer) {
+    renderTxCardsList(inboxContainer, details.inboxMessages || [], "inbox");
+  }
+}
+
+// ============================================================================
+// STEP 1, STEP 2, STEP 3 BUTTON HANDLERS
+// ============================================================================
+document.getElementById("btn-step1-gen-key")?.addEventListener("click", async () => {
+  const btn = document.getElementById("btn-step1-gen-key");
+  const id = m1State.activeRole;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/m1/wallet/step1-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    await syncM1State();
+
+    if (res.ok && data.success) {
+      renderCmdOutput("cmd-details-step1", "cmd-code-step1", {
+        commands: [`openssl ecparam -name secp256k1 -genkey -noout -out wallets/${id}/${id}.key`],
+        outputs: [
+          `[✓ Step 1 Complete] Generated 256-bit secp256k1 Private Key: wallets/${id}/${id}.key`,
+          `Secret Scalar (Hex): ${data.privateKeyHex}`,
+          `Next: Proceed to Step 2 below to derive your Public Key (X, Y).`,
+        ],
+        status: "success",
+      });
+      const detKey = document.getElementById("client-details-key");
+      if (detKey) detKey.open = true;
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("btn-step2-gen-pub")?.addEventListener("click", async () => {
+  const btn = document.getElementById("btn-step2-gen-pub");
+  const id = m1State.activeRole;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/m1/wallet/step2-pub", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    await syncM1State();
+
+    if (res.ok && data.success) {
+      renderCmdOutput("cmd-details-step2", "cmd-code-step2", {
+        commands: [`openssl ec -in wallets/${id}/${id}.key -pubout -out wallets/${id}/${id}.pub`],
+        outputs: [
+          `[✓ Step 2 Complete] Derived Public Key Point on secp256k1: wallets/${id}/${id}.pub`,
+          `X Coord (32B): ${data.xCoordHex}`,
+          `Y Coord (32B): ${data.yCoordHex}`,
+          `Next: Proceed to Step 3 below to hash (X || Y) into your 0x... Blockchain Address.`,
+        ],
+        status: "success",
+      });
+      const detPub = document.getElementById("client-details-pub");
+      if (detPub) detPub.open = true;
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("btn-step3-gen-addr")?.addEventListener("click", async () => {
+  const btn = document.getElementById("btn-step3-gen-addr");
+  const id = m1State.activeRole;
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/m1/wallet/step3-addr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    await syncM1State();
+
+    if (res.ok && data.success) {
+      renderCmdOutput("cmd-details-step3", "cmd-code-step3", {
+        commands: [`sha3_256(X || Y)[12..32] -> wallets/${id}/${id}.addr`],
+        outputs: [
+          `[✓ Step 3 Complete] Self-Certifying Web3 Address Derived!`,
+          `Full SHA3-256 : ${data.sha3HashHex}`,
+          `Last 20 Bytes : ${data.addressBytesHex}`,
+          `Final Address : ${data.address} (Funded with ${data.balance} Coins)`,
+          `Notice: No Certificate Authority (CA) was needed! Your address is mathematically bound to your Public Key.`,
+        ],
+        status: "success",
+      });
+      const detAddr = document.getElementById("client-details-addr");
+      if (detAddr) detAddr.open = true;
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Remove individual step files (.key, .pub, .addr)
+async function removeWalletStepFile(fileType) {
+  const walletId = m1State.activeRole;
+  await fetch("/api/m1/wallet/remove-file", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ walletId, fileType }),
   });
+  await syncM1State();
+}
 
-  function renderAttackResult(data) {
-    attackResultCard.classList.remove("hidden");
-    const isSuccess = data.verificationResult && data.verificationResult.isValid;
+document.getElementById("btn-step1-remove-key")?.addEventListener("click", () => removeWalletStepFile("key"));
+document.getElementById("btn-step2-remove-pub")?.addEventListener("click", () => removeWalletStepFile("pub"));
+document.getElementById("btn-step3-remove-addr")?.addEventListener("click", () => removeWalletStepFile("addr"));
 
-    attackResultCard.innerHTML = `
-      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
-        <div class="space-y-0.5">
-          <h3 class="text-sm font-bold text-zinc-100 flex items-center gap-2">
-            <i data-lucide="zap" class="w-4 h-4 text-zinc-400"></i>
-            <span>${escapeHtml(data.title)}</span>
-          </h3>
-          <p class="text-xs text-zinc-400">${escapeHtml(data.description)}</p>
+// ============================================================================
+// STEP 4 & 5: TRANSACTION CARDS RENDERER (SENT / INBOX / LEDGER)
+// ============================================================================
+function renderTxCardsList(container, txs, mode) {
+  if (!txs || txs.length === 0) {
+    const emptyMsg =
+      mode === "sent"
+        ? "No transactions sent yet. Click <strong>'Send Transaction'</strong> above to sign and broadcast your first transfer."
+        : mode === "inbox"
+        ? "No incoming transactions for this wallet yet."
+        : "No transactions broadcasted on the network yet.";
+    container.innerHTML = `
+      <div class="p-8 text-center space-y-2">
+        <div class="w-10 h-10 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+          <i data-lucide="inbox" class="w-5 h-5"></i>
         </div>
-        <span class="badge-zinc text-xs text-zinc-300">
-          ${isSuccess ? "Attack Succeeded" : "Attack Defeated"}
-        </span>
-      </div>
-
-      <!-- Side-by-side comparison -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <span class="text-xs font-semibold text-zinc-400 block mb-1">Authentic Payload (Signed by Alice):</span>
-          <pre class="code-box text-[11px] text-zinc-300 border-zinc-800">${JSON.stringify(data.originalTx.data, null, 2)}</pre>
-        </div>
-        <div>
-          <span class="text-xs font-semibold text-zinc-400 block mb-1">Tampered / Attacker Payload:</span>
-          <pre class="code-box text-[11px] text-zinc-300 border-zinc-800">${JSON.stringify(data.tamperedTx.data, null, 2)}</pre>
-        </div>
-      </div>
-
-      <!-- Technical breakdown -->
-      <div class="p-3.5 rounded-lg bg-zinc-950 border border-zinc-800 space-y-2">
-        <div class="flex items-center gap-2 text-xs font-semibold text-zinc-200">
-          <i data-lucide="info" class="w-4 h-4 text-zinc-400"></i>
-          <span>How the Network Node Detected &amp; Blocked This:</span>
-        </div>
-        <div class="text-xs text-zinc-300 font-mono space-y-1">
-          <div>Intercept Point: <strong class="text-zinc-100">${escapeHtml(data.failureStep)}</strong></div>
-          <div class="text-zinc-400 leading-relaxed font-sans pt-1">${escapeHtml(data.explanation)}</div>
-        </div>
+        <div class="text-xs text-zinc-300 font-medium">No Transactions Found</div>
+        <p class="text-[11px] text-zinc-500 max-w-xs mx-auto">${emptyMsg}</p>
       </div>
     `;
-
-    lucide.createIcons();
-    attackResultCard.scrollIntoView({ behavior: "smooth" });
+    if (window.lucide) window.lucide.createIcons();
+    return;
   }
 
-  // ---------------------------------------------------------------------------
-  // NODE LEDGER
-  // ---------------------------------------------------------------------------
-  function renderLedger() {
-    ledgerContainer.innerHTML = "";
+  container.innerHTML = txs
+    .map((tx) => {
+      const timeStr = new Date(tx.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-    if (state.transactions.length === 0) {
-      ledgerContainer.innerHTML = `
-        <div class="card-panel p-8 text-center space-y-2">
-          <i data-lucide="inbox" class="w-8 h-8 text-zinc-600 mx-auto"></i>
-          <p class="text-xs text-zinc-400">No transactions recorded yet.</p>
-          <p class="text-[11px] text-zinc-500">Go to 'Transaction Signer' to compose and broadcast your first transaction.</p>
-        </div>
-      `;
-      return;
-    }
+      let sigBadge = tx.signed
+        ? `<span class="vault-badge success"><i data-lucide="pen-tool" class="w-3 h-3"></i>ECDSA Signed</span>`
+        : `<span class="vault-badge warning"><i data-lucide="alert-triangle" class="w-3 h-3"></i>Unsigned</span>`;
 
-    state.transactions.forEach((tx) => {
-      const item = document.createElement("div");
-      item.className = "card-panel p-4 space-y-2.5";
+      let tamperBadge = tx.tampered
+        ? `<span class="vault-badge danger"><i data-lucide="flame" class="w-3 h-3"></i>Tampered (+1000 Coins)</span>`
+        : "";
 
-      const timeStr = new Date(tx.recordedAt).toLocaleTimeString();
-      const isConfirmed = tx.status === "broadcasted";
+      let verifyBadge = "";
+      if (tx.verifiedState === "valid") {
+        verifyBadge = `<span class="vault-badge success"><i data-lucide="shield-check" class="w-3 h-3"></i>Zero-Trust Valid</span>`;
+      } else if (tx.verifiedState === "invalid") {
+        verifyBadge = `<span class="vault-badge danger"><i data-lucide="shield-alert" class="w-3 h-3"></i>Rejected / Invalid</span>`;
+      } else {
+        verifyBadge = `<span class="vault-badge muted">Unverified</span>`;
+      }
 
-      item.innerHTML = `
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="${isConfirmed ? "badge-emerald" : "badge-rose"} text-[10px]">
-              ${isConfirmed ? "Confirmed" : "Rejected"}
-            </span>
-            <span class="text-xs font-mono text-zinc-400">TxHash: ${tx.txHash.slice(0, 16)}...</span>
+      const verifyBannerHtml = tx.verifyReason
+        ? `
+          <div class="result-banner ${tx.verifiedState === "valid" ? "valid" : "invalid"}">
+            <i data-lucide="${tx.verifiedState === "valid" ? "check-circle-2" : "x-circle"}" class="w-4 h-4 shrink-0"></i>
+            <div class="space-y-0.5 text-xs font-mono">
+              <div class="font-semibold">${escapeHtml(tx.verifyReason)}</div>
+              ${
+                tx.derivedAddress
+                  ? `<div class="text-[11px] opacity-85">Proof 1 (SHA3-256 PubKey &rarr; Address): ${escapeHtml(tx.derivedAddress)} ${
+                      tx.addressMatch ? "== Claimed Sender (MATCH)" : "!= Claimed Sender (MISMATCH)"
+                    } | Proof 2 (ECDSA Verify): ${tx.signatureMatch ? "VALID" : "FAILED"}</div>`
+                  : ""
+              }
+            </div>
           </div>
-          <span class="text-[11px] text-zinc-500">${timeStr}</span>
-        </div>
+        `
+        : "";
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-zinc-300">
-          <div><span class="text-zinc-500">From:</span> <span class="font-mono text-zinc-200">${tx.signedTx.data.from.slice(0, 14)}...</span></div>
-          <div><span class="text-zinc-500">To:</span> <span class="font-mono text-zinc-200">${tx.signedTx.data.to.slice(0, 14)}...</span></div>
-          <div><span class="text-zinc-500">Amount:</span> <strong class="text-emerald-400">${tx.signedTx.data.amount} Coins</strong> (Nonce: ${tx.signedTx.data.nonce})</div>
-        </div>
+      const opensslVerifyCmd = `$ openssl dgst -sha256 -verify wallets/${escapeHtml(tx.fromId)}/${escapeHtml(
+        tx.fromId
+      )}.pub -signature ${escapeHtml(tx.sigFile || "transactions/tx.sig")} ${escapeHtml(tx.txFile)}`;
 
-        <div class="pt-1 text-[11px] font-mono text-zinc-500 truncate">
-          Signature: ${tx.signedTx.signatureHex}
+      return `
+        <div class="inbox-item-card" id="tx-card-${escapeHtml(tx.id)}-${mode}">
+          <div class="inbox-item-head">
+            <div class="inbox-item-meta">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-semibold text-zinc-100">${escapeHtml(tx.fromName)} &rarr; ${escapeHtml(tx.toName)}</span>
+                <span class="vault-badge success font-mono">${tx.amount} Coins</span>
+                <span class="text-[11px] text-zinc-500 font-mono">Nonce #${tx.nonce} &middot; ${escapeHtml(timeStr)}</span>
+              </div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${sigBadge}
+                ${tamperBadge}
+                ${verifyBadge}
+              </div>
+            </div>
+          </div>
+
+          <div class="text-xs text-zinc-400 font-mono space-y-0.5 break-all">
+            <div><span class="text-zinc-500">From:</span> ${escapeHtml(tx.fromAddress)}</div>
+            <div><span class="text-zinc-500">To  :</span> ${escapeHtml(tx.toAddress)}</div>
+            <div><span class="text-zinc-500">Memo:</span> ${escapeHtml(tx.memo)}</div>
+          </div>
+
+          ${verifyBannerHtml}
+
+          <!-- Collapsible Cryptographic Payload & Signature -->
+          <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="cmd-details-tx-${escapeHtml(tx.id)}-${mode}">
+            <summary class="px-3 py-1.5 cursor-pointer select-none flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span>Inspect Payload JSON, SHA-256 Digest &amp; ECDSA Signature</span>
+              </span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
+              <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
+            </summary>
+            <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 space-y-2.5 text-[11px] font-mono text-zinc-400">
+              <div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">1. Canonical Transaction JSON (${escapeHtml(tx.txFile)}):</div>
+                <pre class="text-zinc-200 whitespace-pre-wrap break-all mt-0.5">${escapeHtml(tx.canonicalJson)}</pre>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">2. SHA-256 Transaction Digest (32 Bytes):</div>
+                <div class="text-emerald-400 break-all mt-0.5">${escapeHtml(tx.txHashHex)}</div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">3. ECDSA Signature Hex (secp256k1):</div>
+                <div class="text-zinc-300 break-all mt-0.5">${escapeHtml(tx.signatureHex || "(No signature attached)")}</div>
+              </div>
+              <div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">4. OpenSSL Verification Command:</div>
+                <code id="cmd-code-tx-${escapeHtml(tx.id)}-${mode}" class="whitespace-pre-wrap text-zinc-400 block mt-0.5">${opensslVerifyCmd}</code>
+              </div>
+            </div>
+          </details>
+
+          <div class="inbox-actions flex items-center gap-2 pt-0.5">
+            <button class="btn-solid btn-sm btn-verify-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-mode="${mode}">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+              <span>5. Verify Zero-Trust (No CA)</span>
+            </button>
+            <button class="btn-solid btn-sm btn-tamper-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-mode="${mode}">
+              <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+              <span>${tx.tampered ? "Restore Original Amount" : "Attack: Tamper Amount (+1000)"}</span>
+            </button>
+          </div>
         </div>
       `;
+    })
+    .join("");
 
-      ledgerContainer.appendChild(item);
+  if (window.lucide) window.lucide.createIcons();
+
+  container.querySelectorAll(".btn-verify-tx").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const txId = btn.getAttribute("data-id");
+      btn.disabled = true;
+      try {
+        await fetch("/api/m1/tx/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txId }),
+        });
+        await syncM1State();
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  container.querySelectorAll(".btn-tamper-tx").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const txId = btn.getAttribute("data-id");
+      btn.disabled = true;
+      try {
+        await fetch("/api/m1/tx/tamper", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ txId }),
+        });
+        await syncM1State();
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+// ============================================================================
+// SEND TRANSACTION MODAL (STEP 4)
+// ============================================================================
+const recTrigger = document.getElementById("recipient-dropdown-trigger");
+const recMenu = document.getElementById("recipient-dropdown-menu");
+const recChevron = document.getElementById("recipient-dropdown-chevron");
+
+function toggleRecipientDropdown(show) {
+  if (!recMenu) return;
+  const isHidden = recMenu.classList.contains("hidden");
+  const willShow = show !== undefined ? show : isHidden;
+  if (willShow) {
+    recMenu.classList.remove("hidden");
+    recChevron?.classList.add("rotate-180");
+  } else {
+    recMenu.classList.add("hidden");
+    recChevron?.classList.remove("rotate-180");
+  }
+}
+
+recTrigger?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleRecipientDropdown();
+});
+
+document.addEventListener("click", (e) => {
+  const container = document.getElementById("recipient-dropdown-container");
+  if (container && !container.contains(e.target)) {
+    toggleRecipientDropdown(false);
+  }
+});
+
+function openSendTxModal() {
+  const modal = document.getElementById("modal-send-tx");
+  const errEl = document.getElementById("send-tx-error");
+  if (errEl) errEl.style.display = "none";
+
+  const senderId = m1State.activeRole;
+  const eligibleRecipients = (m1State.wallets || []).filter((w) => w.id !== senderId && w.addrExists);
+
+  const noRecWarning = document.getElementById("no-recipients-warning");
+  const itemsEl = document.getElementById("recipient-dropdown-items");
+  const hiddenInput = document.getElementById("send-recipient-select");
+  const labelEl = document.getElementById("recipient-selected-label");
+  const sendBtn = document.getElementById("btn-client-send-tx");
+
+  if (eligibleRecipients.length === 0) {
+    if (noRecWarning) noRecWarning.style.display = "flex";
+    if (itemsEl) itemsEl.innerHTML = `<div class="px-3 py-2 text-zinc-500">No other wallets have derived an address yet</div>`;
+    if (hiddenInput) hiddenInput.value = "";
+    if (labelEl) labelEl.textContent = "No recipient with .addr available";
+    if (sendBtn) sendBtn.disabled = true;
+  } else {
+    if (noRecWarning) noRecWarning.style.display = "none";
+    if (sendBtn) sendBtn.disabled = false;
+    const first = eligibleRecipients[0];
+    if (hiddenInput) hiddenInput.value = first.id;
+    if (labelEl) labelEl.textContent = `${first.name} (${first.address})`;
+
+    itemsEl.innerHTML = eligibleRecipients
+      .map(
+        (r) => `
+        <button type="button" class="rec-option-item w-full flex items-center justify-between px-3 py-2 rounded-md text-left hover:bg-zinc-900 text-zinc-200 cursor-pointer" data-id="${escapeHtml(
+          r.id
+        )}" data-label="${escapeHtml(r.name)} (${escapeHtml(r.address)})">
+          <div class="min-w-0">
+            <div class="text-xs font-medium text-zinc-100">${escapeHtml(r.name)}</div>
+            <div class="text-[10px] font-mono text-zinc-400 truncate">${escapeHtml(r.address)}</div>
+          </div>
+        </button>
+      `
+      )
+      .join("");
+
+    itemsEl.querySelectorAll(".rec-option-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const id = item.getAttribute("data-id");
+        const lbl = item.getAttribute("data-label");
+        if (hiddenInput) hiddenInput.value = id;
+        if (labelEl) labelEl.textContent = lbl;
+        toggleRecipientDropdown(false);
+      });
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // RESET STATE
-  // ---------------------------------------------------------------------------
-  btnResetState.addEventListener("click", async () => {
-    if (!confirm("Reset all accounts, balances, and ledger to default?")) return;
-
-    try {
-      const res = await fetch("/api/m1/wallets/reset", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        showToast("Lab state reset to default", "info");
-        state.latestSignedTx = null;
-        attackResultCard.classList.add("hidden");
-        valResultBanner.classList.add("hidden");
-        await fetchState();
-      }
-    } catch {
-      showToast("Error resetting state", "error");
-    }
-  });
-
-  // Utility to escape HTML
-  function escapeHtml(str) {
-    if (!str) return "";
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  const codeEl = document.getElementById("cmd-client-send");
+  if (codeEl) {
+    codeEl.textContent = `$ openssl dgst -sha256 -sign wallets/${senderId}/${senderId}.key -out transactions/tx.sig transactions/tx.json`;
   }
 
-  // Initial load
-  fetchState();
-})();
+  modal.style.display = "flex";
+  if (window.lucide) window.lucide.createIcons();
+}
+
+document.getElementById("btn-open-send-modal")?.addEventListener("click", openSendTxModal);
+document.getElementById("btn-close-modal-send")?.addEventListener("click", () => {
+  document.getElementById("modal-send-tx").style.display = "none";
+});
+
+document.getElementById("btn-client-send-tx")?.addEventListener("click", async () => {
+  const fromId = m1State.activeRole;
+  const toId = document.getElementById("send-recipient-select")?.value || "";
+  const amount = Number(document.getElementById("send-tx-amount")?.value || 0);
+  const memo = document.getElementById("send-tx-memo")?.value || "";
+  const sign = document.getElementById("send-sign-checkbox")?.checked !== false;
+  const errEl = document.getElementById("send-tx-error");
+
+  const btn = document.getElementById("btn-client-send-tx");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/m1/tx/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fromId, toId, amount, memo, sign }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      if (errEl) {
+        errEl.textContent = data.error || "Failed to send transaction";
+        errEl.style.display = "block";
+      }
+      return;
+    }
+    document.getElementById("modal-send-tx").style.display = "none";
+    await syncM1State();
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+    }
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("btn-refresh-sent")?.addEventListener("click", syncM1State);
+document.getElementById("btn-refresh-inbox")?.addEventListener("click", syncM1State);
+
+// ============================================================================
+// SUBTABS & COLLAPSIBLE SECTIONS
+// ============================================================================
+function switchClientSubtab(subtab) {
+  currentSubtab = subtab;
+  document.querySelectorAll("#client-subtabs-nav .subtab-btn").forEach((b) => {
+    b.classList.toggle("active", b.getAttribute("data-subtab") === subtab);
+  });
+  const panels = ["identity", "send", "inbox"];
+  panels.forEach((p) => {
+    const el = document.getElementById(`subtab-${p}`);
+    if (el) el.style.display = p === subtab ? "flex" : "none";
+  });
+}
+
+function switchAdminSubtab(subtab) {
+  currentAdminSubtab = subtab;
+  document.querySelectorAll("#admin-subtabs-nav .admin-subtab-btn").forEach((b) => {
+    b.classList.toggle("active", b.getAttribute("data-admin-subtab") === subtab);
+  });
+  const panels = ["vault", "ledger"];
+  panels.forEach((p) => {
+    const el = document.getElementById(`admin-subtab-${p}`);
+    if (el) el.style.display = p === subtab ? "flex" : "none";
+  });
+}
+
+document.getElementById("client-subtabs-nav")?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".subtab-btn");
+  if (!btn) return;
+  switchClientSubtab(btn.getAttribute("data-subtab"));
+});
+
+document.getElementById("admin-subtabs-nav")?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".admin-subtab-btn");
+  if (!btn) return;
+  switchAdminSubtab(btn.getAttribute("data-admin-subtab"));
+});
+
+// Collapsible section cards
+document.addEventListener("click", (e) => {
+  const header = e.target.closest(".section-header");
+  if (header) {
+    const card = header.closest(".section-card");
+    if (card) card.classList.toggle("collapsed");
+  }
+
+  const copyBtn = e.target.closest(".btn-copy-code");
+  if (copyBtn) {
+    const targetId = copyBtn.getAttribute("data-target");
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+      navigator.clipboard.writeText(targetEl.textContent || "");
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => (copyBtn.textContent = orig), 1200);
+    }
+  }
+});
+
+// Initialize on load
+syncM1State();

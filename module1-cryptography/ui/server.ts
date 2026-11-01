@@ -2,74 +2,206 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { createWallet, verifyAddressFromPublicKey } from "../wallet.ts";
-import type { Wallet } from "../wallet.ts";
-import {
-  signTransaction,
-  verifyTransaction,
-  hashTransaction,
-  serializeTransaction,
-} from "../transaction.ts";
-import type { SignedTransaction, TransactionData, VerificationResult } from "../transaction.ts";
+import { serializeTransaction, hashTransaction } from "../transaction.ts";
+import type { TransactionData } from "../transaction.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, "../..");
+const M1_DIR = path.join(ROOT_DIR, "module1-cryptography", "generated");
+const WALLETS_DIR = path.join(M1_DIR, "wallets");
+const TXS_DIR = path.join(M1_DIR, "transactions");
+const STORE_FILE = path.join(M1_DIR, "wallets.json");
+const TXS_FILE = path.join(M1_DIR, "transactions.json");
 const PUBLIC_DIR = path.join(__dirname, "public");
 
+// Ensure generated directories exist
+[M1_DIR, WALLETS_DIR, TXS_DIR].forEach((d) => {
+  if (!fs.existsSync(d)) {
+    fs.mkdirSync(d, { recursive: true });
+  }
+});
+
 // -----------------------------------------------------------------------------
-// IN-MEMORY BLOCKCHAIN NODE STATE (MODULE 1)
+// DATA MODELS & PERSISTENCE
 // -----------------------------------------------------------------------------
-interface WalletAccount {
-  wallet: Wallet;
+export interface WalletMeta {
+  id: string;
+  name: string;
   balance: number;
   nonce: number;
+  createdAt: number;
 }
 
-interface RecordedTransaction {
+export interface TxRecord {
   id: string;
-  txHash: string;
-  signedTx: SignedTransaction;
-  status: "broadcasted" | "rejected";
-  recordedAt: number;
-  reason?: string;
+  fromId: string;
+  fromName: string;
+  fromAddress: string;
+  toId: string;
+  toName: string;
+  toAddress: string;
+  amount: number;
+  nonce: number;
+  memo: string;
+  timestamp: number;
+  signed: boolean;
+  canonicalJson: string;
+  txHashHex: string;
+  signatureHex: string;
+  senderPublicKeyHex: string;
+  senderPubKeyPem: string;
+  txFile: string;
+  sigFile?: string;
+  tampered?: boolean;
+  originalAmount?: number;
+  verifiedState?: "unverified" | "valid" | "invalid";
+  verifyReason?: string;
+  addressMatch?: boolean;
+  signatureMatch?: boolean;
+  derivedAddress?: string;
 }
 
-// Map of address -> WalletAccount
-let accounts = new Map<string, WalletAccount>();
-let transactions: RecordedTransaction[] = [];
-
-function clearAllState() {
-  accounts.clear();
-  transactions = [];
+interface M1Store {
+  activeRole: "node" | string;
+  activeId: string;
+  wallets: WalletMeta[];
 }
 
-// Start with completely clean / empty state (Zero pre-built accounts)
-clearAllState();
+function loadStore(): M1Store {
+  if (fs.existsSync(STORE_FILE)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(STORE_FILE, "utf-8"));
+      if (Array.isArray(data.wallets)) {
+        return {
+          activeRole: data.activeRole || "node",
+          activeId: data.activeId || "",
+          wallets: data.wallets,
+        };
+      }
+    } catch {}
+  }
+  const initial: M1Store = { activeRole: "node", activeId: "", wallets: [] };
+  saveStore(initial);
+  return initial;
+}
 
-// -----------------------------------------------------------------------------
-// HTTP UTILITIES
-// -----------------------------------------------------------------------------
-function sendJson(res: http.ServerResponse, status: number, data: any) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+function saveStore(store: M1Store) {
+  fs.writeFileSync(STORE_FILE, JSON.stringify(store, null, 2), "utf-8");
+}
+
+function loadTxs(): TxRecord[] {
+  if (fs.existsSync(TXS_FILE)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(TXS_FILE, "utf-8"));
+      if (Array.isArray(data)) return data;
+    } catch {}
+  }
+  return [];
+}
+
+function saveTxs(txs: TxRecord[]) {
+  fs.writeFileSync(TXS_FILE, JSON.stringify(txs, null, 2), "utf-8");
+}
+
+function getWalletDir(id: string): string {
+  const safeId = id.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  const dir = path.join(WALLETS_DIR, safeId);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+
+interface OpenSSLLog {
+  command: string;
+  output: string;
+}
+
+function runM1OpenSSL(args: string[]): OpenSSLLog {
+  const cmdString = `openssl ${args.join(" ")}`;
+  try {
+    const out = execFileSync("openssl", args, {
+      cwd: M1_DIR,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return { command: cmdString, output: (out || "(Success — 0 exit code)").trim() };
+  } catch (err: any) {
+    const stderr = err.stderr ? err.stderr.toString() : err.message;
+    const stdout = err.stdout ? err.stdout.toString() : "";
+    return { command: cmdString, output: `${stdout}\n${stderr}`.trim() };
+  }
+}
+
+// Extract public key coordinates (X, Y) and SHA3-256 address from a public key PEM
+function inspectPublicKeyPem(pubPem: string) {
+  const pubKeyObj = crypto.createPublicKey(pubPem);
+  const jwk = pubKeyObj.export({ format: "jwk" }) as { x: string; y: string };
+  const xBytes = Buffer.from(jwk.x, "base64url");
+  const yBytes = Buffer.from(jwk.y, "base64url");
+
+  const prefixByte = "04";
+  const xCoordHex = xBytes.toString("hex").padStart(64, "0");
+  const yCoordHex = yBytes.toString("hex").padStart(64, "0");
+  const publicKeyFullHex = prefixByte + xCoordHex + yCoordHex;
+
+  const coordinates = Buffer.concat([xBytes, yBytes]);
+  const hash = crypto.createHash("sha3-256").update(coordinates).digest();
+  const sha3HashHex = hash.toString("hex");
+  const discardedBytesHex = sha3HashHex.slice(0, 24); // First 12 bytes
+  const addressBytesHex = sha3HashHex.slice(24);      // Last 20 bytes
+  const derivedAddress = "0x" + addressBytesHex;
+
+  return {
+    prefixByte,
+    xCoordHex,
+    yCoordHex,
+    publicKeyFullHex,
+    sha3HashHex,
+    discardedBytesHex,
+    addressBytesHex,
+    derivedAddress,
+  };
+}
+
+// Extract private key scalar from private key PEM
+function inspectPrivateKeyPem(privPem: string) {
+  const privKeyObj = crypto.createPrivateKey(privPem);
+  const jwk = privKeyObj.export({ format: "jwk" }) as { d: string; x: string; y: string };
+  const privBytes = Buffer.from(jwk.d, "base64url");
+  const privateKeyHex = privBytes.toString("hex").padStart(64, "0");
+  const privateKeyDecimal = BigInt("0x" + privateKeyHex).toString(10);
+  return {
+    privateKeyHex,
+    privateKeyDecimal,
+    privKeyObj,
+  };
+}
+
+function sendJson(res: http.ServerResponse, status: number, data: unknown) {
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+  });
   res.end(JSON.stringify(data));
 }
 
-function parseJsonBody(req: http.IncomingMessage): Promise<any> {
+function readJsonBody(req: http.IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
     let body = "";
     req.on("data", (chunk) => {
       body += chunk;
-      if (body.length > 2 * 1024 * 1024) {
-        reject(new Error("Payload too large (max 2MB)"));
-      }
     });
     req.on("end", () => {
+      if (!body) return resolve({});
       try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (err) {
-        reject(new Error("Invalid JSON body"));
+        resolve(JSON.parse(body));
+      } catch (e) {
+        reject(e);
       }
     });
     req.on("error", reject);
@@ -87,384 +219,678 @@ const MIME_TYPES: Record<string, string> = {
 // -----------------------------------------------------------------------------
 // HTTP SERVER (PORT 3001)
 // -----------------------------------------------------------------------------
+const PORT = Number(process.env.PORT) || 3001;
+
 const server = http.createServer(async (req, res) => {
-  // Enable CORS for easy local dev
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    return res.end();
-  }
-
   try {
-    const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+    const url = new URL(req.url || "/", `http://${req.headers.host}`);
     const pathname = url.pathname;
 
-    // -------------------------------------------------------------------------
-    // 1. GET /api/m1/state: Return all wallets, balances, and transaction history
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // 1. GET /api/m1/state
+    // =========================================================================
     if (req.method === "GET" && pathname === "/api/m1/state") {
-      const walletList = Array.from(accounts.values()).map((acc) => {
-        // Export private key PEM for educational UI inspection
-        const privKeyPem = acc.wallet.privateKey.export({ type: "pkcs8", format: "pem" }) as string;
+      const store = loadStore();
+      const allTxs = loadTxs();
+
+      const walletList = store.wallets.map((w) => {
+        const wDir = getWalletDir(w.id);
+        const keyP = path.join(wDir, `${w.id}.key`);
+        const pubP = path.join(wDir, `${w.id}.pub`);
+        const addrP = path.join(wDir, `${w.id}.addr`);
+
+        const keyExists = fs.existsSync(keyP);
+        const pubExists = fs.existsSync(pubP);
+        const addrExists = fs.existsSync(addrP);
+
+        let pubMatchesKey = false;
+        if (keyExists && pubExists) {
+          try {
+            const kObj = crypto.createPrivateKey(fs.readFileSync(keyP, "utf-8"));
+            const derivedPubPem = crypto.createPublicKey(kObj).export({ type: "spki", format: "pem" }).toString().trim();
+            const diskPubPem = crypto.createPublicKey(fs.readFileSync(pubP, "utf-8")).export({ type: "spki", format: "pem" }).toString().trim();
+            pubMatchesKey = derivedPubPem === diskPubPem;
+          } catch {
+            pubMatchesKey = false;
+          }
+        }
+
+        let address = "";
+        let addrMatchesPub = false;
+        if (addrExists) {
+          address = fs.readFileSync(addrP, "utf-8").trim();
+          if (pubExists) {
+            try {
+              const pubInfo = inspectPublicKeyPem(fs.readFileSync(pubP, "utf-8"));
+              addrMatchesPub = pubInfo.derivedAddress.toLowerCase() === address.toLowerCase();
+            } catch {
+              addrMatchesPub = false;
+            }
+          }
+        }
+
+        const sentCount = allTxs.filter((m) => m.fromId === w.id).length;
+        const inboxCount = allTxs.filter((m) => m.toId === w.id).length;
+
         return {
-          name: acc.wallet.name,
-          address: acc.wallet.address,
-          publicKeyHex: acc.wallet.publicKeyHex,
-          privateKeyPem: privKeyPem,
-          balance: acc.balance,
-          nonce: acc.nonce,
+          id: w.id,
+          name: w.name,
+          balance: w.balance,
+          nonce: w.nonce,
+          keyExists,
+          keySize: keyExists ? fs.statSync(keyP).size : 0,
+          pubExists,
+          pubSize: pubExists ? fs.statSync(pubP).size : 0,
+          addrExists,
+          addrSize: addrExists ? fs.statSync(addrP).size : 0,
+          address,
+          pubMatchesKey,
+          addrMatchesPub,
+          sentCount,
+          inboxCount,
         };
       });
+
+      const activeWallet = walletList.find((w) => w.id === store.activeId) || walletList[0] || null;
+      let activeDetails = null;
+
+      if (activeWallet) {
+        const wDir = getWalletDir(activeWallet.id);
+        const keyP = path.join(wDir, `${activeWallet.id}.key`);
+        const pubP = path.join(wDir, `${activeWallet.id}.pub`);
+        const addrP = path.join(wDir, `${activeWallet.id}.addr`);
+
+        const keyPem = activeWallet.keyExists ? fs.readFileSync(keyP, "utf-8").trim() : "";
+        const pubPem = activeWallet.pubExists ? fs.readFileSync(pubP, "utf-8").trim() : "";
+        const address = activeWallet.addrExists ? fs.readFileSync(addrP, "utf-8").trim() : "";
+
+        let privInfo = { privateKeyHex: "", privateKeyDecimal: "" };
+        if (keyPem) {
+          try {
+            const p = inspectPrivateKeyPem(keyPem);
+            privInfo = { privateKeyHex: p.privateKeyHex, privateKeyDecimal: p.privateKeyDecimal };
+          } catch {}
+        }
+
+        let pubInfo = {
+          prefixByte: "04",
+          xCoordHex: "",
+          yCoordHex: "",
+          publicKeyFullHex: "",
+          sha3HashHex: "",
+          discardedBytesHex: "",
+          addressBytesHex: "",
+          derivedAddress: "",
+        };
+        if (pubPem) {
+          try {
+            pubInfo = inspectPublicKeyPem(pubPem);
+          } catch {}
+        }
+
+        const sentMessages = allTxs.filter((m) => m.fromId === activeWallet.id);
+        const inboxMessages = allTxs.filter((m) => m.toId === activeWallet.id);
+
+        activeDetails = {
+          ...activeWallet,
+          keyPem,
+          pubPem,
+          address,
+          ...privInfo,
+          ...pubInfo,
+          sentMessages,
+          inboxMessages,
+        };
+      }
 
       return sendJson(res, 200, {
         wallets: walletList,
-        transactions,
-        stats: {
-          totalWallets: walletList.length,
-          totalTransactions: transactions.length,
-        },
+        activeRole: store.activeRole || "node",
+        activeId: activeWallet ? activeWallet.id : "",
+        activeDetails,
+        allTransactions: allTxs,
       });
     }
 
-    // -------------------------------------------------------------------------
-    // 2. POST /api/m1/wallets: Generate a new secp256k1 wallet
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // 2. POST /api/m1/select-role
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/select-role") {
+      const body = await readJsonBody(req);
+      const store = loadStore();
+      const role = String(body.role || "node").trim();
+      store.activeRole = role;
+      if (role !== "node" && store.wallets.some((w) => w.id === role)) {
+        store.activeId = role;
+      }
+      saveStore(store);
+      return sendJson(res, 200, { success: true, activeRole: store.activeRole, activeId: store.activeId });
+    }
+
+    // =========================================================================
+    // 3. POST /api/m1/wallets (Register new wallet in clean 0-step state)
+    // =========================================================================
     if (req.method === "POST" && pathname === "/api/m1/wallets") {
-      const body = await parseJsonBody(req);
-      const name = (body.name || "Wallet-" + Math.floor(1000 + Math.random() * 9000)).trim();
-      const initialBalance = Number(body.initialBalance) >= 0 ? Number(body.initialBalance) : 25;
+      const body = await readJsonBody(req);
+      const name = (body.name || "").trim() || `Wallet_${Date.now().toString().slice(-4)}`;
+      const safeId = (body.id || name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")).slice(0, 24);
+      getWalletDir(safeId);
 
-      const newWallet = createWallet(name);
-      accounts.set(newWallet.address.toLowerCase(), {
-        wallet: newWallet,
-        balance: initialBalance,
-        nonce: 0,
-      });
-
-      const privKeyPem = newWallet.privateKey.export({ type: "pkcs8", format: "pem" }) as string;
-
-      return sendJson(res, 201, {
-        success: true,
-        wallet: {
-          name: newWallet.name,
-          address: newWallet.address,
-          publicKeyHex: newWallet.publicKeyHex,
-          privateKeyPem: privKeyPem,
-          balance: initialBalance,
+      const store = loadStore();
+      if (!store.wallets.some((w) => w.id === safeId)) {
+        store.wallets.push({
+          id: safeId,
+          name,
+          balance: 0,
           nonce: 0,
-        },
-      });
+          createdAt: Date.now(),
+        });
+      }
+      store.activeId = safeId;
+      saveStore(store);
+
+      return sendJson(res, 201, { success: true, id: safeId, name });
     }
 
-    // -------------------------------------------------------------------------
-    // 3. POST /api/m1/wallets/reset: Reset to empty clean state
-    // -------------------------------------------------------------------------
-    if (req.method === "POST" && pathname === "/api/m1/wallets/reset") {
-      clearAllState();
-      return sendJson(res, 200, { success: true, message: "Cleared all wallets and transactions to clean scratch state." });
-    }
+    // =========================================================================
+    // 4. DELETE /api/m1/wallet/:id
+    // =========================================================================
+    if (req.method === "DELETE" && pathname.startsWith("/api/m1/wallet/")) {
+      const idToDelete = pathname.replace("/api/m1/wallet/", "").trim();
+      const store = loadStore();
+      const idx = store.wallets.findIndex((w) => w.id === idToDelete);
+      if (idx === -1) {
+        return sendJson(res, 404, { error: "Wallet not found" });
+      }
+      store.wallets.splice(idx, 1);
+      if (store.activeId === idToDelete) {
+        store.activeId = store.wallets[0]?.id || "";
+      }
+      if (store.activeRole === idToDelete) {
+        store.activeRole = "node";
+      }
+      saveStore(store);
 
-    // -------------------------------------------------------------------------
-    // 3b. POST /api/m1/wallets/seed: Optional helper to seed demo trio
-    // -------------------------------------------------------------------------
-    if (req.method === "POST" && pathname === "/api/m1/wallets/seed") {
-      const alice = createWallet("Alice");
-      const bob = createWallet("Bob");
-      const mallory = createWallet("Mallory (Attacker)");
-
-      accounts.set(alice.address.toLowerCase(), { wallet: alice, balance: 100, nonce: 0 });
-      accounts.set(bob.address.toLowerCase(), { wallet: bob, balance: 50, nonce: 0 });
-      accounts.set(mallory.address.toLowerCase(), { wallet: mallory, balance: 10, nonce: 0 });
-
-      return sendJson(res, 200, { success: true, message: "Seeded starter demo wallets (Alice, Bob, Mallory)." });
-    }
-
-    // -------------------------------------------------------------------------
-    // 4. POST /api/m1/transactions/sign: Sign a transaction using a stored wallet
-    // -------------------------------------------------------------------------
-    if (req.method === "POST" && pathname === "/api/m1/transactions/sign") {
-      const body = await parseJsonBody(req);
-      const { senderAddress, to, amount } = body;
-
-      if (!senderAddress || !to || typeof amount !== "number" || amount <= 0) {
-        return sendJson(res, 400, { error: "Missing or invalid senderAddress, to, or amount" });
+      const wDir = path.join(WALLETS_DIR, idToDelete);
+      if (fs.existsSync(wDir)) {
+        try {
+          fs.rmSync(wDir, { recursive: true, force: true });
+        } catch {}
       }
 
-      const senderAccount = accounts.get(senderAddress.toLowerCase());
-      if (!senderAccount) {
-        return sendJson(res, 404, { error: "Sender wallet not found in local node keystore" });
-      }
+      return sendJson(res, 200, { success: true, activeId: store.activeId, activeRole: store.activeRole });
+    }
 
-      // Use sender's current nonce
-      const nonce = senderAccount.nonce;
-      const signedTx = signTransaction(senderAccount.wallet, to, amount, nonce);
-      const canonicalJson = serializeTransaction(signedTx.data);
-      const txHash = hashTransaction(signedTx.data).toString("hex");
+    // =========================================================================
+    // 5. POST /api/m1/wallet/step1-key (Step 1: Generate secp256k1 Private Key)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/wallet/step1-key") {
+      const body = await readJsonBody(req);
+      const store = loadStore();
+      const id = (body.id || store.activeId || "").trim();
+      if (!id || !store.wallets.some((w) => w.id === id)) {
+        return sendJson(res, 400, { error: "Wallet not found" });
+      }
+      getWalletDir(id);
+
+      const logs: OpenSSLLog[] = [];
+      logs.push(
+        runM1OpenSSL([
+          "ecparam",
+          "-name",
+          "secp256k1",
+          "-genkey",
+          "-noout",
+          "-out",
+          `wallets/${id}/${id}.key`,
+        ])
+      );
+      logs.push(runM1OpenSSL(["ec", "-in", `wallets/${id}/${id}.key`, "-text", "-noout"]));
+
+      const keyP = path.join(getWalletDir(id), `${id}.key`);
+      const keyPem = fs.readFileSync(keyP, "utf-8").trim();
+      const privInfo = inspectPrivateKeyPem(keyPem);
 
       return sendJson(res, 200, {
         success: true,
-        signedTx,
-        canonicalJson,
-        txHash,
+        id,
+        privateKeyHex: privInfo.privateKeyHex,
+        opensslLogs: logs,
+      });
+    }
+
+    // =========================================================================
+    // 6. POST /api/m1/wallet/step2-pub (Step 2: Derive Public Key Point X, Y)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/wallet/step2-pub") {
+      const body = await readJsonBody(req);
+      const store = loadStore();
+      const id = (body.id || store.activeId || "").trim();
+      if (!id || !store.wallets.some((w) => w.id === id)) {
+        return sendJson(res, 400, { error: "Wallet not found" });
+      }
+
+      const wDir = getWalletDir(id);
+      const keyP = path.join(wDir, `${id}.key`);
+      if (!fs.existsSync(keyP)) {
+        return sendJson(res, 400, {
+          error: `Private key wallets/${id}/${id}.key does not exist yet! Complete Step 1 first.`,
+        });
+      }
+
+      const logs: OpenSSLLog[] = [];
+      logs.push(
+        runM1OpenSSL([
+          "ec",
+          "-in",
+          `wallets/${id}/${id}.key`,
+          "-pubout",
+          "-out",
+          `wallets/${id}/${id}.pub`,
+        ])
+      );
+      logs.push(runM1OpenSSL(["ec", "-in", `wallets/${id}/${id}.pub`, "-pubin", "-text", "-noout"]));
+
+      const pubP = path.join(wDir, `${id}.pub`);
+      const pubPem = fs.readFileSync(pubP, "utf-8").trim();
+      const pubInfo = inspectPublicKeyPem(pubPem);
+
+      return sendJson(res, 200, {
+        success: true,
+        id,
+        ...pubInfo,
+        opensslLogs: logs,
+      });
+    }
+
+    // =========================================================================
+    // 7. POST /api/m1/wallet/step3-addr (Step 3: Derive 0x Address via SHA3-256)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/wallet/step3-addr") {
+      const body = await readJsonBody(req);
+      const store = loadStore();
+      const id = (body.id || store.activeId || "").trim();
+      const walletMeta = store.wallets.find((w) => w.id === id);
+      if (!walletMeta) {
+        return sendJson(res, 400, { error: "Wallet not found" });
+      }
+
+      const wDir = getWalletDir(id);
+      const pubP = path.join(wDir, `${id}.pub`);
+      if (!fs.existsSync(pubP)) {
+        return sendJson(res, 400, {
+          error: `Public key wallets/${id}/${id}.pub does not exist yet! Complete Step 2 first.`,
+        });
+      }
+
+      const pubPem = fs.readFileSync(pubP, "utf-8").trim();
+      const pubInfo = inspectPublicKeyPem(pubPem);
+
+      const addrP = path.join(wDir, `${id}.addr`);
+      fs.writeFileSync(addrP, pubInfo.derivedAddress + "\n", "utf-8");
+
+      // Credit initial test coins if balance is 0
+      if (walletMeta.balance === 0) {
+        walletMeta.balance = 100;
+        saveStore(store);
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        id,
+        address: pubInfo.derivedAddress,
+        sha3HashHex: pubInfo.sha3HashHex,
+        discardedBytesHex: pubInfo.discardedBytesHex,
+        addressBytesHex: pubInfo.addressBytesHex,
+        balance: walletMeta.balance,
+      });
+    }
+
+    // =========================================================================
+    // 8. POST /api/m1/wallet/remove-file (Remove .key, .pub, or .addr)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/wallet/remove-file") {
+      const body = await readJsonBody(req);
+      const store = loadStore();
+      const walletId = (body.walletId || store.activeId || "").trim();
+      const fileType = (body.fileType || "").trim(); // "key", "pub", "addr", "all"
+
+      if (!walletId) {
+        return sendJson(res, 400, { error: "Missing walletId" });
+      }
+
+      const wDir = getWalletDir(walletId);
+      const keyP = path.join(wDir, `${walletId}.key`);
+      const pubP = path.join(wDir, `${walletId}.pub`);
+      const addrP = path.join(wDir, `${walletId}.addr`);
+      const removedFiles: string[] = [];
+
+      if (fileType === "key" || fileType === "all") {
+        if (fs.existsSync(keyP)) { fs.unlinkSync(keyP); removedFiles.push(`${walletId}.key`); }
+      }
+      if (fileType === "pub" || fileType === "all") {
+        if (fs.existsSync(pubP)) { fs.unlinkSync(pubP); removedFiles.push(`${walletId}.pub`); }
+      }
+      if (fileType === "addr" || fileType === "all") {
+        if (fs.existsSync(addrP)) { fs.unlinkSync(addrP); removedFiles.push(`${walletId}.addr`); }
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        walletId,
+        removedFiles,
+      });
+    }
+
+    // =========================================================================
+    // 9. POST /api/m1/tx/send (Step 4: Sign & Send Transaction)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/tx/send") {
+      const body = await readJsonBody(req);
+      const store = loadStore();
+      const fromId = (body.fromId || store.activeId || "").trim();
+      const toId = (body.toId || "").trim();
+      const amount = Number(body.amount);
+      const memo = String(body.memo || "Transfer Coins").trim();
+      const attachSignature = body.sign !== false;
+
+      const senderMeta = store.wallets.find((w) => w.id === fromId);
+      const recipientMeta = store.wallets.find((w) => w.id === toId);
+
+      if (!senderMeta) {
+        return sendJson(res, 400, { error: "Sender wallet not found." });
+      }
+      if (!recipientMeta) {
+        return sendJson(res, 400, { error: "Recipient wallet not found." });
+      }
+      if (!amount || amount <= 0) {
+        return sendJson(res, 400, { error: "Amount must be greater than 0." });
+      }
+
+      const senderDir = getWalletDir(fromId);
+      const recipientDir = getWalletDir(toId);
+      const senderKeyP = path.join(senderDir, `${fromId}.key`);
+      const senderPubP = path.join(senderDir, `${fromId}.pub`);
+      const senderAddrP = path.join(senderDir, `${fromId}.addr`);
+      const recipientAddrP = path.join(recipientDir, `${toId}.addr`);
+
+      if (!fs.existsSync(senderAddrP) || !fs.existsSync(senderPubP)) {
+        return sendJson(res, 400, {
+          error: `Sender '${senderMeta.name}' has not completed Step 1–3 (Address derivation) yet!`,
+        });
+      }
+      if (!fs.existsSync(recipientAddrP)) {
+        return sendJson(res, 400, {
+          error: `Recipient '${recipientMeta.name}' does not have a blockchain address (.addr) yet!`,
+        });
+      }
+      if (attachSignature && !fs.existsSync(senderKeyP)) {
+        return sendJson(res, 400, {
+          error: `Sender '${senderMeta.name}' is missing private key (${fromId}.key) required to sign transaction!`,
+        });
+      }
+      if (senderMeta.balance < amount) {
+        return sendJson(res, 400, {
+          error: `Insufficient balance! ${senderMeta.name} has ${senderMeta.balance} Coins, tried to send ${amount} Coins.`,
+        });
+      }
+
+      const fromAddress = fs.readFileSync(senderAddrP, "utf-8").trim();
+      const toAddress = fs.readFileSync(recipientAddrP, "utf-8").trim();
+      const senderPubPem = fs.readFileSync(senderPubP, "utf-8").trim();
+      const pubInfo = inspectPublicKeyPem(senderPubPem);
+
+      const txId = `tx_${Date.now()}`;
+      const nonce = senderMeta.nonce;
+      const timestamp = Date.now();
+
+      const txData: TransactionData = {
+        from: fromAddress,
+        to: toAddress,
+        amount,
         nonce,
-      });
-    }
-
-    // -------------------------------------------------------------------------
-    // 5. POST /api/m1/transactions/verify: Cryptographically verify any SignedTransaction
-    // -------------------------------------------------------------------------
-    if (req.method === "POST" && pathname === "/api/m1/transactions/verify") {
-      const body = await parseJsonBody(req);
-      const signedTx = body.signedTx as SignedTransaction;
-
-      if (!signedTx || !signedTx.data || !signedTx.signatureHex || !signedTx.senderPublicKeyHex) {
-        return sendJson(res, 400, { error: "Invalid SignedTransaction structure" });
-      }
-
-      // Detailed step-by-step verification
-      const rawPubBuffer = Buffer.from(signedTx.senderPublicKeyHex, "hex");
-      const spkiPrefix = Buffer.from("3056301006072a8648ce3d020106052b8104000a034200", "hex");
-      const fullSpkiDer = Buffer.concat([spkiPrefix, rawPubBuffer]);
-
-      let publicKey: crypto.KeyObject | null = null;
-      let addressMatches = false;
-      let derivedAddress = "";
-      let signatureValid = false;
-      let malformedKey = false;
-
-      try {
-        publicKey = crypto.createPublicKey({
-          key: fullSpkiDer,
-          format: "der",
-          type: "spki",
-        });
-      } catch {
-        malformedKey = true;
-      }
-
-      if (publicKey) {
-        // Derive address manually for visual inspection
-        const spki = publicKey.export({ type: "spki", format: "der" });
-        const rawPub = spki.subarray(spki.length - 65);
-        const coords = rawPub.subarray(1);
-        const hash = crypto.createHash("sha3-256").update(coords).digest();
-        derivedAddress = "0x" + hash.subarray(hash.length - 20).toString("hex");
-
-        addressMatches = derivedAddress.toLowerCase() === signedTx.data.from.toLowerCase();
-
-        const txHash = hashTransaction(signedTx.data);
-        const signatureBuffer = Buffer.from(signedTx.signatureHex, "hex");
-        signatureValid = crypto.verify("SHA256", txHash, publicKey, signatureBuffer);
-      }
-
-      const result = verifyTransaction(signedTx);
-      const canonicalJson = serializeTransaction(signedTx.data);
-      const txHashHex = hashTransaction(signedTx.data).toString("hex");
-
-      return sendJson(res, 200, {
-        isValid: result.isValid,
-        reason: result.reason || "Cryptographic verification succeeded without any central CA!",
-        proofs: {
-          canonicalJson,
-          txHashHex,
-          claimedSender: signedTx.data.from,
-          derivedAddressFromPubKey: derivedAddress,
-          addressMatches,
-          signatureValid,
-          malformedKey,
-        },
-      });
-    }
-
-    // -------------------------------------------------------------------------
-    // 6. POST /api/m1/transactions/broadcast: Verify, enforce balance/nonce, and execute
-    // -------------------------------------------------------------------------
-    if (req.method === "POST" && pathname === "/api/m1/transactions/broadcast") {
-      const body = await parseJsonBody(req);
-      const signedTx = body.signedTx as SignedTransaction;
-
-      if (!signedTx || !signedTx.data) {
-        return sendJson(res, 400, { error: "Missing signedTx" });
-      }
-
-      // Step 1: Cryptographic verification
-      const verifyResult = verifyTransaction(signedTx);
-      const txHashHex = hashTransaction(signedTx.data).toString("hex");
-
-      if (!verifyResult.isValid) {
-        const rejectedTx: RecordedTransaction = {
-          id: "tx-" + Date.now(),
-          txHash: txHashHex,
-          signedTx,
-          status: "rejected",
-          recordedAt: Date.now(),
-          reason: verifyResult.reason,
-        };
-        transactions.unshift(rejectedTx);
-        return sendJson(res, 400, {
-          success: false,
-          error: `Cryptographic rejection: ${verifyResult.reason}`,
-          tx: rejectedTx,
-        });
-      }
-
-      // Step 2: Blockchain State Verification (Nonce & Balance)
-      const senderAcc = accounts.get(signedTx.data.from.toLowerCase());
-      if (!senderAcc) {
-        return sendJson(res, 400, {
-          success: false,
-          error: "Sender address has no balance or history on this node",
-        });
-      }
-
-      if (signedTx.data.nonce !== senderAcc.nonce) {
-        return sendJson(res, 400, {
-          success: false,
-          error: `Invalid Nonce! Expected ${senderAcc.nonce}, received ${signedTx.data.nonce} (Replay Attack Prevention)`,
-        });
-      }
-
-      if (senderAcc.balance < signedTx.data.amount) {
-        return sendJson(res, 400, {
-          success: false,
-          error: `Insufficient balance! Account has ${senderAcc.balance} coins, tried to spend ${signedTx.data.amount}`,
-        });
-      }
-
-      // Step 3: Execute transfer
-      senderAcc.balance -= signedTx.data.amount;
-      senderAcc.nonce += 1;
-
-      const recipientAcc = accounts.get(signedTx.data.to.toLowerCase());
-      if (recipientAcc) {
-        recipientAcc.balance += signedTx.data.amount;
-      }
-
-      const recordedTx: RecordedTransaction = {
-        id: "tx-" + Date.now(),
-        txHash: txHashHex,
-        signedTx,
-        status: "broadcasted",
-        recordedAt: Date.now(),
+        timestamp,
       };
-      transactions.unshift(recordedTx);
+
+      const canonicalJson = serializeTransaction(txData);
+      const txHashBuf = hashTransaction(txData);
+      const txHashHex = txHashBuf.toString("hex");
+
+      const txFile = `transactions/${txId}.json`;
+      fs.writeFileSync(path.join(M1_DIR, txFile), canonicalJson, "utf-8");
+
+      const logs: OpenSSLLog[] = [];
+      let signatureHex = "";
+      let sigFile: string | undefined = undefined;
+
+      if (attachSignature) {
+        sigFile = `transactions/${txId}.sig`;
+        logs.push(
+          runM1OpenSSL([
+            "dgst",
+            "-sha256",
+            "-sign",
+            `wallets/${fromId}/${fromId}.key`,
+            "-out",
+            sigFile,
+            txFile,
+          ])
+        );
+        const sigBuf = fs.readFileSync(path.join(M1_DIR, sigFile));
+        signatureHex = sigBuf.toString("hex");
+
+        // Deduct from sender and credit recipient on valid signed broadcast
+        senderMeta.balance -= amount;
+        senderMeta.nonce += 1;
+        recipientMeta.balance += amount;
+        saveStore(store);
+      }
+
+      const record: TxRecord = {
+        id: txId,
+        fromId,
+        fromName: senderMeta.name,
+        fromAddress,
+        toId,
+        toName: recipientMeta.name,
+        toAddress,
+        amount,
+        nonce,
+        memo,
+        timestamp,
+        signed: attachSignature,
+        canonicalJson,
+        txHashHex,
+        signatureHex,
+        senderPublicKeyHex: pubInfo.publicKeyFullHex,
+        senderPubKeyPem: senderPubPem,
+        txFile,
+        sigFile,
+        tampered: false,
+        verifiedState: "unverified",
+      };
+
+      const allTxs = loadTxs();
+      allTxs.unshift(record);
+      saveTxs(allTxs);
 
       return sendJson(res, 200, {
         success: true,
-        message: "Transaction accepted and confirmed by network consensus rules!",
-        tx: recordedTx,
-        senderNewBalance: senderAcc.balance,
-        senderNewNonce: senderAcc.nonce,
-        recipientNewBalance: recipientAcc?.balance,
+        tx: record,
+        opensslLogs: logs,
       });
     }
 
-    // -------------------------------------------------------------------------
-    // 7. POST /api/m1/attack-simulation: Execute live interactive attack scenarios
-    // -------------------------------------------------------------------------
-    if (req.method === "POST" && pathname === "/api/m1/attack-simulation") {
-      const body = await parseJsonBody(req);
-      const attackType = body.attackType as string;
+    // =========================================================================
+    // 10. POST /api/m1/tx/verify (Step 5: Zero-Trust Verification without CA)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/tx/verify") {
+      const body = await readJsonBody(req);
+      const txId = (body.txId || "").trim();
+      const allTxs = loadTxs();
+      const tx = allTxs.find((t) => t.id === txId);
 
-      // Use existing wallets or generate standalone ephemeral actors for the simulation
-      let alice = Array.from(accounts.values()).find((a) => a.wallet.name.toLowerCase().includes("alice"))?.wallet;
-      let bob = Array.from(accounts.values()).find((a) => a.wallet.name.toLowerCase().includes("bob"))?.wallet;
-      let mallory = Array.from(accounts.values()).find((a) => a.wallet.name.toLowerCase().includes("mallory"))?.wallet;
-
-      if (!alice) alice = createWallet("Alice");
-      if (!bob) bob = createWallet("Bob");
-      if (!mallory) mallory = createWallet("Mallory (Attacker)");
-
-      // Base legitimate transaction: Alice sends 15 coins to Bob
-      const originalTx = signTransaction(alice, bob.address, 15, 0);
-      const originalHash = hashTransaction(originalTx.data).toString("hex");
-
-      let tamperedTx: SignedTransaction;
-      let title = "";
-      let description = "";
-      let failureStep = "";
-      let explanation = "";
-
-      if (attackType === "tamper_amount") {
-        title = "Attack 1: Tampering With Transaction Amount";
-        description = "Mallory intercepts Alice's transaction in transit and changes 'amount' from 15 to 1,500 coins.";
-        tamperedTx = {
-          ...originalTx,
-          data: {
-            ...originalTx.data,
-            amount: 1500, // Altered
-          },
-        };
-        failureStep = "Step 3: ECDSA Signature Verification (crypto.verify)";
-        explanation =
-          "The signature was created using the SHA-256 hash of the original data (`amount: 15`). Modifying the amount to `1500` produces a completely different hash. Mathematically, Alice's original signature fails to verify against the new hash. Math rejects it without contacting any CA!";
-      } else if (attackType === "hijack_recipient") {
-        title = "Attack 2: Hijacking the Recipient Address";
-        description = "Mallory intercepts the transaction and changes 'to' from Bob's address to Mallory's address.";
-        tamperedTx = {
-          ...originalTx,
-          data: {
-            ...originalTx.data,
-            to: mallory.address, // Altered
-          },
-        };
-        failureStep = "Step 3: ECDSA Signature Verification (crypto.verify)";
-        explanation =
-          "Because the recipient address is embedded in the signed message payload, altering the recipient address alters the message hash. Alice's signature will not validate over the altered recipient!";
-      } else if (attackType === "spoof_identity") {
-        title = "Attack 3: Identity Spoofing (Forged Sender)";
-        description = "Mallory signs a transaction spending Alice's coins, but signs it using Mallory's own private key.";
-        const spoofed = signTransaction(mallory, bob.address, 50, 0);
-        tamperedTx = {
-          ...spoofed,
-          data: {
-            ...spoofed.data,
-            from: alice.address, // Mallory claims sender is Alice!
-          },
-        };
-        failureStep = "Step 1: Public Key -> Address Derivation Match (Hash(PubKey) == From)";
-        explanation =
-          "Mallory can create a valid signature with her own private key, BUT her public key hashes to Mallory's address (`" +
-          mallory.address +
-          "`), NOT Alice's address (`" +
-          alice.address +
-          "`). The validator catches this immediately in Check 1!";
-      } else if (attackType === "replay_attack") {
-        title = "Attack 4: Transaction Replay Attack";
-        description = "Mallory broadcasts a legitimate, already-confirmed transaction a second time to drain Alice's funds.";
-        // Legitimate transaction with nonce 0
-        tamperedTx = originalTx;
-        failureStep = "Blockchain State Validation: Account Nonce Check";
-        explanation =
-          "The cryptographic signature is mathematically valid! However, every transaction includes a strictly incrementing 'nonce'. Once Alice's account processes nonce 0, her next valid transaction must have nonce 1. The validator rejects replayed transactions at the state ledger layer.";
-      } else {
-        return sendJson(res, 400, { error: "Unknown attackType. Available: tamper_amount, hijack_recipient, spoof_identity, replay_attack" });
+      if (!tx) {
+        return sendJson(res, 404, { error: "Transaction not found" });
       }
 
-      const verifyResult = verifyTransaction(tamperedTx);
-      const tamperedHash = hashTransaction(tamperedTx.data).toString("hex");
+      // Recompute canonical JSON & SHA-256 digest from current tx fields
+      const currentTxData: TransactionData = {
+        from: tx.fromAddress,
+        to: tx.toAddress,
+        amount: tx.amount,
+        nonce: tx.nonce,
+        timestamp: tx.timestamp,
+      };
+      const recomputedCanonicalJson = serializeTransaction(currentTxData);
+      const recomputedHashBuf = hashTransaction(currentTxData);
+      const recomputedHashHex = recomputedHashBuf.toString("hex");
+
+      // Proof 1: Derive address from sender's public key (SHA3-256(X || Y)[12..32])
+      let derivedAddress = "";
+      let addressMatch = false;
+      try {
+        const pubInfo = inspectPublicKeyPem(tx.senderPubKeyPem);
+        derivedAddress = pubInfo.derivedAddress;
+        addressMatch = derivedAddress.toLowerCase() === tx.fromAddress.toLowerCase();
+      } catch {
+        addressMatch = false;
+      }
+
+      // Proof 2: Verify ECDSA signature using OpenSSL & Node crypto
+      let signatureMatch = false;
+      const logs: OpenSSLLog[] = [];
+
+      // Update the payload file on disk so OpenSSL verifies the current (possibly tampered) payload
+      fs.writeFileSync(path.join(M1_DIR, tx.txFile), recomputedCanonicalJson, "utf-8");
+
+      if (tx.signed && tx.signatureHex && tx.sigFile) {
+        logs.push(
+          runM1OpenSSL([
+            "dgst",
+            "-sha256",
+            "-verify",
+            `wallets/${tx.fromId}/${tx.fromId}.pub`,
+            "-signature",
+            tx.sigFile,
+            tx.txFile,
+          ])
+        );
+        try {
+          const pubKeyObj = crypto.createPublicKey(tx.senderPubKeyPem);
+          const sigBuf = Buffer.from(tx.signatureHex, "hex");
+          signatureMatch = crypto.verify("SHA256", Buffer.from(recomputedCanonicalJson, "utf-8"), pubKeyObj, sigBuf);
+        } catch {
+          signatureMatch = false;
+        }
+      }
+
+      const isValid = tx.signed && addressMatch && signatureMatch;
+      let reason = "";
+      if (!tx.signed) {
+        reason = "REJECTED: Transaction was sent without an ECDSA digital signature!";
+      } else if (!addressMatch) {
+        reason = `REJECTED (Identity Spoofing): SHA3-256(PublicKey) = ${derivedAddress}, which does NOT match sender address ${tx.fromAddress}!`;
+      } else if (!signatureMatch) {
+        reason = "REJECTED (Payload Tampered / Invalid Signature): The transaction data was modified after signing! SHA-256 digest no longer matches the ECDSA signature.";
+      } else {
+        reason = "VALIDATED (Zero-Trust): Public Key hashes to Sender Address AND ECDSA Signature matches SHA-256 payload digest. No Certificate Authority needed!";
+      }
+
+      tx.verifiedState = isValid ? "valid" : "invalid";
+      tx.verifyReason = reason;
+      tx.addressMatch = addressMatch;
+      tx.signatureMatch = signatureMatch;
+      tx.derivedAddress = derivedAddress;
+      tx.canonicalJson = recomputedCanonicalJson;
+      tx.txHashHex = recomputedHashHex;
+      saveTxs(allTxs);
 
       return sendJson(res, 200, {
-        title,
-        description,
-        attackType,
-        originalTx,
-        originalHash,
-        tamperedTx,
-        tamperedHash,
-        verificationResult: verifyResult,
-        failureStep,
-        explanation,
+        success: true,
+        isValid,
+        reason,
+        addressMatch,
+        signatureMatch,
+        derivedAddress,
+        recomputedHashHex,
+        tx,
+        opensslLogs: logs,
       });
     }
 
+    // =========================================================================
+    // 11. POST /api/m1/tx/tamper (Simulate MitM Payload Tampering Attack)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/tx/tamper") {
+      const body = await readJsonBody(req);
+      const txId = (body.txId || "").trim();
+      const allTxs = loadTxs();
+      const tx = allTxs.find((t) => t.id === txId);
+
+      if (!tx) {
+        return sendJson(res, 404, { error: "Transaction not found" });
+      }
+
+      if (!tx.tampered) {
+        tx.originalAmount = tx.amount;
+        tx.amount = tx.amount + 1000;
+        tx.tampered = true;
+      } else {
+        // Restore original amount if clicked again (toggle)
+        if (tx.originalAmount !== undefined) {
+          tx.amount = tx.originalAmount;
+        }
+        tx.tampered = false;
+      }
+
+      const updatedData: TransactionData = {
+        from: tx.fromAddress,
+        to: tx.toAddress,
+        amount: tx.amount,
+        nonce: tx.nonce,
+        timestamp: tx.timestamp,
+      };
+      tx.canonicalJson = serializeTransaction(updatedData);
+      tx.txHashHex = hashTransaction(updatedData).toString("hex");
+      tx.verifiedState = "unverified";
+      tx.verifyReason = undefined;
+
+      fs.writeFileSync(path.join(M1_DIR, tx.txFile), tx.canonicalJson, "utf-8");
+      saveTxs(allTxs);
+
+      return sendJson(res, 200, {
+        success: true,
+        tampered: tx.tampered,
+        tx,
+      });
+    }
+
+    // =========================================================================
+    // 12. POST /api/m1/reset (Reset all wallets & transactions to zero)
+    // =========================================================================
+    if (req.method === "POST" && pathname === "/api/m1/reset") {
+      [WALLETS_DIR, TXS_DIR].forEach((dir) => {
+        if (fs.existsSync(dir)) {
+          try {
+            fs.rmSync(dir, { recursive: true, force: true });
+          } catch {}
+        }
+        try {
+          fs.mkdirSync(dir, { recursive: true });
+        } catch {}
+      });
+      const initial: M1Store = { activeRole: "node", activeId: "", wallets: [] };
+      saveStore(initial);
+      saveTxs([]);
+      return sendJson(res, 200, { success: true, message: "All wallets and transactions reset to zero." });
+    }
+
     // -------------------------------------------------------------------------
-    // 8. STATIC FILE SERVER
+    // STATIC FILE SERVER
     // -------------------------------------------------------------------------
-    let filePath = pathname === "/" ? path.join(PUBLIC_DIR, "index.html") : path.join(PUBLIC_DIR, pathname);
+    let filePath =
+      pathname === "/" ? path.join(PUBLIC_DIR, "index.html") : path.join(PUBLIC_DIR, pathname);
     if (!filePath.startsWith(PUBLIC_DIR)) {
       res.writeHead(403);
       return res.end("Forbidden");
@@ -475,27 +901,27 @@ const server = http.createServer(async (req, res) => {
       const contentType = MIME_TYPES[ext] || "application/octet-stream";
       res.writeHead(200, {
         "Content-Type": contentType,
-        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
       });
       return fs.createReadStream(filePath).pipe(res);
     }
 
-    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.writeHead(404);
     res.end("Not Found");
   } catch (err: any) {
     console.error("Server error:", err);
-    sendJson(res, 500, { error: err.message || "Internal server error" });
+    sendJson(res, 500, { error: err.message || "Internal Server Error" });
   }
 });
 
-export { server };
-
-const PORT = Number(process.env.PORT || 3001);
 if (process.env.TEST_MODE !== "true") {
   server.listen(PORT, () => {
     console.log(`\n===============================================================`);
-    console.log(` ⛓️  Module 1: Blockchain Cryptography & Wallets UI`);
-    console.log(` 🌐 Running at http://localhost:${PORT}`);
+    console.log(` ⛓️  Module 1: Cryptography & Wallets running at http://localhost:${PORT}`);
     console.log(`===============================================================\n`);
   });
 }
+
+export { server };
