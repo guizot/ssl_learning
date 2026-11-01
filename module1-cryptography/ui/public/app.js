@@ -910,12 +910,14 @@ function renderTxCardsList(container, txs, mode) {
         : "";
 
       let verifyBadge = "";
-      if (tx.verifiedState === "valid") {
-        verifyBadge = `<span class="vault-badge success"><i data-lucide="shield-check" class="w-3 h-3"></i>Zero-Trust Valid</span>`;
+      if (tx.settled && tx.verifiedState === "valid") {
+        verifyBadge = `<span class="vault-badge success"><i data-lucide="shield-check" class="w-3 h-3"></i>Confirmed &amp; Settled</span>`;
       } else if (tx.verifiedState === "invalid") {
         verifyBadge = `<span class="vault-badge danger"><i data-lucide="shield-alert" class="w-3 h-3"></i>Rejected / Invalid</span>`;
+      } else if (tx.verifiedState === "valid" && !tx.settled) {
+        verifyBadge = `<span class="vault-badge success"><i data-lucide="check" class="w-3 h-3"></i>Sig Valid (Pending Node)</span>`;
       } else {
-        verifyBadge = `<span class="vault-badge muted">Unverified</span>`;
+        verifyBadge = `<span class="vault-badge muted"><i data-lucide="clock" class="w-3 h-3"></i>Pending in Mempool</span>`;
       }
 
       const verifyBannerHtml = tx.verifyReason
@@ -939,6 +941,71 @@ function renderTxCardsList(container, txs, mode) {
       const opensslVerifyCmd = `$ openssl dgst -sha256 -verify wallets/${escapeHtml(tx.fromId)}/${escapeHtml(
         tx.fromId
       )}.pub -signature ${escapeHtml(tx.sigFile || "transactions/tx.sig")} ${escapeHtml(tx.txFile)}`;
+
+      let actionsHtml = "";
+      if (mode === "sent") {
+        if (!tx.settled) {
+          actionsHtml = `
+            <div class="inbox-actions flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5">
+              <span class="text-[11px] font-mono text-zinc-400">
+                ${
+                  tx.verifiedState === "invalid"
+                    ? "✕ Rejected in Mempool (Balance unchanged)"
+                    : "⏳ Broadcasted to Mempool · Awaiting Validator Node verification & settlement"
+                }
+              </span>
+              <button class="btn-solid btn-sm btn-go-validator inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer shrink-0">
+                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                <span>Switch to Validator Node (Step 5)</span>
+              </button>
+            </div>
+          `;
+        } else {
+          actionsHtml = `
+            <div class="text-[11px] font-mono text-emerald-400 pt-0.5">
+              ✓ Confirmed &amp; Settled by Validator Node (-${tx.amount} Coins deducted from ${escapeHtml(tx.fromName)})
+            </div>
+          `;
+        }
+      } else if (mode === "ledger") {
+        actionsHtml = `
+          <div class="inbox-actions flex items-center gap-2 pt-0.5">
+            <button class="btn-solid btn-sm btn-verify-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-settle="true">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+              <span>${tx.settled ? "Re-verify Cryptographic Proof" : "5. Verify & Settle Transaction (Zero-Trust)"}</span>
+            </button>
+            ${
+              !tx.settled
+                ? `
+              <button class="btn-solid btn-sm btn-tamper-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}">
+                <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+                <span>${tx.tampered ? "Restore Original Amount" : "Attack: Tamper in Transit (+1000)"}</span>
+              </button>
+            `
+                : ""
+            }
+          </div>
+        `;
+      } else if (mode === "inbox") {
+        actionsHtml = `
+          <div class="inbox-actions flex items-center gap-2 pt-0.5">
+            <button class="btn-solid btn-sm btn-verify-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-settle="false">
+              <i data-lucide="search-check" class="w-3.5 h-3.5"></i>
+              <span>Verify Sender Signature Locally</span>
+            </button>
+            ${
+              !tx.settled
+                ? `
+              <button class="btn-solid btn-sm btn-go-validator inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer">
+                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                <span>Go to Validator Node to Settle</span>
+              </button>
+            `
+                : `<span class="text-[11px] font-mono text-emerald-400">+${tx.amount} Coins Credited</span>`
+            }
+          </div>
+        `;
+      }
 
       return `
         <div class="inbox-item-card" id="tx-card-${escapeHtml(tx.id)}-${mode}">
@@ -995,16 +1062,7 @@ function renderTxCardsList(container, txs, mode) {
             </div>
           </details>
 
-          <div class="inbox-actions flex items-center gap-2 pt-0.5">
-            <button class="btn-solid btn-sm btn-verify-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-mode="${mode}">
-              <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-              <span>5. Verify Zero-Trust (No CA)</span>
-            </button>
-            <button class="btn-solid btn-sm btn-tamper-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-mode="${mode}">
-              <i data-lucide="flame" class="w-3.5 h-3.5"></i>
-              <span>${tx.tampered ? "Restore Original Amount" : "Attack: Tamper Amount (+1000)"}</span>
-            </button>
-          </div>
+          ${actionsHtml}
         </div>
       `;
     })
@@ -1012,15 +1070,28 @@ function renderTxCardsList(container, txs, mode) {
 
   if (window.lucide) window.lucide.createIcons();
 
+  container.querySelectorAll(".btn-go-validator").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      currentAdminSubtab = "ledger";
+      await fetch("/api/m1/select-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "node" }),
+      });
+      await syncM1State();
+    });
+  });
+
   container.querySelectorAll(".btn-verify-tx").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const txId = btn.getAttribute("data-id");
+      const settle = btn.getAttribute("data-settle") !== "false";
       btn.disabled = true;
       try {
         await fetch("/api/m1/tx/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ txId }),
+          body: JSON.stringify({ txId, settle }),
         });
         await syncM1State();
       } finally {

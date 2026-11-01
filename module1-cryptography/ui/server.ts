@@ -58,10 +58,12 @@ export interface TxRecord {
   sigFile?: string;
   tampered?: boolean;
   originalAmount?: number;
+  settled?: boolean;
   verifiedState?: "unverified" | "valid" | "invalid";
   verifyReason?: string;
   addressMatch?: boolean;
   signatureMatch?: boolean;
+  balanceMatch?: boolean;
   derivedAddress?: string;
 }
 
@@ -710,12 +712,6 @@ const server = http.createServer(async (req, res) => {
         );
         const sigBuf = fs.readFileSync(path.join(M1_DIR, sigFile));
         signatureHex = sigBuf.toString("hex");
-
-        // Deduct from sender and credit recipient on valid signed broadcast
-        senderMeta.balance -= amount;
-        senderMeta.nonce += 1;
-        recipientMeta.balance += amount;
-        saveStore(store);
       }
 
       const record: TxRecord = {
@@ -739,6 +735,7 @@ const server = http.createServer(async (req, res) => {
         txFile,
         sigFile,
         tampered: false,
+        settled: false,
         verifiedState: "unverified",
       };
 
@@ -754,17 +751,22 @@ const server = http.createServer(async (req, res) => {
     }
 
     // =========================================================================
-    // 10. POST /api/m1/tx/verify (Step 5: Zero-Trust Verification without CA)
+    // 10. POST /api/m1/tx/verify (Step 5: Zero-Trust Verification & Settlement)
     // =========================================================================
     if (req.method === "POST" && pathname === "/api/m1/tx/verify") {
       const body = await readJsonBody(req);
       const txId = (body.txId || "").trim();
+      const shouldSettle = body.settle !== false;
+      const store = loadStore();
       const allTxs = loadTxs();
       const tx = allTxs.find((t) => t.id === txId);
 
       if (!tx) {
         return sendJson(res, 404, { error: "Transaction not found" });
       }
+
+      const senderMeta = store.wallets.find((w) => w.id === tx.fromId);
+      const recipientMeta = store.wallets.find((w) => w.id === tx.toId);
 
       // Recompute canonical JSON & SHA-256 digest from current tx fields
       const currentTxData: TransactionData = {
@@ -817,22 +819,41 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      const isValid = tx.signed && addressMatch && signatureMatch;
+      // Proof 3: Balance check (if not yet settled)
+      const balanceMatch = tx.settled
+        ? true
+        : Boolean(senderMeta && senderMeta.balance >= tx.amount);
+
+      const isValid = tx.signed && addressMatch && signatureMatch && balanceMatch;
       let reason = "";
       if (!tx.signed) {
         reason = "REJECTED: Transaction was sent without an ECDSA digital signature!";
       } else if (!addressMatch) {
         reason = `REJECTED (Identity Spoofing): SHA3-256(PublicKey) = ${derivedAddress}, which does NOT match sender address ${tx.fromAddress}!`;
       } else if (!signatureMatch) {
-        reason = "REJECTED (Payload Tampered / Invalid Signature): The transaction data was modified after signing! SHA-256 digest no longer matches the ECDSA signature.";
+        reason = "REJECTED (Payload Tampered / Invalid Signature): The transaction data was modified in transit! SHA-256 digest no longer matches the ECDSA signature. Zero coins moved.";
+      } else if (!balanceMatch) {
+        reason = `REJECTED (Insufficient Funds): Sender only has ${senderMeta?.balance ?? 0} Coins, cannot settle ${tx.amount} Coins.`;
       } else {
-        reason = "VALIDATED (Zero-Trust): Public Key hashes to Sender Address AND ECDSA Signature matches SHA-256 payload digest. No Certificate Authority needed!";
+        if (!tx.settled && shouldSettle && senderMeta && recipientMeta) {
+          senderMeta.balance -= tx.amount;
+          senderMeta.nonce += 1;
+          recipientMeta.balance += tx.amount;
+          tx.settled = true;
+          saveStore(store);
+          reason = `CONFIRMED & SETTLED (Zero-Trust): Public Key hashes to Sender Address AND ECDSA Signature is valid. Transferred ${tx.amount} Coins from ${tx.fromName} to ${tx.toName}!`;
+        } else if (tx.settled) {
+          reason = `VALIDATED (Zero-Trust): Cryptographic signature and sender address are 100% authentic (Already settled on ledger).`;
+        } else {
+          reason = `VALIDATED LOCALLY (Zero-Trust): Public Key hashes to Sender Address AND ECDSA Signature is valid (Awaiting Validator Node settlement).`;
+        }
       }
 
       tx.verifiedState = isValid ? "valid" : "invalid";
       tx.verifyReason = reason;
       tx.addressMatch = addressMatch;
       tx.signatureMatch = signatureMatch;
+      tx.balanceMatch = balanceMatch;
       tx.derivedAddress = derivedAddress;
       tx.canonicalJson = recomputedCanonicalJson;
       tx.txHashHex = recomputedHashHex;
@@ -841,9 +862,11 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         success: true,
         isValid,
+        settled: Boolean(tx.settled),
         reason,
         addressMatch,
         signatureMatch,
+        balanceMatch,
         derivedAddress,
         recomputedHashHex,
         tx,
