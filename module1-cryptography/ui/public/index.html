@@ -162,9 +162,9 @@
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
                 <i data-lucide="wallet" class="w-4 h-4 text-zinc-400"></i>
-                <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Wallet Directory &amp; Step Progress</h2>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Wallet Directory</h2>
               </div>
-              <p class="text-xs text-zinc-400">Add a wallet below, then switch to its role to execute Step 1 (.key) &rarr; Step 2 (.pub) &rarr; Step 3 (.addr)</p>
+              <p class="text-xs text-zinc-400">Add a wallet below, then switch to its role to generate Private Key (.key), Public Key (.pub), and Address (.addr)</p>
             </div>
             <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
               <button id="btn-open-add-wallet" class="btn-solid h-9 sm:h-8 px-3 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 shrink-0 w-full sm:w-auto cursor-pointer" title="Add new wallet">
@@ -209,7 +209,7 @@
     <!-- ===================================================================== -->
     <div id="view-client" class="role-view space-y-5" style="display: none;">
 
-      <!-- Wallet Store Status Card (3 Step File Badges) -->
+      <!-- Wallet Store Status Card (3 File Badges) -->
       <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
         <div class="section-header flex items-center justify-between cursor-pointer select-none">
           <div class="space-y-0.5">
@@ -228,21 +228,21 @@
         </div>
 
         <div class="section-content">
-          <!-- 3 Step Files Pills (.key -> .pub -> .addr) -->
+          <!-- 3 Files Pills (.key -> .pub -> .addr) -->
           <div class="flex flex-wrap items-center gap-1.5 sm:grid sm:grid-cols-3 sm:gap-2 w-full text-[11px] sm:text-xs font-mono">
             <div id="fb-client-key" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
               <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-              <span id="fn-client-key" class="text-zinc-300">Step 1: .key</span>
+              <span id="fn-client-key" class="text-zinc-300">.key</span>
               <span id="fs-client-key" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
             </div>
             <div id="fb-client-pub" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
               <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-              <span id="fn-client-pub" class="text-zinc-300">Step 2: .pub</span>
+              <span id="fn-client-pub" class="text-zinc-300">.pub</span>
               <span id="fs-client-pub" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
             </div>
             <div id="fb-client-addr" class="f-badge inline-flex sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 h-7 sm:h-8 rounded-lg bg-zinc-950 border border-zinc-800 text-center sm:w-full">
               <span class="w-1.5 h-1.5 rounded-full bg-zinc-600 f-dot shrink-0"></span>
-              <span id="fn-client-addr" class="text-zinc-300">Step 3: .addr</span>
+              <span id="fn-client-addr" class="text-zinc-300">.addr</span>
               <span id="fs-client-addr" class="f-state text-zinc-500 text-[10px] sm:text-[11px]">not created</span>
             </div>
           </div>
@@ -252,7 +252,7 @@
       <!-- WALLET SEGMENTED SUBTABS -->
       <nav class="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg overflow-x-auto text-[11px] sm:text-xs font-medium" id="client-subtabs-nav">
         <button class="subtab-btn active flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-medium text-center shrink-0 sm:shrink whitespace-nowrap" data-subtab="identity">
-          Identity &amp; Keys (Step 1&ndash;3)
+          Identity &amp; Keys
         </button>
         <button class="subtab-btn flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-medium text-center shrink-0 sm:shrink whitespace-nowrap" data-subtab="send">
           Sent Transactions (<span id="sent-tab-count">0</span>)
@@ -262,18 +262,18 @@
         </button>
       </nav>
 
-      <!-- SUBTAB 1: STEP-BY-STEP IDENTITY & KEYS (STEP 1 -> STEP 2 -> STEP 3) -->
+      <!-- SUBTAB 1: IDENTITY & KEYS -->
       <div id="subtab-identity" class="subtab-panel space-y-4">
 
         <!-- =============================================================== -->
-        <!-- STEP 1 CARD: GENERATE PRIVATE KEY (.key) -->
+        <!-- GENERATE PRIVATE KEY (.key) -->
         <!-- =============================================================== -->
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
           <div class="section-header flex items-center justify-between cursor-pointer select-none">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
-                <span class="w-5 h-5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-200 text-[11px] font-mono font-bold flex items-center justify-center">1</span>
-                <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Step 1: Generate Private Key (.key)</h2>
+                <i data-lucide="key" class="w-4 h-4 text-zinc-400"></i>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Generate Private Key (.key)</h2>
                 <span id="badge-step1-status" class="vault-badge muted">Pending</span>
               </div>
               <p class="text-xs text-zinc-400">Generate a random 256-bit secret number on the <code class="text-zinc-300">secp256k1</code> elliptic curve via OpenSSL</p>
@@ -298,10 +298,10 @@
               </div>
             </details>
 
-            <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+            <div class="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2 w-full">
               <button id="btn-step1-gen-key" class="btn-solid h-9 sm:h-8 w-full sm:flex-1">
                 <i data-lucide="key" class="w-3.5 h-3.5"></i>
-                <span id="label-step1-btn">1. Generate Private Key (.key)</span>
+                <span id="label-step1-btn">Generate Private Key (.key)</span>
               </button>
               <button id="btn-step1-remove-key" class="btn-solid h-9 sm:h-8 w-full sm:w-auto px-3" style="display: none;" title="Delete Private Key">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -312,15 +312,15 @@
         </section>
 
         <!-- =============================================================== -->
-        <!-- STEP 2 CARD: DERIVE PUBLIC KEY (.pub) -->
+        <!-- DERIVE PUBLIC KEY (.pub) -->
         <!-- =============================================================== -->
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
           <div class="section-header flex items-center justify-between cursor-pointer select-none">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
-                <span class="w-5 h-5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-200 text-[11px] font-mono font-bold flex items-center justify-center">2</span>
-                <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Step 2: Derive Public Key (.pub)</h2>
-                <span id="badge-step2-status" class="vault-badge muted">Requires Step 1</span>
+                <i data-lucide="unlock" class="w-4 h-4 text-zinc-400"></i>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Derive Public Key (.pub)</h2>
+                <span id="badge-step2-status" class="vault-badge muted">Requires .key</span>
               </div>
               <p class="text-xs text-zinc-400">Multiply Private Key scalar by generator point <code class="text-zinc-300">G</code> to derive Public Key coordinates <code class="text-zinc-300">(X, Y)</code></p>
             </div>
@@ -344,10 +344,10 @@
               </div>
             </details>
 
-            <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+            <div class="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2 w-full">
               <button id="btn-step2-gen-pub" class="btn-solid h-9 sm:h-8 w-full sm:flex-1" disabled>
                 <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
-                <span id="label-step2-btn">2. Derive Public Key (.pub)</span>
+                <span id="label-step2-btn">Derive Public Key (.pub)</span>
               </button>
               <button id="btn-step2-remove-pub" class="btn-solid h-9 sm:h-8 w-full sm:w-auto px-3" style="display: none;" title="Delete Public Key">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -358,15 +358,15 @@
         </section>
 
         <!-- =============================================================== -->
-        <!-- STEP 3 CARD: DERIVE BLOCKCHAIN ADDRESS (.addr) -->
+        <!-- DERIVE BLOCKCHAIN ADDRESS (.addr) -->
         <!-- =============================================================== -->
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
           <div class="section-header flex items-center justify-between cursor-pointer select-none">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
-                <span class="w-5 h-5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-200 text-[11px] font-mono font-bold flex items-center justify-center">3</span>
-                <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Step 3: Derive Blockchain Address (.addr)</h2>
-                <span id="badge-step3-status" class="vault-badge muted">Requires Step 2</span>
+                <i data-lucide="hash" class="w-4 h-4 text-zinc-400"></i>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Derive Blockchain Address (.addr)</h2>
+                <span id="badge-step3-status" class="vault-badge muted">Requires .pub</span>
               </div>
               <p class="text-xs text-zinc-400">Compute <code class="text-zinc-300">SHA3-256(X || Y)</code> and take the last 20 bytes (<code class="text-zinc-300">0x...</code>) as your self-certifying Web3 identity (Zero CA!)</p>
             </div>
@@ -390,14 +390,14 @@
               </div>
             </details>
 
-            <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+            <div class="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2 w-full">
               <button id="btn-step3-gen-addr" class="btn-solid h-9 sm:h-8 w-full sm:flex-1" disabled>
                 <i data-lucide="hash" class="w-3.5 h-3.5"></i>
-                <span id="label-step3-btn">3. Derive Blockchain Address (0x...)</span>
+                <span id="label-step3-btn">Derive Blockchain Address (0x...)</span>
               </button>
-              <button id="btn-step3-faucet" class="btn-solid h-9 sm:h-8 w-full sm:w-auto px-3" style="display: none;" title="Request 100 test coins from faucet">
+              <button id="btn-step3-faucet" class="btn-solid h-9 sm:h-8 w-full sm:flex-1 px-3" style="display: none;" title="Request 100 test coins from faucet">
                 <i data-lucide="coins" class="w-3.5 h-3.5"></i>
-                <span>Request Testnet Faucet (+100 Coins)</span>
+                <span>Testnet Faucet (+100 Coins)</span>
               </button>
               <button id="btn-step3-remove-addr" class="btn-solid h-9 sm:h-8 w-full sm:w-auto px-3" style="display: none;" title="Delete Address">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -417,7 +417,7 @@
                 <i data-lucide="file-code" class="w-4 h-4 text-zinc-400"></i>
                 <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Generated Keys &amp; Address Inspector</h2>
               </div>
-              <p class="text-xs text-zinc-400">Inspect the raw mathematical values produced in Step 1, Step 2, and Step 3</p>
+              <p class="text-xs text-zinc-400">Inspect the raw mathematical values for your Private Key, Public Key, and Address</p>
             </div>
             <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
               <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
@@ -425,12 +425,12 @@
           </div>
 
           <div class="section-content space-y-2.5">
-            <!-- Accordion 1: Step 1 Private Key Details -->
+            <!-- Accordion 1: Private Key Details -->
             <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-key" style="display: none;">
               <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
                 <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                   <i data-lucide="key" class="w-3.5 h-3.5"></i>
-                  <span>Step 1 Artifact: Private Key (.key PEM &amp; 256-bit Hex)</span>
+                  <span>Private Key (.key PEM &amp; 256-bit Hex)</span>
                 </span>
                 <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
                 <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
@@ -451,12 +451,12 @@
               </div>
             </details>
 
-            <!-- Accordion 2: Step 2 Public Key Details -->
+            <!-- Accordion 2: Public Key Details -->
             <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-pub" style="display: none;">
               <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
                 <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                   <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
-                  <span>Step 2 Artifact: Public Key (.pub PEM &amp; Curve Point X, Y)</span>
+                  <span>Public Key (.pub PEM &amp; Curve Point X, Y)</span>
                 </span>
                 <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
                 <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
@@ -480,12 +480,12 @@
               </div>
             </details>
 
-            <!-- Accordion 3: Step 3 Blockchain Address Details -->
+            <!-- Accordion 3: Blockchain Address Details -->
             <details class="group rounded-lg border border-zinc-800 bg-zinc-950 text-xs overflow-hidden" id="client-details-addr" style="display: none;">
               <summary class="px-3 cursor-pointer select-none flex items-center justify-between">
                 <span class="text-[10px] uppercase font-bold text-zinc-500 font-mono tracking-wider group-hover:text-zinc-300 transition-colors flex items-center gap-1.5">
                   <i data-lucide="hash" class="w-3.5 h-3.5"></i>
-                  <span>Step 3 Artifact: Blockchain Address (.addr &amp; SHA3-256 Slice)</span>
+                  <span>Blockchain Address (.addr &amp; SHA3-256 Slice)</span>
                 </span>
                 <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors group-open:hidden">Show</span>
                 <span class="text-zinc-500 text-[10px] font-mono group-hover:text-zinc-400 transition-colors hidden group-open:inline">Hide</span>
@@ -514,14 +514,14 @@
 
       </div>
 
-      <!-- SUBTAB 2: SENT TRANSACTIONS (STEP 4: SIGN & BROADCAST) -->
+      <!-- SUBTAB 2: SENT TRANSACTIONS (SIGN & BROADCAST) -->
       <div id="subtab-send" class="subtab-panel space-y-4" style="display: none;">
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm" id="section-sent-messages">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
                 <i data-lucide="send" class="w-4 h-4 text-zinc-400"></i>
-                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Step 4: Sent Transactions (Outbox)</h3>
+                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Sent Transactions (Outbox)</h3>
               </div>
               <p class="text-xs text-zinc-400">Transactions signed with <span id="sent-owner-name">-</span>'s private key and broadcasted to the network.</p>
             </div>
@@ -547,14 +547,14 @@
         </section>
       </div>
 
-      <!-- SUBTAB 3: INBOX / RECEIVED TRANSACTIONS (STEP 5: VERIFY & TAMPER) -->
+      <!-- SUBTAB 3: INBOX / RECEIVED TRANSACTIONS (VERIFY & TAMPER) -->
       <div id="subtab-inbox" class="subtab-panel space-y-4" style="display: none;">
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="space-y-0.5">
               <div class="flex items-center gap-2">
                 <i data-lucide="inbox" class="w-4 h-4 text-zinc-400"></i>
-                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Step 5: Received Transactions for <span id="inbox-owner-name">-</span></h3>
+                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Received Transactions for <span id="inbox-owner-name">-</span></h3>
               </div>
               <p class="text-xs text-zinc-400">Verify sender authenticity &amp; integrity mathematically using only their Public Key &amp; Address (Zero CA!).</p>
             </div>
@@ -588,7 +588,7 @@
             <i data-lucide="user-plus" class="w-4 h-4 text-zinc-400"></i>
             <h3 class="text-sm font-semibold tracking-wide text-zinc-100">Add New Wallet</h3>
           </div>
-          <p class="text-xs text-zinc-400">Create an empty wallet slot to practice Step 1 (.key) &rarr; Step 2 (.pub) &rarr; Step 3 (.addr)</p>
+          <p class="text-xs text-zinc-400">Create a wallet slot to generate Private Key (.key), Public Key (.pub), and Address (.addr)</p>
         </div>
         <button id="btn-close-modal-add-wallet" class="text-zinc-500 hover:text-zinc-300 p-1 rounded-lg hover:bg-zinc-800 transition-colors" title="Close">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -671,7 +671,7 @@
         <i data-lucide="alert-circle" class="w-4 h-4 text-amber-400 shrink-0 mt-0.5"></i>
         <div class="space-y-1">
           <strong class="font-semibold text-amber-300">No Eligible Recipient Wallets Found</strong>
-          <p class="text-zinc-300">To send coins, you need another wallet that has completed <strong>Step 3 (Address Derivation)</strong>. Click <strong>Role &rarr; Add new wallet...</strong> to create Bob and derive his <code class="text-amber-200">0x...</code> address first.</p>
+          <p class="text-zinc-300">To send coins, you need another wallet that has derived a <strong>Blockchain Address (.addr)</strong>. Click <strong>Role &rarr; Add new wallet...</strong> to create Bob and derive his <code class="text-amber-200">0x...</code> address first.</p>
         </div>
       </div>
 
@@ -753,7 +753,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=9.0" type="module"></script>
+  <script src="/app.js?v=9.2" type="module"></script>
   <script>
     // Theme Switcher (System / Light / Dark)
     const savedTheme = localStorage.getItem("ca_lab_theme") || "system";

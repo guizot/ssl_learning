@@ -180,24 +180,19 @@ function renderRoleSelector() {
       const isWalletActive = m1State.activeRole === w.id;
       const initial = (w.name || "W").charAt(0).toUpperCase();
       let statusBadge = "";
-      let stepTag = "step 0/3";
 
       if (w.addrExists && w.pubExists && w.keyExists) {
         statusBadge = `<span class="text-[10px] font-mono text-emerald-400">✓ Ready (${w.balance} Coins)</span>`;
-        stepTag = "✓ 3/3";
       } else if (w.pubExists && w.keyExists) {
-        statusBadge = `<span class="text-[10px] font-mono text-amber-400">Step 2/3 (.pub)</span>`;
-        stepTag = "2/3";
+        statusBadge = `<span class="text-[10px] font-mono text-amber-400">Public Key (.pub)</span>`;
       } else if (w.keyExists) {
-        statusBadge = `<span class="text-[10px] font-mono text-zinc-400">Step 1/3 (.key)</span>`;
-        stepTag = "1/3";
+        statusBadge = `<span class="text-[10px] font-mono text-zinc-400">Private Key (.key)</span>`;
       } else {
-        statusBadge = `<span class="text-[10px] font-mono text-zinc-500">Step 0/3 (Empty)</span>`;
-        stepTag = "0/3";
+        statusBadge = `<span class="text-[10px] font-mono text-zinc-500">Empty</span>`;
       }
 
       if (isWalletActive) {
-        activeText = `${w.name} (${stepTag})`;
+        activeText = w.name;
       }
 
       itemsHtml += `
@@ -457,24 +452,24 @@ function renderNodeView() {
           const initial = (w.name || "W").charAt(0).toUpperCase();
 
           const step1Badge = w.keyExists
-            ? `<span class="vault-badge success"><i data-lucide="key" class="w-3 h-3"></i>1. .key</span>`
-            : `<span class="vault-badge muted">1. No .key</span>`;
+            ? `<span class="vault-badge success"><i data-lucide="key" class="w-3 h-3"></i>.key</span>`
+            : `<span class="vault-badge muted">No .key</span>`;
 
           const step2Badge = w.pubExists
-            ? `<span class="vault-badge success"><i data-lucide="unlock" class="w-3 h-3"></i>2. .pub</span>`
-            : `<span class="vault-badge muted">2. No .pub</span>`;
+            ? `<span class="vault-badge success"><i data-lucide="unlock" class="w-3 h-3"></i>.pub</span>`
+            : `<span class="vault-badge muted">No .pub</span>`;
 
           const step3Badge = w.addrExists
-            ? `<span class="vault-badge success"><i data-lucide="hash" class="w-3 h-3"></i>3. .addr</span>`
-            : `<span class="vault-badge muted">3. No .addr</span>`;
+            ? `<span class="vault-badge success"><i data-lucide="hash" class="w-3 h-3"></i>.addr</span>`
+            : `<span class="vault-badge muted">No .addr</span>`;
 
-          let statusDesc = "Step 0/3 · Switch to this wallet role to generate Step 1 (.key)";
+          let statusDesc = "No keys generated yet · Switch to this wallet role to generate Private Key (.key)";
           if (w.addrExists && w.pubExists && w.keyExists) {
             statusDesc = `Address: ${w.address} · Balance: ${w.balance} Coins · Nonce: ${w.nonce}`;
           } else if (w.pubExists && w.keyExists) {
-            statusDesc = "Step 2/3 complete (.key & .pub ready) · Awaiting Step 3 (SHA3-256 Address derivation)";
+            statusDesc = "Private Key (.key) & Public Key (.pub) ready · Awaiting Address (.addr) derivation";
           } else if (w.keyExists) {
-            statusDesc = "Step 1/3 complete (.key ready) · Awaiting Step 2 (Public Key derivation)";
+            statusDesc = "Private Key (.key) ready · Awaiting Public Key (.pub) derivation";
           }
 
           return `
@@ -509,7 +504,7 @@ function renderNodeView() {
               <div class="flex items-center gap-2 pt-0.5">
                 <button class="btn-solid btn-sm btn-open-wallet-role inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 cursor-pointer" data-id="${escapeHtml(w.id)}">
                   <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                  <span>Open ${escapeHtml(w.name)} (Step-by-Step)</span>
+                  <span>Open ${escapeHtml(w.name)}</span>
                 </button>
               </div>
             </div>
@@ -617,7 +612,7 @@ function renderWalletClientView() {
     fsAddr.textContent = "not created";
   }
 
-  // Step 1 UI State
+  // Private Key (.key) UI State
   const badgeStep1 = document.getElementById("badge-step1-status");
   const labelStep1 = document.getElementById("label-step1-btn");
   const btnRemoveKey = document.getElementById("btn-step1-remove-key");
@@ -628,16 +623,16 @@ function renderWalletClientView() {
   if (activeWallet.keyExists) {
     badgeStep1.className = "vault-badge success";
     badgeStep1.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i>Created`;
-    labelStep1.textContent = "1. Re-generate Private Key (.key)";
+    labelStep1.textContent = "Re-generate Private Key (.key)";
     btnRemoveKey.style.display = "inline-flex";
   } else {
     badgeStep1.className = "vault-badge muted";
     badgeStep1.textContent = "Pending";
-    labelStep1.textContent = "1. Generate Private Key (.key)";
+    labelStep1.textContent = "Generate Private Key (.key)";
     btnRemoveKey.style.display = "none";
   }
 
-  // Step 2 UI State
+  // Public Key (.pub) UI State
   const badgeStep2 = document.getElementById("badge-step2-status");
   const btnStep2 = document.getElementById("btn-step2-gen-pub");
   const labelStep2 = document.getElementById("label-step2-btn");
@@ -652,16 +647,16 @@ function renderWalletClientView() {
     badgeStep2.innerHTML = activeWallet.pubMatchesKey
       ? `<i data-lucide="check" class="w-3 h-3"></i>Derived`
       : `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Key Mismatch`;
-    labelStep2.textContent = "2. Re-derive Public Key (.pub)";
+    labelStep2.textContent = "Re-derive Public Key (.pub)";
     btnRemovePub.style.display = "inline-flex";
   } else {
     badgeStep2.className = "vault-badge muted";
-    badgeStep2.textContent = activeWallet.keyExists ? "Ready for Step 2" : "Requires Step 1";
-    labelStep2.textContent = "2. Derive Public Key (.pub)";
+    badgeStep2.textContent = activeWallet.keyExists ? "Ready" : "Requires .key";
+    labelStep2.textContent = "Derive Public Key (.pub)";
     btnRemovePub.style.display = "none";
   }
 
-  // Step 3 UI State
+  // Blockchain Address (.addr) UI State
   const badgeStep3 = document.getElementById("badge-step3-status");
   const btnStep3 = document.getElementById("btn-step3-gen-addr");
   const labelStep3 = document.getElementById("label-step3-btn");
@@ -677,13 +672,13 @@ function renderWalletClientView() {
     badgeStep3.innerHTML = activeWallet.addrMatchesPub
       ? `<i data-lucide="check" class="w-3 h-3"></i>${escapeHtml(activeWallet.address.slice(0, 10))}...`
       : `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Pub Mismatch`;
-    labelStep3.textContent = "3. Re-derive Blockchain Address (.addr)";
+    labelStep3.textContent = "Re-derive Address (.addr)";
     if (btnFaucet) btnFaucet.style.display = "inline-flex";
     btnRemoveAddr.style.display = "inline-flex";
   } else {
     badgeStep3.className = "vault-badge muted";
-    badgeStep3.textContent = activeWallet.pubExists ? "Ready for Step 3" : "Requires Step 2";
-    labelStep3.textContent = "3. Derive Blockchain Address (0x...)";
+    badgeStep3.textContent = activeWallet.pubExists ? "Ready" : "Requires .pub";
+    labelStep3.textContent = "Derive Blockchain Address (0x...)";
     if (btnFaucet) btnFaucet.style.display = "none";
     btnRemoveAddr.style.display = "none";
   }
@@ -738,7 +733,7 @@ function renderWalletClientView() {
 }
 
 // ============================================================================
-// STEP 1, STEP 2, STEP 3 BUTTON HANDLERS
+// KEY & ADDRESS BUTTON HANDLERS
 // ============================================================================
 document.getElementById("btn-step1-gen-key")?.addEventListener("click", async () => {
   const btn = document.getElementById("btn-step1-gen-key");
@@ -757,9 +752,8 @@ document.getElementById("btn-step1-gen-key")?.addEventListener("click", async ()
       renderCmdOutput("cmd-details-step1", "cmd-code-step1", {
         commands: [`openssl ecparam -name secp256k1 -genkey -noout -out wallets/${id}/${id}.key`],
         outputs: [
-          `[✓ Step 1 Complete] Generated 256-bit secp256k1 Private Key: wallets/${id}/${id}.key`,
+          `[✓ Private Key Generated] 256-bit secp256k1 Private Key: wallets/${id}/${id}.key`,
           `Secret Scalar (Hex): ${data.privateKeyHex}`,
-          `Next: Proceed to Step 2 below to derive your Public Key (X, Y).`,
         ],
         status: "success",
       });
@@ -788,10 +782,9 @@ document.getElementById("btn-step2-gen-pub")?.addEventListener("click", async ()
       renderCmdOutput("cmd-details-step2", "cmd-code-step2", {
         commands: [`openssl ec -in wallets/${id}/${id}.key -pubout -out wallets/${id}/${id}.pub`],
         outputs: [
-          `[✓ Step 2 Complete] Derived Public Key Point on secp256k1: wallets/${id}/${id}.pub`,
+          `[✓ Public Key Derived] Point on secp256k1: wallets/${id}/${id}.pub`,
           `X Coord (32B): ${data.xCoordHex}`,
           `Y Coord (32B): ${data.yCoordHex}`,
-          `Next: Proceed to Step 3 below to hash (X || Y) into your 0x... Blockchain Address.`,
         ],
         status: "success",
       });
@@ -820,11 +813,10 @@ document.getElementById("btn-step3-gen-addr")?.addEventListener("click", async (
       renderCmdOutput("cmd-details-step3", "cmd-code-step3", {
         commands: [`sha3_256(X || Y)[12..32] -> wallets/${id}/${id}.addr`],
         outputs: [
-          `[✓ Step 3 Complete] Self-Certifying Web3 Address Derived!`,
+          `[✓ Address Derived] Self-Certifying Web3 Address!`,
           `Full SHA3-256 : ${data.sha3HashHex}`,
           `Last 20 Bytes : ${data.addressBytesHex}`,
           `Final Address : ${data.address} (Balance: ${data.balance} Coins)`,
-          `Next: Click "Request Testnet Faucet (+100 Coins)" below if you want to fund this address for transactions.`,
         ],
         status: "success",
       });
@@ -972,7 +964,7 @@ function renderTxCardsList(container, txs, mode) {
               </span>
               <button class="btn-solid btn-sm btn-go-validator inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer shrink-0">
                 <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
-                <span>Switch to Validator Node (Step 5)</span>
+                <span>Switch to Validator Node</span>
               </button>
             </div>
           `;
@@ -988,7 +980,7 @@ function renderTxCardsList(container, txs, mode) {
           <div class="inbox-actions flex items-center gap-2 pt-0.5">
             <button class="btn-solid btn-sm btn-verify-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-settle="true">
               <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-              <span>${tx.settled ? "Re-verify Cryptographic Proof" : "5. Verify & Settle Transaction (Zero-Trust)"}</span>
+              <span>${tx.settled ? "Re-verify Cryptographic Proof" : "Verify & Settle Transaction (Zero-Trust)"}</span>
             </button>
             ${
               !tx.settled
@@ -1071,19 +1063,19 @@ function renderTxCardsList(container, txs, mode) {
             </summary>
             <div class="p-3 border-t border-zinc-800 bg-zinc-950/60 space-y-2.5 text-[11px] font-mono text-zinc-400">
               <div>
-                <div class="text-[10px] uppercase font-bold text-zinc-500">1. Canonical Transaction JSON (${escapeHtml(tx.txFile)}):</div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">Canonical Transaction JSON (${escapeHtml(tx.txFile)}):</div>
                 <pre class="text-zinc-200 whitespace-pre-wrap break-all mt-0.5">${escapeHtml(tx.canonicalJson)}</pre>
               </div>
               <div>
-                <div class="text-[10px] uppercase font-bold text-zinc-500">2. SHA-256 Transaction Digest (32 Bytes):</div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">SHA-256 Transaction Digest (32 Bytes):</div>
                 <div class="text-emerald-400 break-all mt-0.5">${escapeHtml(tx.txHashHex)}</div>
               </div>
               <div>
-                <div class="text-[10px] uppercase font-bold text-zinc-500">3. ECDSA Signature Hex (secp256k1):</div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">ECDSA Signature Hex (secp256k1):</div>
                 <div class="text-zinc-300 break-all mt-0.5">${escapeHtml(tx.signatureHex || "(No signature attached)")}</div>
               </div>
               <div>
-                <div class="text-[10px] uppercase font-bold text-zinc-500">4. OpenSSL Verification Command:</div>
+                <div class="text-[10px] uppercase font-bold text-zinc-500">OpenSSL Verification Command:</div>
                 <code id="cmd-code-tx-${escapeHtml(tx.id)}-${mode}" class="whitespace-pre-wrap text-zinc-400 block mt-0.5">${opensslVerifyCmd}</code>
               </div>
             </div>

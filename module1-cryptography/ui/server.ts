@@ -476,7 +476,7 @@ const server = http.createServer(async (req, res) => {
       const keyP = path.join(wDir, `${id}.key`);
       if (!fs.existsSync(keyP)) {
         return sendJson(res, 400, {
-          error: `Private key wallets/${id}/${id}.key does not exist yet! Complete Step 1 first.`,
+          error: `Private key wallets/${id}/${id}.key does not exist yet! Generate Private Key (.key) first.`,
         });
       }
 
@@ -521,7 +521,7 @@ const server = http.createServer(async (req, res) => {
       const pubP = path.join(wDir, `${id}.pub`);
       if (!fs.existsSync(pubP)) {
         return sendJson(res, 400, {
-          error: `Public key wallets/${id}/${id}.pub does not exist yet! Complete Step 2 first.`,
+          error: `Public key wallets/${id}/${id}.pub does not exist yet! Derive Public Key (.pub) first.`,
         });
       }
 
@@ -558,7 +558,7 @@ const server = http.createServer(async (req, res) => {
       const addrP = path.join(wDir, `${id}.addr`);
       if (!fs.existsSync(addrP)) {
         return sendJson(res, 400, {
-          error: `Blockchain address wallets/${id}/${id}.addr does not exist yet! Complete Step 3 first.`,
+          error: `Blockchain address wallets/${id}/${id}.addr does not exist yet! Derive Address (.addr) first.`,
         });
       }
 
@@ -650,7 +650,7 @@ const server = http.createServer(async (req, res) => {
 
       if (!fs.existsSync(senderAddrP) || !fs.existsSync(senderPubP)) {
         return sendJson(res, 400, {
-          error: `Sender '${senderMeta.name}' has not completed Step 1–3 (Address derivation) yet!`,
+          error: `Sender '${senderMeta.name}' has not derived a Public Key (.pub) and Blockchain Address (.addr) yet!`,
         });
       }
       if (!fs.existsSync(recipientAddrP)) {
