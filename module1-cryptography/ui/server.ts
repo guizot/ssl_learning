@@ -374,24 +374,35 @@ const server = http.createServer(async (req, res) => {
     // =========================================================================
     if (req.method === "POST" && pathname === "/api/m1/wallets") {
       const body = await readJsonBody(req);
-      const name = (body.name || "").trim() || `Wallet_${Date.now().toString().slice(-4)}`;
-      const safeId = (body.id || name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")).slice(0, 24);
-      getWalletDir(safeId);
+      const rawName = (body.name || "").trim();
+      if (!rawName) {
+        return sendJson(res, 400, { error: "Please enter a wallet owner name." });
+      }
+      const safeId = (body.id || rawName.toLowerCase().replace(/[^a-z0-9_-]/g, "_").replace(/^_+|_+$/g, "")).slice(0, 24);
+      if (!safeId) {
+        return sendJson(res, 400, { error: "Wallet name must contain at least one letter or number." });
+      }
+      if (safeId === "node") {
+        return sendJson(res, 400, { error: "'node' is a reserved system role ID." });
+      }
 
       const store = loadStore();
-      if (!store.wallets.some((w) => w.id === safeId)) {
-        store.wallets.push({
-          id: safeId,
-          name,
-          balance: 0,
-          nonce: 0,
-          createdAt: Date.now(),
-        });
+      if (store.wallets.some((w) => w.id === safeId)) {
+        return sendJson(res, 409, { error: `Wallet '${rawName}' (id: ${safeId}) already exists!` });
       }
+
+      getWalletDir(safeId);
+      store.wallets.push({
+        id: safeId,
+        name: rawName,
+        balance: 0,
+        nonce: 0,
+        createdAt: Date.now(),
+      });
       store.activeId = safeId;
       saveStore(store);
 
-      return sendJson(res, 201, { success: true, id: safeId, name });
+      return sendJson(res, 201, { success: true, id: safeId, name: rawName });
     }
 
     // =========================================================================
@@ -637,7 +648,10 @@ const server = http.createServer(async (req, res) => {
       if (!recipientMeta) {
         return sendJson(res, 400, { error: "Recipient wallet not found." });
       }
-      if (!amount || amount <= 0) {
+      if (fromId === toId) {
+        return sendJson(res, 400, { error: "Cannot send a transaction to the same wallet!" });
+      }
+      if (!Number.isFinite(amount) || amount <= 0) {
         return sendJson(res, 400, { error: "Amount must be greater than 0." });
       }
 
@@ -648,19 +662,24 @@ const server = http.createServer(async (req, res) => {
       const senderAddrP = path.join(senderDir, `${fromId}.addr`);
       const recipientAddrP = path.join(recipientDir, `${toId}.addr`);
 
-      if (!fs.existsSync(senderAddrP) || !fs.existsSync(senderPubP)) {
+      if (!fs.existsSync(senderPubP)) {
         return sendJson(res, 400, {
-          error: `Sender '${senderMeta.name}' has not derived a Public Key (.pub) and Blockchain Address (.addr) yet!`,
+          error: `Sender '${senderMeta.name}' is missing Public Key (${fromId}.pub)! Derive Public Key (.pub) first.`,
+        });
+      }
+      if (!fs.existsSync(senderAddrP)) {
+        return sendJson(res, 400, {
+          error: `Sender '${senderMeta.name}' is missing Blockchain Address (${fromId}.addr)! Derive Address (.addr) first.`,
         });
       }
       if (!fs.existsSync(recipientAddrP)) {
         return sendJson(res, 400, {
-          error: `Recipient '${recipientMeta.name}' does not have a blockchain address (.addr) yet!`,
+          error: `Recipient '${recipientMeta.name}' is missing Blockchain Address (${toId}.addr)!`,
         });
       }
       if (attachSignature && !fs.existsSync(senderKeyP)) {
         return sendJson(res, 400, {
-          error: `Sender '${senderMeta.name}' is missing private key (${fromId}.key) required to sign transaction!`,
+          error: `Sender '${senderMeta.name}' is missing Private Key (${fromId}.key) required to sign transaction!`,
         });
       }
       if (senderMeta.balance < amount) {
@@ -751,7 +770,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     // =========================================================================
-    // 10. POST /api/m1/tx/verify (Step 5: Zero-Trust Verification & Settlement)
+    // 10. POST /api/m1/tx/verify (Zero-Trust Verification & Settlement)
     // =========================================================================
     if (req.method === "POST" && pathname === "/api/m1/tx/verify") {
       const body = await readJsonBody(req);
@@ -768,6 +787,17 @@ const server = http.createServer(async (req, res) => {
       const senderMeta = store.wallets.find((w) => w.id === tx.fromId);
       const recipientMeta = store.wallets.find((w) => w.id === tx.toId);
 
+      const senderDir = path.join(WALLETS_DIR, tx.fromId.toLowerCase().replace(/[^a-z0-9_-]/g, ""));
+      const recipientDir = path.join(WALLETS_DIR, tx.toId.toLowerCase().replace(/[^a-z0-9_-]/g, ""));
+      const senderPubP = path.join(senderDir, `${tx.fromId}.pub`);
+      const senderAddrP = path.join(senderDir, `${tx.fromId}.addr`);
+      const recipientAddrP = path.join(recipientDir, `${tx.toId}.addr`);
+
+      const senderPubExists = Boolean(senderMeta && fs.existsSync(senderPubP));
+      const senderAddrExists = Boolean(senderMeta && fs.existsSync(senderAddrP));
+      const recipientAddrExists = Boolean(recipientMeta && fs.existsSync(recipientAddrP));
+      const sigFileExists = Boolean(!tx.signed || (tx.sigFile && fs.existsSync(path.join(M1_DIR, tx.sigFile))));
+
       // Recompute canonical JSON & SHA-256 digest from current tx fields
       const currentTxData: TransactionData = {
         from: tx.fromAddress,
@@ -780,18 +810,24 @@ const server = http.createServer(async (req, res) => {
       const recomputedHashBuf = hashTransaction(currentTxData);
       const recomputedHashHex = recomputedHashBuf.toString("hex");
 
-      // Proof 1: Derive address from sender's public key (SHA3-256(X || Y)[12..32])
+      // Proof 1: Derive address from sender's public key on disk (SHA3-256(X || Y)[12..32])
       let derivedAddress = "";
       let addressMatch = false;
-      try {
-        const pubInfo = inspectPublicKeyPem(tx.senderPubKeyPem);
-        derivedAddress = pubInfo.derivedAddress;
-        addressMatch = derivedAddress.toLowerCase() === tx.fromAddress.toLowerCase();
-      } catch {
-        addressMatch = false;
+      const activePubPem = senderPubExists ? fs.readFileSync(senderPubP, "utf-8").trim() : "";
+      if (senderPubExists && activePubPem) {
+        try {
+          const pubInfo = inspectPublicKeyPem(activePubPem);
+          derivedAddress = pubInfo.derivedAddress;
+          const diskAddr = senderAddrExists ? fs.readFileSync(senderAddrP, "utf-8").trim() : tx.fromAddress;
+          addressMatch =
+            derivedAddress.toLowerCase() === tx.fromAddress.toLowerCase() &&
+            diskAddr.toLowerCase() === tx.fromAddress.toLowerCase();
+        } catch {
+          addressMatch = false;
+        }
       }
 
-      // Proof 2: Verify ECDSA signature using OpenSSL & Node crypto
+      // Proof 2: Verify ECDSA signature using OpenSSL & Node crypto against disk .pub
       let signatureMatch = false;
       const logs: OpenSSLLog[] = [];
 
@@ -810,28 +846,55 @@ const server = http.createServer(async (req, res) => {
             tx.txFile,
           ])
         );
-        try {
-          const pubKeyObj = crypto.createPublicKey(tx.senderPubKeyPem);
-          const sigBuf = Buffer.from(tx.signatureHex, "hex");
-          signatureMatch = crypto.verify("SHA256", Buffer.from(recomputedCanonicalJson, "utf-8"), pubKeyObj, sigBuf);
-        } catch {
-          signatureMatch = false;
+        if (senderPubExists && activePubPem && sigFileExists) {
+          try {
+            const pubKeyObj = crypto.createPublicKey(activePubPem);
+            const sigBuf = fs.readFileSync(path.join(M1_DIR, tx.sigFile));
+            signatureMatch = crypto.verify("SHA256", Buffer.from(recomputedCanonicalJson, "utf-8"), pubKeyObj, sigBuf);
+          } catch {
+            signatureMatch = false;
+          }
         }
       }
 
-      // Proof 3: Balance check (if not yet settled)
+      // Proof 3: Nonce & Balance checks (if not yet settled)
+      const nonceMatch = tx.settled
+        ? true
+        : Boolean(senderMeta && tx.nonce === senderMeta.nonce);
       const balanceMatch = tx.settled
         ? true
         : Boolean(senderMeta && senderMeta.balance >= tx.amount);
 
-      const isValid = tx.signed && addressMatch && signatureMatch && balanceMatch;
+      const filesReady =
+        Boolean(senderMeta) &&
+        senderPubExists &&
+        senderAddrExists &&
+        sigFileExists &&
+        (tx.settled || (Boolean(recipientMeta) && recipientAddrExists));
+      const isValid = tx.signed && filesReady && addressMatch && signatureMatch && nonceMatch && balanceMatch;
       let reason = "";
-      if (!tx.signed) {
+      if (!senderMeta) {
+        reason = `REJECTED (Deleted Sender Wallet): Sender wallet '${tx.fromName}' (${tx.fromId}) was deleted from the network!`;
+      } else if (!tx.settled && !recipientMeta) {
+        reason = `REJECTED (Deleted Recipient Wallet): Recipient wallet '${tx.toName}' (${tx.toId}) was deleted from the network!`;
+      } else if (!senderPubExists) {
+        reason = `REJECTED (Missing Public Key): Sender's Public Key file (wallets/${tx.fromId}/${tx.fromId}.pub) was removed! Cannot verify ECDSA signature or derive address.`;
+      } else if (!senderAddrExists) {
+        reason = `REJECTED (Missing Sender Address): Sender's Blockchain Address file (wallets/${tx.fromId}/${tx.fromId}.addr) was removed!`;
+      } else if (!tx.settled && !recipientAddrExists) {
+        reason = `REJECTED (Missing Recipient Address): Recipient's Blockchain Address file (wallets/${tx.toId}/${tx.toId}.addr) was removed! Cannot settle coins to an uninitialized address.`;
+      } else if (!tx.signed) {
         reason = "REJECTED: Transaction was sent without an ECDSA digital signature!";
+      } else if (!sigFileExists) {
+        reason = `REJECTED (Missing Signature File): ECDSA signature file (${tx.sigFile}) was removed from disk!`;
       } else if (!addressMatch) {
-        reason = `REJECTED (Identity Spoofing): SHA3-256(PublicKey) = ${derivedAddress}, which does NOT match sender address ${tx.fromAddress}!`;
+        reason = `REJECTED (Identity / Address Mismatch): SHA3-256(${tx.fromId}.pub) = ${derivedAddress}, which does NOT match sender address ${tx.fromAddress}!`;
       } else if (!signatureMatch) {
-        reason = "REJECTED (Payload Tampered / Invalid Signature): The transaction data was modified in transit! SHA-256 digest no longer matches the ECDSA signature. Zero coins moved.";
+        reason = tx.tampered
+          ? "REJECTED (Payload Tampered / Invalid Signature): The transaction data was modified in transit! SHA-256 digest no longer matches the ECDSA signature. Zero coins moved."
+          : `REJECTED (Key Mismatch / Invalid Signature): ECDSA signature failed verification against wallets/${tx.fromId}/${tx.fromId}.pub! The transaction was signed with a Private Key (.key) that does not match the Public Key (.pub).`;
+      } else if (!nonceMatch) {
+        reason = `REJECTED (Nonce Replay / Double-Spend Protection): Transaction carries Nonce #${tx.nonce}, but ${tx.fromName}'s current wallet nonce is #${senderMeta?.nonce ?? 0} (Nonce #${tx.nonce} was already settled!).`;
       } else if (!balanceMatch) {
         reason = `REJECTED (Insufficient Funds): Sender only has ${senderMeta?.balance ?? 0} Coins, cannot settle ${tx.amount} Coins.`;
       } else {
@@ -867,6 +930,7 @@ const server = http.createServer(async (req, res) => {
         addressMatch,
         signatureMatch,
         balanceMatch,
+        nonceMatch,
         derivedAddress,
         recomputedHashHex,
         tx,
@@ -885,6 +949,11 @@ const server = http.createServer(async (req, res) => {
 
       if (!tx) {
         return sendJson(res, 404, { error: "Transaction not found" });
+      }
+      if (tx.settled) {
+        return sendJson(res, 400, {
+          error: "Cannot tamper in transit: Transaction has already been confirmed and settled on the ledger!",
+        });
       }
 
       if (!tx.tampered) {
@@ -919,6 +988,35 @@ const server = http.createServer(async (req, res) => {
         tampered: tx.tampered,
         tx,
       });
+    }
+
+    // =========================================================================
+    // 11b. DELETE /api/m1/tx/:id (Delete a single transaction record)
+    // =========================================================================
+    if (req.method === "DELETE" && pathname.startsWith("/api/m1/tx/")) {
+      const txIdToDelete = pathname.replace("/api/m1/tx/", "").trim();
+      const allTxs = loadTxs();
+      const idx = allTxs.findIndex((t) => t.id === txIdToDelete);
+      if (idx === -1) {
+        return sendJson(res, 404, { error: "Transaction not found" });
+      }
+      const [removed] = allTxs.splice(idx, 1);
+      saveTxs(allTxs);
+
+      if (removed.txFile) {
+        const p = path.join(M1_DIR, removed.txFile);
+        if (fs.existsSync(p)) {
+          try { fs.unlinkSync(p); } catch {}
+        }
+      }
+      if (removed.sigFile) {
+        const s = path.join(M1_DIR, removed.sigFile);
+        if (fs.existsSync(s)) {
+          try { fs.unlinkSync(s); } catch {}
+        }
+      }
+
+      return sendJson(res, 200, { success: true, deletedId: txIdToDelete });
     }
 
     // =========================================================================

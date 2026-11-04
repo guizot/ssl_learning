@@ -360,9 +360,16 @@ document.getElementById("btn-submit-add-wallet")?.addEventListener("click", asyn
       body: JSON.stringify({ name }),
     });
     const data = await res.json();
+    if (!res.ok || data.error) {
+      if (errEl) {
+        errEl.textContent = data.error || "Failed to create wallet.";
+        errEl.style.display = "block";
+      }
+      return;
+    }
     closeAddWalletModal();
     if (data.id) {
-      // Automatically switch to the newly created wallet so user can start Step 1 immediately!
+      // Automatically switch to the newly created wallet so user can start immediately!
       await fetch("/api/m1/select-role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -646,6 +653,8 @@ function renderWalletClientView() {
     badgeStep2.className = activeWallet.pubMatchesKey ? "vault-badge success" : "vault-badge warning";
     badgeStep2.innerHTML = activeWallet.pubMatchesKey
       ? `<i data-lucide="check" class="w-3 h-3"></i>Derived`
+      : !activeWallet.keyExists
+      ? `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Missing .key`
       : `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Key Mismatch`;
     labelStep2.textContent = "Re-derive Public Key (.pub)";
     btnRemovePub.style.display = "inline-flex";
@@ -671,6 +680,8 @@ function renderWalletClientView() {
     badgeStep3.className = activeWallet.addrMatchesPub ? "vault-badge success" : "vault-badge warning";
     badgeStep3.innerHTML = activeWallet.addrMatchesPub
       ? `<i data-lucide="check" class="w-3 h-3"></i>${escapeHtml(activeWallet.address.slice(0, 10))}...`
+      : !activeWallet.pubExists
+      ? `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Missing .pub`
       : `<i data-lucide="alert-triangle" class="w-3 h-3"></i>Pub Mismatch`;
     labelStep3.textContent = "Re-derive Address (.addr)";
     if (btnFaucet) btnFaucet.style.display = "inline-flex";
@@ -749,16 +760,29 @@ document.getElementById("btn-step1-gen-key")?.addEventListener("click", async ()
     await syncM1State();
 
     if (res.ok && data.success) {
+      const curW = (m1State.wallets || []).find((w) => w.id === id);
+      const outputs = [
+        `[✓ Private Key Generated] 256-bit secp256k1 Private Key: wallets/${id}/${id}.key`,
+        `Secret Scalar (Hex): ${data.privateKeyHex}`,
+      ];
+      if (curW && curW.pubExists && !curW.pubMatchesKey) {
+        outputs.push(
+          `[!] Warning: Existing ${id}.pub was derived from your previous .key! Re-derive .pub & .addr to sync, or test sending a transaction to see Validator reject the Key Mismatch.`
+        );
+      }
       renderCmdOutput("cmd-details-step1", "cmd-code-step1", {
         commands: [`openssl ecparam -name secp256k1 -genkey -noout -out wallets/${id}/${id}.key`],
-        outputs: [
-          `[✓ Private Key Generated] 256-bit secp256k1 Private Key: wallets/${id}/${id}.key`,
-          `Secret Scalar (Hex): ${data.privateKeyHex}`,
-        ],
-        status: "success",
+        outputs,
+        status: curW && curW.pubExists && !curW.pubMatchesKey ? "warning" : "success",
       });
       const detKey = document.getElementById("client-details-key");
       if (detKey) detKey.open = true;
+    } else if (data.error) {
+      renderCmdOutput("cmd-details-step1", "cmd-code-step1", {
+        commands: [`openssl ecparam -name secp256k1 -genkey -noout -out wallets/${id}/${id}.key`],
+        outputs: [`[✕ Error] ${data.error}`],
+        status: "error",
+      });
     }
   } finally {
     btn.disabled = false;
@@ -779,17 +803,30 @@ document.getElementById("btn-step2-gen-pub")?.addEventListener("click", async ()
     await syncM1State();
 
     if (res.ok && data.success) {
+      const curW = (m1State.wallets || []).find((w) => w.id === id);
+      const outputs = [
+        `[✓ Public Key Derived] Point on secp256k1: wallets/${id}/${id}.pub`,
+        `X Coord (32B): ${data.xCoordHex}`,
+        `Y Coord (32B): ${data.yCoordHex}`,
+      ];
+      if (curW && curW.addrExists && !curW.addrMatchesPub) {
+        outputs.push(
+          `[!] Warning: Existing ${id}.addr was derived from your previous .pub! Re-derive .addr to sync, or test sending a transaction to see Validator reject the Address Mismatch.`
+        );
+      }
       renderCmdOutput("cmd-details-step2", "cmd-code-step2", {
         commands: [`openssl ec -in wallets/${id}/${id}.key -pubout -out wallets/${id}/${id}.pub`],
-        outputs: [
-          `[✓ Public Key Derived] Point on secp256k1: wallets/${id}/${id}.pub`,
-          `X Coord (32B): ${data.xCoordHex}`,
-          `Y Coord (32B): ${data.yCoordHex}`,
-        ],
-        status: "success",
+        outputs,
+        status: curW && curW.addrExists && !curW.addrMatchesPub ? "warning" : "success",
       });
       const detPub = document.getElementById("client-details-pub");
       if (detPub) detPub.open = true;
+    } else if (data.error) {
+      renderCmdOutput("cmd-details-step2", "cmd-code-step2", {
+        commands: [`openssl ec -in wallets/${id}/${id}.key -pubout -out wallets/${id}/${id}.pub`],
+        outputs: [`[✕ Error] ${data.error}`],
+        status: "error",
+      });
     }
   } finally {
     btn.disabled = false;
@@ -822,6 +859,12 @@ document.getElementById("btn-step3-gen-addr")?.addEventListener("click", async (
       });
       const detAddr = document.getElementById("client-details-addr");
       if (detAddr) detAddr.open = true;
+    } else if (data.error) {
+      renderCmdOutput("cmd-details-step3", "cmd-code-step3", {
+        commands: [`sha3_256(X || Y)[12..32] -> wallets/${id}/${id}.addr`],
+        outputs: [`[✕ Error] ${data.error}`],
+        status: "error",
+      });
     }
   } finally {
     btn.disabled = false;
@@ -850,13 +893,19 @@ document.getElementById("btn-step3-faucet")?.addEventListener("click", async () 
         ],
         status: "success",
       });
+    } else if (data.error) {
+      renderCmdOutput("cmd-details-step3", "cmd-code-step3", {
+        commands: [`faucet --credit +100`],
+        outputs: [`[✕ Error] ${data.error}`],
+        status: "error",
+      });
     }
   } finally {
     btn.disabled = false;
   }
 });
 
-// Remove individual step files (.key, .pub, .addr)
+// Remove individual files (.key, .pub, .addr)
 async function removeWalletStepFile(fileType) {
   const walletId = m1State.activeRole;
   await fetch("/api/m1/wallet/remove-file", {
@@ -865,6 +914,35 @@ async function removeWalletStepFile(fileType) {
     body: JSON.stringify({ walletId, fileType }),
   });
   await syncM1State();
+
+  if (fileType === "key") {
+    renderCmdOutput("cmd-details-step1", "cmd-code-step1", {
+      commands: [`rm wallets/${walletId}/${walletId}.key`],
+      outputs: [
+        `[! Private Key Removed] wallets/${walletId}/${walletId}.key deleted from keystore.`,
+        `Impact: Cannot sign new transactions or derive .pub until .key is regenerated.`,
+      ],
+      status: "warning",
+    });
+  } else if (fileType === "pub") {
+    renderCmdOutput("cmd-details-step2", "cmd-code-step2", {
+      commands: [`rm wallets/${walletId}/${walletId}.pub`],
+      outputs: [
+        `[! Public Key Removed] wallets/${walletId}/${walletId}.pub deleted from keystore.`,
+        `Impact: Cannot derive .addr, send transactions, or verify pending signatures against .pub.`,
+      ],
+      status: "warning",
+    });
+  } else if (fileType === "addr") {
+    renderCmdOutput("cmd-details-step3", "cmd-code-step3", {
+      commands: [`rm wallets/${walletId}/${walletId}.addr`],
+      outputs: [
+        `[! Blockchain Address Removed] wallets/${walletId}/${walletId}.addr deleted (Balance reset to 0 Coins).`,
+        `Impact: Cannot send/receive transactions or request Faucet until .addr is re-derived.`,
+      ],
+      status: "warning",
+    });
+  }
 }
 
 document.getElementById("btn-step1-remove-key")?.addEventListener("click", () => removeWalletStepFile("key"));
@@ -1028,6 +1106,9 @@ function renderTxCardsList(container, txs, mode) {
                 ${sigBadge}
                 ${tamperBadge}
                 ${verifyBadge}
+                <button class="btn-del-tx btn-del-msg" data-id="${escapeHtml(tx.id)}" title="Delete transaction">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -1107,12 +1188,23 @@ function renderTxCardsList(container, txs, mode) {
       const settle = btn.getAttribute("data-settle") !== "false";
       btn.disabled = true;
       try {
-        await fetch("/api/m1/tx/verify", {
+        const res = await fetch("/api/m1/tx/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ txId, settle }),
         });
+        const data = await res.json();
         await syncM1State();
+
+        if (data && Array.isArray(data.opensslLogs) && data.opensslLogs.length > 0) {
+          ["ledger", "inbox", "sent"].forEach((m) => {
+            renderCmdOutput(`cmd-details-tx-${txId}-${m}`, `cmd-code-tx-${txId}-${m}`, {
+              commands: data.opensslLogs.map((l) => l.command),
+              outputs: data.opensslLogs.map((l) => l.output),
+              status: data.isValid ? "success" : "error",
+            });
+          });
+        }
       } finally {
         btn.disabled = false;
       }
@@ -1133,6 +1225,23 @@ function renderTxCardsList(container, txs, mode) {
       } finally {
         btn.disabled = false;
       }
+    });
+  });
+
+  container.querySelectorAll(".btn-del-tx").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const txId = btn.getAttribute("data-id");
+      const ok = await showConfirmModal({
+        title: "Delete Transaction",
+        message: "Remove this transaction record and its .json / .sig files from the ledger?",
+        confirmText: "Delete Transaction",
+        icon: "trash-2",
+      });
+      if (!ok) return;
+      await fetch(`/api/m1/tx/${txId}`, { method: "DELETE" });
+      await syncM1State();
     });
   });
 }
@@ -1220,6 +1329,31 @@ function openSendTxModal() {
         toggleRecipientDropdown(false);
       });
     });
+  }
+
+  const senderWallet = (m1State.wallets || []).find((w) => w.id === senderId);
+  const senderKeyWarning = document.getElementById("sender-key-warning");
+  if (senderKeyWarning && senderWallet) {
+    const warnings = [];
+    if (!senderWallet.keyExists) {
+      warnings.push(`⚠️ Private Key (${senderId}.key) is missing! Uncheck signing to broadcast an unsigned transaction, or regenerate .key first.`);
+    } else if (senderWallet.pubExists && !senderWallet.pubMatchesKey) {
+      warnings.push(`⚠️ Key Mismatch: ${senderId}.key does not match ${senderId}.pub! Signature verification will fail on the network.`);
+    }
+    if (!senderWallet.pubExists) {
+      warnings.push(`⚠️ Public Key (${senderId}.pub) is missing! Derive .pub before sending.`);
+    } else if (senderWallet.addrExists && !senderWallet.addrMatchesPub) {
+      warnings.push(`⚠️ Address Mismatch: ${senderId}.pub does not hash to ${senderId}.addr! Proof 1 (Address Match) will fail.`);
+    }
+    if (!senderWallet.addrExists) {
+      warnings.push(`⚠️ Blockchain Address (${senderId}.addr) is missing! Derive .addr before sending.`);
+    }
+    if (warnings.length > 0) {
+      senderKeyWarning.textContent = warnings.join(" ");
+      senderKeyWarning.style.display = "block";
+    } else {
+      senderKeyWarning.style.display = "none";
+    }
   }
 
   const codeEl = document.getElementById("cmd-client-send");
