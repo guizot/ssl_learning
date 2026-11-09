@@ -13,6 +13,8 @@
     "ui:wallet": "npm run ui:m1",
     "module0:ca": "./module0-ca/ca_cli_demo.sh",
     "module1": "node --experimental-strip-types module1-cryptography/demo.ts",
-    "module1:demo": "npm run module1"
+    "module1:demo": "npm run module1",
+    "module2": "node --experimental-strip-types module2-blockchain/demo.ts",
+    "module2:demo": "npm run module2"
   }
 }
