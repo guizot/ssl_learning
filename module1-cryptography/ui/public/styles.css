@@ -633,6 +633,59 @@ select option {
   color: #fb7185;
 }
 
+/* Common Collapsible Status Banner Component */
+.status-collapsible {
+  display: block;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow: hidden;
+}
+.status-collapsible.valid {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background-color: rgba(16, 185, 129, 0.1);
+  color: rgb(var(--emerald-400));
+}
+.status-collapsible.invalid {
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  background-color: rgba(244, 63, 94, 0.1);
+  color: #fb7185;
+}
+.status-collapsible > .status-collapsible-trigger {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.status-collapsible .status-label-hide {
+  display: none;
+}
+.status-collapsible.is-open .status-label-show {
+  display: none;
+}
+.status-collapsible.is-open .status-label-hide {
+  display: inline;
+}
+.status-collapsible-body {
+  display: none;
+  padding: 8px 12px 10px;
+  font-size: 11px;
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
+}
+.status-collapsible.is-open .status-collapsible-body {
+  display: block;
+}
+.status-collapsible.invalid .status-collapsible-body {
+  border-top-color: rgba(244, 63, 94, 0.2);
+}
+
 /* Section Collapsible Cards */
 .section-header {
   position: relative;

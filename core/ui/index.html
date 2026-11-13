@@ -4,6 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("ca_lab_theme") || localStorage.getItem("color-scheme") || "system";
+        if (t === "light") {
+          document.documentElement.classList.add("light");
+          document.querySelector('meta[name="color-scheme"]').content = "light";
+        } else if (t === "dark") {
+          document.documentElement.classList.add("dark");
+          document.querySelector('meta[name="color-scheme"]').content = "dark";
+        }
+      } catch {}
+    })();
+  </script>
   <title>Cryptography &amp; Blockchain Visual Lab — Unified Hub</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -65,7 +79,6 @@
           <h1 class="text-lg sm:text-xl font-bold tracking-tight text-zinc-100 truncate">
             Cryptography &amp; Blockchain Visual Lab
           </h1>
-          <p class="text-xs text-zinc-400 truncate">Unified server &middot; Each module persists files in its own <code class="font-mono text-zinc-300">generated/</code> folder</p>
         </div>
       </div>
 

@@ -507,30 +507,11 @@ function renderNodeView() {
                 <i data-lucide="info" class="w-3.5 h-3.5 text-zinc-500 shrink-0"></i>
                 <span>${escapeHtml(statusDesc)}</span>
               </div>
-
-              <div class="flex items-center gap-2 pt-0.5">
-                <button class="btn-solid btn-sm btn-open-wallet-role inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 cursor-pointer" data-id="${escapeHtml(w.id)}">
-                  <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                  <span>Open ${escapeHtml(w.name)}</span>
-                </button>
-              </div>
             </div>
           `;
         })
         .join("");
     }
-
-    wContainer.querySelectorAll(".btn-open-wallet-role").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.getAttribute("data-id");
-        await fetch("/api/m1/select-role", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: id }),
-        });
-        await syncM1State();
-      });
-    });
 
     wContainer.querySelectorAll(".btn-del-wallet").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
@@ -973,6 +954,44 @@ function renderTxCardsList(container, txs, mode) {
     return;
   }
 
+  if (!window.__statusCollapsibleBound) {
+    window.__statusCollapsibleBound = true;
+    document.addEventListener("click", (e) => {
+      const trigger = e.target.closest(".status-collapsible-trigger");
+      if (!trigger) return;
+      const root = trigger.closest(".status-collapsible");
+      if (!root) return;
+      const isOpen = root.classList.toggle("is-open");
+      trigger.setAttribute("aria-expanded", String(isOpen));
+    });
+  }
+
+  const renderStatusCollapsible = ({ id, valid, headlineHtml, bodyHtml }) => {
+    const stateClass = valid ? "valid" : "invalid";
+    const iconName = valid ? "check-circle-2" : "x-circle";
+    if (!bodyHtml) {
+      return `
+        <div class="result-banner ${stateClass}">
+          <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 mt-0.5 self-start"></i>
+          <div class="text-xs font-mono font-medium leading-snug break-words w-full min-w-0">${headlineHtml}</div>
+        </div>
+      `;
+    }
+    return `
+      <div class="status-collapsible ${stateClass}" id="${id}">
+        <button type="button" class="status-collapsible-trigger" aria-expanded="false">
+          <div class="flex items-start gap-2 min-w-0 flex-1">
+            <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 mt-0.5"></i>
+            <div class="text-xs font-mono font-medium leading-snug break-words min-w-0">${headlineHtml}</div>
+          </div>
+          <span class="status-label-show self-center text-[10px] font-mono opacity-75 hover:opacity-100 transition-opacity shrink-0">Show</span>
+          <span class="status-label-hide self-center text-[10px] font-mono opacity-75 hover:opacity-100 transition-opacity shrink-0">Hide</span>
+        </button>
+        <div class="status-collapsible-body">${bodyHtml}</div>
+      </div>
+    `;
+  };
+
   container.innerHTML = txs
     .map((tx) => {
       const timeStr = new Date(tx.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -996,32 +1015,52 @@ function renderTxCardsList(container, txs, mode) {
         verifyBadge = `<span class="vault-badge muted"><i data-lucide="clock" class="w-3 h-3"></i>Pending in Mempool</span>`;
       }
 
-      const verifyBannerHtml = tx.verifyReason
+      let verifyHeadlineHtml = tx.verifyReason ? escapeHtml(tx.verifyReason) : "";
+      if (tx.verifyReason && tx.verifiedState === "valid") {
+        const amtBadge = (prefix = "") =>
+          `<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/35 text-emerald-400 font-bold">${prefix}${tx.amount} Coins</span>`;
+        const fromStrong = `<strong class="text-zinc-100 font-bold">${escapeHtml(tx.fromName)}</strong>`;
+        const toStrong = `<strong class="text-zinc-100 font-bold">${escapeHtml(tx.toName)}</strong>`;
+
+        if (mode === "sent") {
+          verifyHeadlineHtml = tx.settled
+            ? `<span class="text-emerald-400 font-bold">CONFIRMED &amp; SETTLED</span> by Validator Node — ${amtBadge("-")} deducted from ${fromStrong} and sent to ${toStrong}.`
+            : `<span class="text-emerald-400 font-bold">SIGNATURE VALID</span> — ${amtBadge()} to ${toStrong} awaiting Validator Node settlement.`;
+        } else if (mode === "inbox") {
+          verifyHeadlineHtml = tx.settled
+            ? `<span class="text-emerald-400 font-bold">CONFIRMED &amp; CREDITED</span> — ${amtBadge("+")} credited to ${toStrong} from ${fromStrong} (Zero-Trust ECDSA &amp; address verified).`
+            : `<span class="text-emerald-400 font-bold">LOCAL SIGNATURE VALID</span> — Sender ${fromStrong}'s signature is authentic (${amtBadge()} pending Validator Node settlement).`;
+        } else {
+          verifyHeadlineHtml = tx.settled
+            ? `<span class="text-emerald-400 font-bold">CONFIRMED &amp; SETTLED (Zero-Trust):</span> Public Key hashes to Sender Address &amp; ECDSA Signature is valid. Settled ${amtBadge()} from ${fromStrong} to ${toStrong}.`
+            : `<span class="text-emerald-400 font-bold">VALIDATED (Zero-Trust):</span> Cryptographic signature and sender address are 100% authentic.`;
+        }
+      }
+
+      const isValid = tx.verifiedState === "valid";
+      const proofBodyHtml = tx.derivedAddress
         ? `
-          <div class="result-banner ${tx.verifiedState === "valid" ? "valid" : "invalid"}">
-            <i data-lucide="${tx.verifiedState === "valid" ? "check-circle-2" : "x-circle"}" class="w-4 h-4 shrink-0 mt-0.5 self-start"></i>
-            <div class="space-y-1.5 text-xs font-mono w-full min-w-0">
-              <div class="font-semibold leading-snug break-words">${escapeHtml(tx.verifyReason)}</div>
-              ${
-                tx.derivedAddress
-                  ? `
-                <div class="text-[11px] opacity-90 space-y-1 border-t border-current/15 pt-1.5 mt-1">
-                  <div class="flex items-start gap-1 flex-wrap">
-                    <span class="text-zinc-400 font-semibold">Proof 1 (Address Match):</span>
-                    <span class="break-all" title="${escapeHtml(tx.derivedAddress)}">${escapeHtml(formatShortAddress(tx.derivedAddress))}</span>
-                    <span class="${tx.addressMatch ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}">(${tx.addressMatch ? "MATCH == Sender" : "MISMATCH != Sender"})</span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-zinc-400 font-semibold">Proof 2 (ECDSA Verify):</span>
-                    <span class="${tx.signatureMatch ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}">${tx.signatureMatch ? "VALID (Authentic)" : "FAILED (Unsigned/Forged)"}</span>
-                  </div>
-                </div>
-              `
-                  : ""
-              }
+          <div class="space-y-1 font-mono opacity-90">
+            <div class="flex items-start gap-1 flex-wrap">
+              <span class="text-zinc-400 font-semibold">Proof 1 (Address Match):</span>
+              <span class="break-all" title="${escapeHtml(tx.derivedAddress)}">${escapeHtml(formatShortAddress(tx.derivedAddress))}</span>
+              <span class="${tx.addressMatch ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}">(${tx.addressMatch ? "MATCH == Sender" : "MISMATCH != Sender"})</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-zinc-400 font-semibold">Proof 2 (ECDSA Verify):</span>
+              <span class="${tx.signatureMatch ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}">${tx.signatureMatch ? "VALID (Authentic)" : "FAILED (Unsigned/Forged)"}</span>
             </div>
           </div>
         `
+        : "";
+
+      const verifyBannerHtml = tx.verifyReason
+        ? renderStatusCollapsible({
+            id: `verify-details-tx-${escapeHtml(tx.id)}-${mode}`,
+            valid: isValid,
+            headlineHtml: verifyHeadlineHtml,
+            bodyHtml: proofBodyHtml,
+          })
         : "";
 
       const opensslVerifyCmd = `$ openssl dgst -sha256 -verify wallets/${escapeHtml(tx.fromId)}/${escapeHtml(
@@ -1040,30 +1079,20 @@ function renderTxCardsList(container, txs, mode) {
                     : "⏳ Broadcasted to Mempool · Awaiting Validator Node verification & settlement"
                 }
               </span>
-              <button class="btn-solid btn-sm btn-go-validator inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer shrink-0">
-                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
-                <span>Switch to Validator Node</span>
-              </button>
-            </div>
-          `;
-        } else {
-          actionsHtml = `
-            <div class="text-[11px] font-mono text-emerald-400 pt-0.5">
-              ✓ Confirmed &amp; Settled by Validator Node (-${tx.amount} Coins deducted from ${escapeHtml(tx.fromName)})
             </div>
           `;
         }
       } else if (mode === "ledger") {
         actionsHtml = `
-          <div class="inbox-actions flex items-center gap-2 pt-0.5">
-            <button class="btn-solid btn-sm btn-verify-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-settle="true">
+          <div class="inbox-actions flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-0.5">
+            <button class="btn-solid btn-sm btn-verify-tx w-full sm:flex-1 inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-settle="true">
               <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
               <span>${tx.settled ? "Re-verify Cryptographic Proof" : "Verify & Settle Transaction (Zero-Trust)"}</span>
             </button>
             ${
               !tx.settled
                 ? `
-              <button class="btn-solid btn-sm btn-tamper-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}">
+              <button class="btn-solid btn-sm btn-tamper-tx w-full sm:flex-1 inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}">
                 <i data-lucide="flame" class="w-3.5 h-3.5"></i>
                 <span>${tx.tampered ? "Restore Original Amount" : "Attack: Tamper in Transit (+1000)"}</span>
               </button>
@@ -1075,20 +1104,10 @@ function renderTxCardsList(container, txs, mode) {
       } else if (mode === "inbox") {
         actionsHtml = `
           <div class="inbox-actions flex items-center gap-2 pt-0.5">
-            <button class="btn-solid btn-sm btn-verify-tx inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-settle="false">
+            <button class="btn-solid btn-sm btn-verify-tx w-full inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer" data-id="${escapeHtml(tx.id)}" data-settle="false">
               <i data-lucide="search-check" class="w-3.5 h-3.5"></i>
               <span>Verify Sender Signature Locally</span>
             </button>
-            ${
-              !tx.settled
-                ? `
-              <button class="btn-solid btn-sm btn-go-validator inline-flex items-center justify-center gap-1.5 px-3 cursor-pointer">
-                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
-                <span>Go to Validator Node to Settle</span>
-              </button>
-            `
-                : `<span class="text-[11px] font-mono text-emerald-400">+${tx.amount} Coins Credited</span>`
-            }
           </div>
         `;
       }
@@ -1098,14 +1117,13 @@ function renderTxCardsList(container, txs, mode) {
           <div class="inbox-item-head">
             <div class="inbox-item-meta">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs font-semibold text-zinc-100">${escapeHtml(tx.fromName)} &rarr; ${escapeHtml(tx.toName)}</span>
                 <span class="vault-badge success font-mono">${tx.amount} Coins</span>
-                <span class="vault-badge muted font-mono">Nonce #${tx.nonce} &middot; ${escapeHtml(timeStr)}</span>
               </div>
               <div class="flex items-center gap-1.5 flex-wrap">
                 ${sigBadge}
                 ${tamperBadge}
                 ${verifyBadge}
+                <span class="vault-badge muted font-mono">Nonce #${tx.nonce} &middot; ${escapeHtml(timeStr)}</span>
                 <button class="btn-del-tx btn-del-msg" data-id="${escapeHtml(tx.id)}" title="Delete transaction">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
@@ -1117,12 +1135,12 @@ function renderTxCardsList(container, txs, mode) {
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-zinc-500 font-semibold shrink-0">From:</span>
               <span class="text-zinc-300 font-mono" title="${escapeHtml(tx.fromAddress)}">${escapeHtml(formatShortAddress(tx.fromAddress))}</span>
-              <span class="text-[10px] text-zinc-500">(${escapeHtml(tx.fromName)})</span>
+              <span class="text-xs font-semibold text-zinc-100">(${escapeHtml(tx.fromName)})</span>
             </div>
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-zinc-500 font-semibold shrink-0">To  :</span>
               <span class="text-zinc-300 font-mono" title="${escapeHtml(tx.toAddress)}">${escapeHtml(formatShortAddress(tx.toAddress))}</span>
-              <span class="text-[10px] text-zinc-500">(${escapeHtml(tx.toName)})</span>
+              <span class="text-xs font-semibold text-zinc-100">(${escapeHtml(tx.toName)})</span>
             </div>
             <div class="flex items-start gap-1.5 flex-wrap">
               <span class="text-zinc-500 font-semibold shrink-0">Memo:</span>
@@ -1169,18 +1187,6 @@ function renderTxCardsList(container, txs, mode) {
     .join("");
 
   if (window.lucide) window.lucide.createIcons();
-
-  container.querySelectorAll(".btn-go-validator").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      currentAdminSubtab = "ledger";
-      await fetch("/api/m1/select-role", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "node" }),
-      });
-      await syncM1State();
-    });
-  });
 
   container.querySelectorAll(".btn-verify-tx").forEach((btn) => {
     btn.addEventListener("click", async () => {

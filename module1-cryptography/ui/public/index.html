@@ -3,6 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("ca_lab_theme") || localStorage.getItem("color-scheme") || "system";
+        if (t === "light") {
+          document.documentElement.classList.add("light");
+          document.querySelector('meta[name="color-scheme"]').content = "light";
+        } else if (t === "dark") {
+          document.documentElement.classList.add("dark");
+          document.querySelector('meta[name="color-scheme"]').content = "dark";
+        }
+      } catch {}
+    })();
+  </script>
   <title>Cryptography &amp; Wallets (Module 1)</title>
 
   <!-- Tailwind CSS -->
@@ -256,7 +271,7 @@
           Identity &amp; Keys
         </button>
         <button class="subtab-btn flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-medium text-center shrink-0 sm:shrink whitespace-nowrap" data-subtab="send">
-          Sent Transactions (<span id="sent-tab-count">0</span>)
+          Sent (<span id="sent-tab-count">0</span>)
         </button>
         <button class="subtab-btn flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-medium text-center shrink-0 sm:shrink whitespace-nowrap" data-subtab="inbox">
           Inbox (<span id="inbox-tab-count">0</span>)
@@ -270,16 +285,16 @@
         <!-- GENERATE PRIVATE KEY (.key) -->
         <!-- =============================================================== -->
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div class="section-header flex items-center justify-between cursor-pointer select-none">
-            <div class="space-y-0.5">
-              <div class="flex items-center gap-2">
-                <i data-lucide="key" class="w-4 h-4 text-zinc-400"></i>
+          <div class="section-header flex items-start justify-between gap-2 cursor-pointer select-none">
+            <div class="space-y-1 min-w-0">
+              <div class="flex items-center flex-wrap gap-x-2 gap-y-1.5">
+                <i data-lucide="key" class="w-4 h-4 text-zinc-400 shrink-0"></i>
                 <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Generate Private Key (.key)</h2>
-                <span id="badge-step1-status" class="vault-badge muted">Pending</span>
+                <span id="badge-step1-status" class="vault-badge muted shrink-0">Pending</span>
               </div>
-              <p class="text-xs text-zinc-400">Generate a random 256-bit secret number on the <code class="text-zinc-300">secp256k1</code> elliptic curve via OpenSSL</p>
+              <p class="text-xs text-zinc-400 leading-relaxed">Generate a random 256-bit secret number on the <code class="text-zinc-300">secp256k1</code> elliptic curve via OpenSSL</p>
             </div>
-            <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <button type="button" class="section-collapse-btn shrink-0 mt-0.5" title="Toggle section" aria-label="Toggle section">
               <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
             </button>
           </div>
@@ -299,14 +314,14 @@
               </div>
             </details>
 
-            <div class="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2 w-full">
-              <button id="btn-step1-gen-key" class="btn-solid h-9 sm:h-8 w-full sm:flex-1">
-                <i data-lucide="key" class="w-3.5 h-3.5"></i>
-                <span id="label-step1-btn">Generate Private Key (.key)</span>
+            <div class="flex items-center gap-2 w-full">
+              <button id="btn-step1-gen-key" class="btn-solid h-9 sm:h-8 flex-1 min-w-0">
+                <i data-lucide="key" class="w-3.5 h-3.5 shrink-0"></i>
+                <span id="label-step1-btn" class="truncate">Generate Private Key (.key)</span>
               </button>
-              <button id="btn-step1-remove-key" class="btn-solid h-9 sm:h-8 w-full sm:w-auto px-3" style="display: none;" title="Delete Private Key">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span>Remove .key</span>
+              <button id="btn-step1-remove-key" class="btn-solid h-9 w-9 sm:h-8 sm:w-auto px-0 sm:px-3 shrink-0" style="display: none;" title="Delete Private Key" aria-label="Remove .key">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 shrink-0"></i>
+                <span class="hidden sm:inline">Remove .key</span>
               </button>
             </div>
           </div>
@@ -316,16 +331,16 @@
         <!-- DERIVE PUBLIC KEY (.pub) -->
         <!-- =============================================================== -->
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div class="section-header flex items-center justify-between cursor-pointer select-none">
-            <div class="space-y-0.5">
-              <div class="flex items-center gap-2">
-                <i data-lucide="unlock" class="w-4 h-4 text-zinc-400"></i>
+          <div class="section-header flex items-start justify-between gap-2 cursor-pointer select-none">
+            <div class="space-y-1 min-w-0">
+              <div class="flex items-center flex-wrap gap-x-2 gap-y-1.5">
+                <i data-lucide="unlock" class="w-4 h-4 text-zinc-400 shrink-0"></i>
                 <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Derive Public Key (.pub)</h2>
-                <span id="badge-step2-status" class="vault-badge muted">Requires .key</span>
+                <span id="badge-step2-status" class="vault-badge muted shrink-0">Requires .key</span>
               </div>
-              <p class="text-xs text-zinc-400">Multiply Private Key scalar by generator point <code class="text-zinc-300">G</code> to derive Public Key coordinates <code class="text-zinc-300">(X, Y)</code></p>
+              <p class="text-xs text-zinc-400 leading-relaxed">Multiply Private Key scalar by generator point <code class="text-zinc-300">G</code> to derive Public Key coordinates <code class="text-zinc-300">(X, Y)</code></p>
             </div>
-            <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <button type="button" class="section-collapse-btn shrink-0 mt-0.5" title="Toggle section" aria-label="Toggle section">
               <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
             </button>
           </div>
@@ -345,14 +360,14 @@
               </div>
             </details>
 
-            <div class="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2 w-full">
-              <button id="btn-step2-gen-pub" class="btn-solid h-9 sm:h-8 w-full sm:flex-1" disabled>
-                <i data-lucide="unlock" class="w-3.5 h-3.5"></i>
-                <span id="label-step2-btn">Derive Public Key (.pub)</span>
+            <div class="flex items-center gap-2 w-full">
+              <button id="btn-step2-gen-pub" class="btn-solid h-9 sm:h-8 flex-1 min-w-0" disabled>
+                <i data-lucide="unlock" class="w-3.5 h-3.5 shrink-0"></i>
+                <span id="label-step2-btn" class="truncate">Derive Public Key (.pub)</span>
               </button>
-              <button id="btn-step2-remove-pub" class="btn-solid h-9 sm:h-8 w-full sm:w-auto px-3" style="display: none;" title="Delete Public Key">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span>Remove .pub</span>
+              <button id="btn-step2-remove-pub" class="btn-solid h-9 w-9 sm:h-8 sm:w-auto px-0 sm:px-3 shrink-0" style="display: none;" title="Delete Public Key" aria-label="Remove .pub">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 shrink-0"></i>
+                <span class="hidden sm:inline">Remove .pub</span>
               </button>
             </div>
           </div>
@@ -362,16 +377,16 @@
         <!-- DERIVE BLOCKCHAIN ADDRESS (.addr) -->
         <!-- =============================================================== -->
         <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-          <div class="section-header flex items-center justify-between cursor-pointer select-none">
-            <div class="space-y-0.5">
-              <div class="flex items-center gap-2">
-                <i data-lucide="hash" class="w-4 h-4 text-zinc-400"></i>
+          <div class="section-header flex items-start justify-between gap-2 cursor-pointer select-none">
+            <div class="space-y-1 min-w-0">
+              <div class="flex items-center flex-wrap gap-x-2 gap-y-1.5">
+                <i data-lucide="hash" class="w-4 h-4 text-zinc-400 shrink-0"></i>
                 <h2 class="text-xs font-semibold tracking-wider text-zinc-200 uppercase">Derive Blockchain Address (.addr)</h2>
-                <span id="badge-step3-status" class="vault-badge muted">Requires .pub</span>
+                <span id="badge-step3-status" class="vault-badge muted shrink-0">Requires .pub</span>
               </div>
-              <p class="text-xs text-zinc-400">Compute <code class="text-zinc-300">SHA3-256(X || Y)</code> and take the last 20 bytes (<code class="text-zinc-300">0x...</code>) as your self-certifying Web3 identity (Zero CA!)</p>
+              <p class="text-xs text-zinc-400 leading-relaxed">Compute <code class="text-zinc-300">SHA3-256(X || Y)</code> and take the last 20 bytes (<code class="text-zinc-300">0x...</code>) as your self-certifying Web3 identity (Zero CA!)</p>
             </div>
-            <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle section">
+            <button type="button" class="section-collapse-btn shrink-0 mt-0.5" title="Toggle section" aria-label="Toggle section">
               <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400"></i>
             </button>
           </div>
@@ -391,18 +406,20 @@
               </div>
             </details>
 
-            <div class="flex flex-col sm:flex-row sm:flex-wrap items-center gap-2 w-full">
-              <button id="btn-step3-gen-addr" class="btn-solid h-9 sm:h-8 w-full sm:flex-1" disabled>
-                <i data-lucide="hash" class="w-3.5 h-3.5"></i>
-                <span id="label-step3-btn">Derive Blockchain Address (0x...)</span>
-              </button>
-              <button id="btn-step3-faucet" class="btn-solid h-9 sm:h-8 w-full sm:flex-1 px-3" style="display: none;" title="Request 100 test coins from faucet">
-                <i data-lucide="coins" class="w-3.5 h-3.5"></i>
-                <span>Testnet Faucet (+100 Coins)</span>
-              </button>
-              <button id="btn-step3-remove-addr" class="btn-solid h-9 sm:h-8 w-full sm:w-auto px-3" style="display: none;" title="Delete Address">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span>Remove .addr</span>
+            <div class="space-y-2 w-full">
+              <div class="flex items-center gap-2 w-full">
+                <button id="btn-step3-gen-addr" class="btn-solid h-9 sm:h-8 flex-1 min-w-0" disabled>
+                  <i data-lucide="hash" class="w-3.5 h-3.5 shrink-0"></i>
+                  <span id="label-step3-btn" class="truncate">Derive Blockchain Address (0x...)</span>
+                </button>
+                <button id="btn-step3-remove-addr" class="btn-solid h-9 w-9 sm:h-8 sm:w-auto px-0 sm:px-3 shrink-0" style="display: none;" title="Delete Address" aria-label="Remove .addr">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5 shrink-0"></i>
+                  <span class="hidden sm:inline">Remove .addr</span>
+                </button>
+              </div>
+              <button id="btn-step3-faucet" class="btn-solid h-9 sm:h-8 w-full px-3" style="display: none;" title="Request 100 test coins from faucet">
+                <i data-lucide="coins" class="w-3.5 h-3.5 shrink-0"></i>
+                <span class="truncate">Testnet Faucet (+100 Coins)</span>
               </button>
             </div>
           </div>
