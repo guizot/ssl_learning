@@ -52,7 +52,8 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="/styles.css?v=8.8" />
+  <link rel="stylesheet" href="/core/core.css" />
+  <link rel="stylesheet" href="styles.css?v=8.8" />
 </head>
 <body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
 
@@ -921,54 +922,7 @@
     </div>
   </div>
 
-  <script src="/app.js?v=10.9" type="module"></script>
-  <script>
-    // Theme Switcher (System / Light / Dark)
-    const savedTheme = localStorage.getItem("ca_lab_theme") || "system";
-    function applyTheme(theme) {
-      const root = document.documentElement;
-      const themeBtn = document.getElementById("btn-theme-toggle");
-      let iconName = "monitor";
-
-      if (theme === "dark") {
-        root.classList.add("dark");
-        root.classList.remove("light");
-        iconName = "moon";
-      } else if (theme === "light") {
-        root.classList.add("light");
-        root.classList.remove("dark");
-        iconName = "sun";
-      } else {
-        root.classList.remove("dark", "light");
-        iconName = "monitor";
-      }
-
-      if (themeBtn) {
-        themeBtn.innerHTML = `<i id="theme-icon" data-lucide="${iconName}" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>`;
-        const label = theme === "system" ? "System (Auto)" : (theme === "light" ? "Light" : "Dark");
-        themeBtn.title = `Theme: ${label} (Click to toggle)`;
-      }
-
-      localStorage.setItem("ca_lab_theme", theme);
-      if (window.lucide) window.lucide.createIcons();
-    }
-    applyTheme(savedTheme);
-
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-      if ((localStorage.getItem("ca_lab_theme") || "system") === "system") {
-        applyTheme("system");
-      }
-    });
-
-    document.getElementById("btn-theme-toggle")?.addEventListener("click", () => {
-      const current = localStorage.getItem("ca_lab_theme") || "system";
-      const next = current === "system" ? "light" : current === "light" ? "dark" : "system";
-      applyTheme(next);
-    });
-
-    window.addEventListener("DOMContentLoaded", () => {
-      if (window.lucide) window.lucide.createIcons();
-    });
-  </script>
+  <script src="/core/core.js"></script>
+  <script src="app.js?v=10.9" type="module"></script>
 </body>
 </html>

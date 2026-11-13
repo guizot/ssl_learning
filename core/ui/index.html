@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Cryptography &amp; Blockchain Visual Lab — Unified Hub</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            zinc: {
+              50: "rgb(var(--zinc-50) / <alpha-value>)",
+              100: "rgb(var(--zinc-100) / <alpha-value>)",
+              200: "rgb(var(--zinc-200) / <alpha-value>)",
+              300: "rgb(var(--zinc-300) / <alpha-value>)",
+              400: "rgb(var(--zinc-400) / <alpha-value>)",
+              500: "rgb(var(--zinc-500) / <alpha-value>)",
+              600: "rgb(var(--zinc-600) / <alpha-value>)",
+              700: "rgb(var(--zinc-700) / <alpha-value>)",
+              800: "rgb(var(--zinc-800) / <alpha-value>)",
+              900: "rgb(var(--zinc-900) / <alpha-value>)",
+              950: "rgb(var(--zinc-950) / <alpha-value>)",
+            },
+            emerald: {
+              400: "rgb(var(--emerald-400) / <alpha-value>)",
+              500: "rgb(var(--emerald-500) / <alpha-value>)",
+            },
+            rose: {
+              400: "rgb(var(--rose-400) / <alpha-value>)",
+              500: "rgb(var(--rose-500) / <alpha-value>)",
+            },
+          },
+          fontFamily: {
+            sans: ["Geist", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+            mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/core/core.css" />
+</head>
+<body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
+
+  <div class="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
+
+    <!-- HEADER -->
+    <header class="flex items-center justify-between gap-4 pb-5 border-b border-zinc-800">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 shadow-sm shrink-0">
+          <i data-lucide="layers" class="w-5 h-5 text-zinc-300"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-zinc-100 truncate">
+            Cryptography &amp; Blockchain Visual Lab
+          </h1>
+          <p class="text-xs text-zinc-400 truncate">Unified server &middot; Each module persists files in its own <code class="font-mono text-zinc-300">generated/</code> folder</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-theme-toggle" type="button" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors shrink-0" title="Toggle Theme">
+          <i id="theme-icon" data-lucide="monitor" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MODULE CARDS -->
+    <div class="grid grid-cols-1 gap-4">
+
+      <!-- MODULE 0 -->
+      <article class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 hover:border-zinc-700 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div class="space-y-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px] font-semibold text-zinc-200">MODULE 0</span>
+              <h3 class="text-base font-bold text-zinc-100">Certificate Authority (CA) &amp; PKI Trust</h3>
+              <span id="hub-m0-badge" class="px-2 py-0.5 rounded border border-zinc-800 bg-zinc-950 text-[11px] font-mono text-zinc-400">Checking...</span>
+            </div>
+            <p class="text-xs text-zinc-400">
+              Centralized trust model using OpenSSL: initialize a Root CA (<code class="font-mono text-zinc-300">root_ca.key</code> / <code class="font-mono text-zinc-300">root_ca.crt</code>), issue client X.509 certificates from CSRs, and exchange CMS-encrypted &amp; signed documents.
+            </p>
+          </div>
+          <a href="/m0/" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 rounded-lg bg-zinc-100 text-zinc-950 text-xs font-semibold hover:opacity-90 transition-opacity shrink-0">
+            <span>Open Module 0</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-zinc-800/80 text-xs font-mono">
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Generated Path</div>
+            <div class="text-zinc-200 truncate" title="module0-ca/generated/">module0-ca/generated/</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Root CA</div>
+            <div id="hub-m0-root" class="text-zinc-200 font-semibold">-</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Registered Clients</div>
+            <div id="hub-m0-clients" class="text-zinc-200 font-semibold">0</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Encrypted Docs</div>
+            <div id="hub-m0-msgs" class="text-zinc-200 font-semibold">0</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- MODULE 1 -->
+      <article class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 hover:border-zinc-700 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div class="space-y-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px] font-semibold text-zinc-200">MODULE 1</span>
+              <h3 class="text-base font-bold text-zinc-100">Cryptography &amp; Wallets (Zero-CA)</h3>
+              <span id="hub-m1-badge" class="px-2 py-0.5 rounded border border-zinc-800 bg-zinc-950 text-[11px] font-mono text-zinc-400">Checking...</span>
+            </div>
+            <p class="text-xs text-zinc-400">
+              Self-sovereign identity without a Certificate Authority: generate <code class="font-mono text-zinc-300">secp256k1</code> keypairs (<code class="font-mono text-zinc-300">.key</code> / <code class="font-mono text-zinc-300">.pub</code>), derive Ethereum-style <code class="font-mono text-zinc-300">0x...</code> addresses via SHA3-256, and verify ECDSA signatures.
+            </p>
+          </div>
+          <a href="/m1/" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 rounded-lg bg-zinc-100 text-zinc-950 text-xs font-semibold hover:opacity-90 transition-opacity shrink-0">
+            <span>Open Module 1</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-zinc-800/80 text-xs font-mono">
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Generated Path</div>
+            <div class="text-zinc-200 truncate" title="module1-cryptography/generated/">module1-cryptography/generated/</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Active Role</div>
+            <div id="hub-m1-role" class="text-zinc-200 font-semibold">node</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Wallets</div>
+            <div id="hub-m1-wallets" class="text-zinc-200 font-semibold">0</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Signed Txs</div>
+            <div id="hub-m1-txs" class="text-zinc-200 font-semibold">0</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- MODULE 2 -->
+      <article class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 hover:border-zinc-700 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div class="space-y-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 font-mono text-[11px] font-semibold text-zinc-200">MODULE 2</span>
+              <h3 class="text-base font-bold text-zinc-100">Blockchain, Merkle Trees &amp; Proof-of-Work</h3>
+              <span id="hub-m2-badge" class="px-2 py-0.5 rounded border border-zinc-800 bg-zinc-950 text-[11px] font-mono text-zinc-400">Checking...</span>
+            </div>
+            <p class="text-xs text-zinc-400">
+              Decentralized consensus &amp; immutable ledger: initialize Genesis Block (<code class="font-mono text-zinc-300">#0</code>), queue signed transactions in the Mempool, solve SHA-256 Proof-of-Work, inspect Merkle Trees, and test Tamper resistance.
+            </p>
+          </div>
+          <a href="/m2/" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 sm:h-8 rounded-lg bg-zinc-100 text-zinc-950 text-xs font-semibold hover:opacity-90 transition-opacity shrink-0">
+            <span>Open Module 2</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-zinc-800/80 text-xs font-mono">
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Generated Path</div>
+            <div class="text-zinc-200 truncate" title="module2-blockchain/generated/">module2-blockchain/generated/</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Chain Height</div>
+            <div id="hub-m2-blocks" class="text-zinc-200 font-semibold">0 Blocks</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Wallets</div>
+            <div id="hub-m2-wallets" class="text-zinc-200 font-semibold">0</div>
+          </div>
+          <div class="rounded border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Mempool Queue</div>
+            <div id="hub-m2-mempool" class="text-zinc-200 font-semibold">0 Pending</div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+
+  <script src="/core/core.js"></script>
+  <script>
+    async function loadHubSummary() {
+      try {
+        const res = await fetch("/api/hub/state");
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Module 0
+        const m0Badge = document.getElementById("hub-m0-badge");
+        document.getElementById("hub-m0-root").textContent = data.m0.rootCaExists ? "Initialized" : "Not Initialized";
+        document.getElementById("hub-m0-clients").textContent = String(data.m0.clientsCount);
+        document.getElementById("hub-m0-msgs").textContent = String(data.m0.messagesCount);
+        if (m0Badge) {
+          m0Badge.textContent = data.m0.rootCaExists ? "Root CA Active" : "Clean Slate";
+          m0Badge.className = data.m0.rootCaExists
+            ? "px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-[11px] font-mono text-emerald-400"
+            : "px-2 py-0.5 rounded border border-zinc-800 bg-zinc-950 text-[11px] font-mono text-zinc-400";
+        }
+
+        // Module 1
+        const m1Badge = document.getElementById("hub-m1-badge");
+        document.getElementById("hub-m1-role").textContent = data.m1.activeRole;
+        document.getElementById("hub-m1-wallets").textContent = String(data.m1.walletsCount);
+        document.getElementById("hub-m1-txs").textContent = String(data.m1.transactionsCount);
+        if (m1Badge) {
+          m1Badge.textContent = data.m1.walletsCount > 0 ? `${data.m1.walletsCount} Wallet(s)` : "Clean Slate";
+          m1Badge.className = data.m1.walletsCount > 0
+            ? "px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-[11px] font-mono text-emerald-400"
+            : "px-2 py-0.5 rounded border border-zinc-800 bg-zinc-950 text-[11px] font-mono text-zinc-400";
+        }
+
+        // Module 2
+        const m2Badge = document.getElementById("hub-m2-badge");
+        document.getElementById("hub-m2-blocks").textContent = `${data.m2.blocksCount} Block${data.m2.blocksCount === 1 ? "" : "s"}`;
+        document.getElementById("hub-m2-wallets").textContent = String(data.m2.walletsCount);
+        document.getElementById("hub-m2-mempool").textContent = `${data.m2.mempoolCount} Pending`;
+        if (m2Badge) {
+          if (!data.m2.initialized) {
+            m2Badge.textContent = "Clean Slate";
+            m2Badge.className = "px-2 py-0.5 rounded border border-zinc-800 bg-zinc-950 text-[11px] font-mono text-zinc-400";
+          } else if (data.m2.chainValid) {
+            m2Badge.textContent = "Chain Valid";
+            m2Badge.className = "px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-[11px] font-mono text-emerald-400";
+          } else {
+            m2Badge.textContent = "Compromised";
+            m2Badge.className = "px-2 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-[11px] font-mono text-rose-400";
+          }
+        }
+      } catch {}
+    }
+
+    loadHubSummary();
+  </script>
+</body>
+</html>

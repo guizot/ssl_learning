@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Blockchain &amp; Proof-of-Work (Module 2)</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            zinc: {
+              50: "rgb(var(--zinc-50) / <alpha-value>)",
+              100: "rgb(var(--zinc-100) / <alpha-value>)",
+              200: "rgb(var(--zinc-200) / <alpha-value>)",
+              300: "rgb(var(--zinc-300) / <alpha-value>)",
+              400: "rgb(var(--zinc-400) / <alpha-value>)",
+              500: "rgb(var(--zinc-500) / <alpha-value>)",
+              600: "rgb(var(--zinc-600) / <alpha-value>)",
+              700: "rgb(var(--zinc-700) / <alpha-value>)",
+              800: "rgb(var(--zinc-800) / <alpha-value>)",
+              900: "rgb(var(--zinc-900) / <alpha-value>)",
+              950: "rgb(var(--zinc-950) / <alpha-value>)",
+            },
+            emerald: {
+              400: "rgb(var(--emerald-400) / <alpha-value>)",
+              500: "rgb(var(--emerald-500) / <alpha-value>)",
+            },
+            rose: {
+              400: "rgb(var(--rose-400) / <alpha-value>)",
+              500: "rgb(var(--rose-500) / <alpha-value>)",
+            },
+          },
+          fontFamily: {
+            sans: ["Geist", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+            mono: ["Geist Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/core/core.css" />
+  <link rel="stylesheet" href="styles.css?v=1.1" />
+</head>
+<body class="min-h-screen font-sans bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-800 selection:text-zinc-50">
+
+  <div class="max-w-5xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
+
+    <!-- HEADER (MATCHING MODULE 0 & 1 STYLE) -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-zinc-800">
+      <div class="flex items-center justify-between gap-3 min-w-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 shadow-sm shrink-0">
+            <i data-lucide="blocks" class="w-5 h-5 text-zinc-300"></i>
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-zinc-100 truncate">
+              Blockchain &amp; Proof-of-Work
+            </h1>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 w-full md:w-auto min-w-0 md:shrink-0">
+        <!-- Custom Role Selector Dropdown (matching Module 1) -->
+        <div class="relative flex-1 md:flex-initial min-w-0" id="role-dropdown-container">
+          <button id="role-dropdown-trigger" type="button" class="flex items-center justify-between gap-2 px-3 h-9 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition-colors w-full max-w-full focus:outline-none cursor-pointer select-none" aria-haspopup="listbox" aria-expanded="false">
+            <div class="flex items-center gap-2 min-w-0 truncate">
+              <span id="role-active-dot" class="w-2 h-2 rounded-full bg-zinc-500 shrink-0"></span>
+              <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0">Role:</span>
+              <span id="role-active-label" class="text-zinc-100 font-medium truncate">Validator Node (Network)</span>
+            </div>
+            <i data-lucide="chevron-down" id="role-dropdown-chevron" class="w-3.5 h-3.5 text-zinc-400 shrink-0 transition-transform duration-200"></i>
+          </button>
+
+          <div id="role-dropdown-menu" class="hidden absolute top-full left-0 mt-1.5 w-full sm:w-72 z-50 rounded-lg border border-zinc-800 bg-zinc-950/95 backdrop-blur-md shadow-2xl p-1.5 space-y-1 text-xs">
+            <div id="role-dropdown-items" class="space-y-0.5">
+              <!-- Dynamically populated -->
+            </div>
+            <div class="pt-1 border-t border-zinc-800/80">
+              <button id="role-dropdown-add-wallet" type="button" class="w-full flex items-center gap-2 px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors text-left text-[11px] font-medium cursor-pointer">
+                <i data-lucide="plus" class="w-3.5 h-3.5 text-zinc-500"></i>
+                <span>Add new wallet...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-open-logs" type="button" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0" title="View Action &amp; Command Logs" aria-label="View Action &amp; Command Logs">
+          <i data-lucide="terminal" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
+
+        <button id="btn-m2-reset" type="button" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0" title="Reset chain to Genesis Block #0" aria-label="Reset chain">
+          <i data-lucide="rotate-ccw" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
+
+        <button id="btn-theme-toggle" type="button" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors shrink-0" title="Toggle Theme (System / Light / Dark)" aria-label="Toggle color scheme">
+          <i id="theme-icon" data-lucide="monitor" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
+      </div>
+    </header>
+
+    <div id="main-workbench" class="space-y-5 sm:space-y-6">
+
+    <!-- ROLE VIEW: WALLET & MINER CLIENT -->
+    <div id="view-role-wallet" class="role-view space-y-5 hidden">
+      <section id="wallet-role-card" class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3 shadow-sm">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div id="wallet-role-avatar" class="w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-100 shrink-0">W</div>
+            <div class="min-w-0">
+              <h3 id="wallet-role-name" class="text-sm font-semibold text-zinc-100 truncate">Wallet</h3>
+              <div id="wallet-role-address" class="text-[11px] font-mono text-zinc-400 truncate">0x...</div>
+            </div>
+          </div>
+          <span class="vault-badge valid shrink-0">Wallet &amp; Miner</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800/80 text-xs font-mono">
+          <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Confirmed</div>
+            <div id="wallet-role-confirmed" class="text-sm font-bold text-zinc-100">0</div>
+          </div>
+          <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Pending</div>
+            <div id="wallet-role-pending" class="text-sm font-bold text-zinc-300">0</div>
+          </div>
+          <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
+            <div class="text-[10px] uppercase text-zinc-500">Next Nonce</div>
+            <div id="wallet-role-nonce" class="text-sm font-bold text-zinc-300">0</div>
+          </div>
+        </div>
+      </section>
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="pen-tool" class="w-4 h-4 text-zinc-400"></i>
+            <h3 id="tx-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Create &amp; Sign Transaction</h3>
+          </div>
+          <p class="text-xs text-zinc-400">Signed with sender's <code class="text-zinc-300">secp256k1</code> private key and queued in Mempool with a Gas Fee.</p>
+        </div>
+
+        <form id="form-send-tx" class="space-y-3.5" aria-labelledby="tx-form-heading">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label for="tx-from" class="block text-xs font-medium text-zinc-300">Sender Wallet</label>
+              <select id="tx-from" name="fromId" class="form-control font-mono" required></select>
+              <p id="tx-sender-hint" class="text-[11px] font-mono text-zinc-400">Available: 0 Coins &middot; Next Nonce: 0</p>
+            </div>
+            <div class="space-y-1">
+              <label for="tx-to" class="block text-xs font-medium text-zinc-300">Recipient Wallet</label>
+              <select id="tx-to" name="toAddress" class="form-control font-mono" required></select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div class="space-y-1">
+              <label for="tx-amount" class="block text-xs font-medium text-zinc-300">Amount (Coins)</label>
+              <input id="tx-amount" name="amount" type="number" step="any" min="0.01" value="15" class="form-control font-mono" required />
+            </div>
+            <div class="space-y-1">
+              <label for="tx-fee" class="block text-xs font-medium text-zinc-300">Gas Fee</label>
+              <input id="tx-fee" name="fee" type="number" step="any" min="0" value="2.5" class="form-control font-mono" required />
+            </div>
+            <div class="col-span-2 sm:col-span-1 space-y-1">
+              <label for="tx-nonce" class="block text-xs font-medium text-zinc-300">Nonce (Anti-Replay)</label>
+              <input id="tx-nonce" name="nonce" type="number" step="1" min="0" value="0" class="form-control font-mono" aria-describedby="tx-nonce-help" required />
+              <span id="tx-nonce-help" class="block text-[10px] text-zinc-500">Auto-synced; edit to test replay guard</span>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs font-mono flex items-center justify-between gap-2 text-zinc-400">
+            <span>Total Required (Amount + Fee):</span>
+            <span id="tx-total-preview" class="text-zinc-100 font-semibold shrink-0">17.5 Coins</span>
+          </div>
+
+          <p id="tx-form-error" class="text-xs font-mono text-rose-400 hidden" role="alert" aria-live="polite"></p>
+
+          <button id="btn-submit-tx" type="submit" class="btn-solid w-full h-9 sm:h-8">
+            <i data-lucide="signature" class="w-3.5 h-3.5"></i>
+            <span>Sign &amp; Broadcast to Mempool</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- PROOF-OF-WORK MINING (IN WALLET ROLE) -->
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="cpu" class="w-4 h-4 text-zinc-400"></i>
+            <h3 id="mining-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Miner Node &amp; Consensus Rules</h3>
+          </div>
+          <p class="text-xs text-zinc-400">Miner bundles Mempool transactions, prepends Coinbase mint tx, and iterates <code class="text-zinc-300">nonce</code> until target zeroes match.</p>
+        </div>
+
+        <form id="form-config" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end" aria-label="Consensus Difficulty and Reward">
+          <div class="space-y-1">
+            <label for="cfg-difficulty" class="block text-xs font-medium text-zinc-300">Difficulty (1–4 zeroes)</label>
+            <select id="cfg-difficulty" name="difficulty" class="form-control font-mono">
+              <option value="1">1 ("0...") ~16 tries</option>
+              <option value="2">2 ("00...") ~256 tries</option>
+              <option value="3">3 ("000...") ~4,096 tries</option>
+              <option value="4">4 ("0000...") ~65,536 tries</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label for="cfg-reward" class="block text-xs font-medium text-zinc-300">Base Block Reward</label>
+            <input id="cfg-reward" name="blockReward" type="number" min="1" step="any" value="50" class="form-control font-mono" required />
+          </div>
+          <button type="submit" class="btn-outline w-full h-9 sm:h-8">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+            <span>Apply Rules</span>
+          </button>
+        </form>
+
+        <div class="border-t border-zinc-800 pt-4 space-y-3">
+          <div class="space-y-1">
+            <label for="mine-miner-select" class="block text-xs font-medium text-zinc-300">Miner Wallet (Receives Reward + Fees)</label>
+            <select id="mine-miner-select" class="form-control font-mono"></select>
+          </div>
+
+          <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-xs font-mono space-y-1.5">
+            <div class="flex justify-between gap-2 text-zinc-400">
+              <span>Candidate Block:</span>
+              <span id="mine-next-index" class="text-zinc-100">#1</span>
+            </div>
+            <div class="flex justify-between gap-2 text-zinc-400">
+              <span>Mempool Txs Included:</span>
+              <span id="mine-mempool-count" class="text-zinc-100">0 (+1 Coinbase)</span>
+            </div>
+            <div class="flex justify-between gap-2 text-zinc-400">
+              <span>Projected Payout:</span>
+              <span id="mine-payout-preview" class="text-zinc-100 font-semibold">50 + 0 = 50 Coins</span>
+            </div>
+          </div>
+
+          <p id="mining-error" class="text-xs font-mono text-rose-400 hidden" role="alert" aria-live="polite"></p>
+
+          <button id="btn-mine-block" type="button" class="btn-solid w-full h-9 sm:h-8">
+            <i data-lucide="pickaxe" class="w-3.5 h-3.5"></i>
+            <span>Mine Next Block (Solve PoW)</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="gauge" class="w-4 h-4 text-zinc-400"></i>
+            <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Proof-of-Work Telemetry</h3>
+          </div>
+          <p class="text-xs text-zinc-400">Statistics from the most recently mined block.</p>
+        </div>
+
+        <div id="mining-telemetry-box" class="rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-xs font-mono space-y-2.5">
+          <p class="text-zinc-400">No user blocks mined yet. Click <strong>Mine Next Block</strong> to run Proof-of-Work and mint the first block reward.</p>
+        </div>
+
+        <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-3.5 text-[11px] font-mono text-zinc-400 space-y-1">
+          <div class="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Block Header Hash Formula</div>
+          <code class="block text-zinc-300 break-all">SHA256("${index}|${previousHash}|${timestamp}|${merkleRoot}|${difficulty}|${nonce}")</code>
+        </div>
+      </section>
+    </div> <!-- /#view-role-wallet -->
+
+    <!-- ROLE VIEW: VALIDATOR NODE (NETWORK) -->
+    <div id="view-role-node" class="role-view space-y-5">
+      <!-- STEP-BY-STEP LAB GUIDE -->
+      <section id="step-guide-card" class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="list-checks" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Step-by-Step Lab</h2>
+              <span id="steps-progress-badge" class="vault-badge muted">0/6</span>
+            </div>
+            <p class="text-xs text-zinc-400">Follow each step from scratch to build, mine, inspect, and audit the blockchain.</p>
+          </div>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle Step-by-Step Guide">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="section-content">
+          <div id="steps-list" class="grid grid-cols-1 gap-2">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- VISUAL BLOCKCHAIN STRIP -->
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <i data-lucide="link" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Immutable Ledger (Linked Blocks)</h2>
+            </div>
+            <span id="header-chain-status" class="vault-badge valid shrink-0">
+              <i data-lucide="shield-check" class="w-3 h-3"></i>
+              <span>Chain Valid</span>
+            </span>
+          </div>
+          <p class="text-xs text-zinc-400">Each block embeds its parent SHA-256 hash. Tap any block or use the side arrows to inspect its Merkle Tree below.</p>
+          <p id="chain-validation-summary" class="text-[11px] font-mono text-zinc-400 hidden"></p>
+        </div>
+
+        <div class="relative flex items-center gap-2">
+          <button type="button" id="btn-chain-prev" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-zinc-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0" title="Previous Block" aria-label="Previous Block">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+
+          <div id="chain-strip" class="chain-strip flex-1 min-w-0">
+            <!-- Populated dynamically -->
+          </div>
+
+          <button type="button" id="btn-chain-next" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-zinc-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0" title="Next Block" aria-label="Next Block">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- BLOCK & MERKLE TREE INSPECTOR -->
+      <section id="block-inspector-section" class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="box" class="w-4 h-4 text-zinc-400"></i>
+              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Block Inspector &amp; Merkle Tree</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Inspect header fields, transactions, and the bottom-up SHA-256 Merkle Tree for the selected block above.</p>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <label for="inspector-block-select" class="text-xs text-zinc-400 shrink-0">Block:</label>
+            <select id="inspector-block-select" class="form-control font-mono w-full sm:w-44"></select>
+          </div>
+        </div>
+
+        <div id="inspector-header-grid" class="grid grid-cols-1 gap-3 text-xs font-mono">
+          <!-- Populated dynamically -->
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 pt-2">
+          <div class="space-y-2.5 min-w-0">
+            <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-300">Transactions in Block</h4>
+            <div id="inspector-txs-list" class="space-y-2">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <div class="space-y-2.5 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-300">Merkle Tree Levels</h4>
+              <span class="text-[11px] font-mono text-zinc-400 shrink-0">Root &larr; Pairs &larr; Leaves</span>
+            </div>
+            <div id="inspector-merkle-tree" class="merkle-tree-wrap rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NETWORK OVERVIEW & WALLETS -->
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="activity" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Network Telemetry &amp; Participants</h2>
+            </div>
+            <p class="text-xs text-zinc-400 truncate">Store: <code class="text-zinc-300">module2-blockchain/generated/</code></p>
+          </div>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle Network Telemetry section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="section-content space-y-3.5">
+          <div class="grid grid-cols-1 gap-2 text-xs">
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Chain Height</div>
+              <div id="stat-height" class="text-xs sm:text-sm font-bold font-mono text-zinc-100">0 Blocks</div>
+            </div>
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">PoW Target</div>
+              <div id="stat-difficulty" class="text-xs sm:text-sm font-bold font-mono text-zinc-100">2 ("00...")</div>
+            </div>
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Block Reward</div>
+              <div id="stat-reward" class="text-xs sm:text-sm font-bold font-mono text-zinc-100">50 Coins</div>
+            </div>
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Mempool Queue</div>
+              <div id="stat-mempool" class="text-xs sm:text-sm font-bold font-mono text-zinc-100">0 Pending</div>
+            </div>
+            <div class="rounded-lg border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 flex items-center justify-between gap-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Total Supply</div>
+              <div id="stat-supply" class="text-xs sm:text-sm font-bold font-mono text-zinc-100">0 Coins</div>
+            </div>
+          </div>
+
+          <div id="wallets-grid" class="grid grid-cols-1 gap-2.5">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- MEMPOOL QUEUE -->
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="layers" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Mempool Queue</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Unconfirmed transactions awaiting PoW mining.</p>
+          </div>
+          <span id="mempool-fees-pill" class="vault-badge muted shrink-0">Fees: 0</span>
+        </div>
+
+        <div id="mempool-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+    </div>
+
+    <!-- ROLE VIEW: ATTACKER (TAMPER LAB) -->
+    <div id="view-role-attacker" class="role-view space-y-5 hidden">
+      <section class="rounded-lg border border-rose-500/30 bg-rose-500/5 p-4 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+            <i data-lucide="bug" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-semibold text-rose-300">Adversary Mode (Tamper Lab)</div>
+            <div class="text-[11px] text-zinc-400">Mutate confirmed block history &amp; test if Validator Node catches the attack.</div>
+          </div>
+        </div>
+        <span class="vault-badge invalid shrink-0">Adversary</span>
+      </section>
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-400"></i>
+            <h3 id="tamper-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Simulate History Tampering Attack</h3>
+          </div>
+          <p class="text-xs text-zinc-400">Mutate a confirmed transaction amount inside an already-mined block and watch cryptographic invariants catch it.</p>
+        </div>
+
+        <form id="form-tamper" class="space-y-3.5" aria-labelledby="tamper-form-heading">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label for="tamper-block" class="block text-xs font-medium text-zinc-300">Target Block (#1+)</label>
+              <select id="tamper-block" name="blockIndex" class="form-control font-mono"></select>
+            </div>
+            <div class="space-y-1">
+              <label for="tamper-tx" class="block text-xs font-medium text-zinc-300">Target Transaction</label>
+              <select id="tamper-tx" name="txIndex" class="form-control font-mono"></select>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <label for="tamper-amount" class="block text-xs font-medium text-zinc-300">Fraudulent New Amount (Coins)</label>
+            <input id="tamper-amount" name="newAmount" type="number" step="any" min="0" value="999" class="form-control font-mono" required />
+          </div>
+
+          <p id="tamper-error" class="text-xs font-mono text-rose-400 hidden" role="alert" aria-live="polite"></p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button id="btn-tamper-apply" type="submit" class="btn-solid h-9 sm:h-8">
+              <i data-lucide="bug" class="w-3.5 h-3.5"></i>
+              <span>Tamper Block Data</span>
+            </button>
+            <button id="btn-tamper-remine" type="button" class="btn-outline h-9 sm:h-8">
+              <i data-lucide="hammer" class="w-3.5 h-3.5"></i>
+              <span>Attempt Re-Mine Block</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-zinc-400">
+            <strong>Tip:</strong> Mine 2+ blocks, tamper Block #1, then click <strong>Attempt Re-Mine Block</strong> to see why re-mining Block #1 fails ECDSA checks and breaks Block #2's <code class="text-zinc-300">previousHash</code>.
+          </p>
+        </form>
+      </section>
+
+      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="shield-check" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">5-Point Chain Integrity Audit</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Live output of <code class="text-zinc-300">Blockchain.isChainValid()</code>.</p>
+          </div>
+          <span id="tamper-audit-badge" class="vault-badge valid shrink-0">VALID</span>
+        </div>
+
+        <div id="tamper-diagnostics-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+    </div>
+    </div> <!-- /#main-workbench -->
+
+    <!-- DEDICATED LOGS PAGE -->
+    <section id="logs-page" class="hidden space-y-4">
+      <div class="flex items-center gap-2">
+        <button id="btn-back-to-lab" type="button" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0" title="Back to Lab" aria-label="Back to Lab">
+          <i data-lucide="arrow-left" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
+
+        <div class="flex-1 grid grid-cols-3 rounded-lg border border-zinc-800 bg-zinc-900 p-0.5 text-xs min-w-0">
+          <button type="button" class="logs-filter-btn w-full py-1.5 rounded-md font-medium text-center bg-zinc-800 text-zinc-100" data-log-filter="all">All</button>
+          <button type="button" class="logs-filter-btn w-full py-1.5 rounded-md font-medium text-center text-zinc-400 hover:text-zinc-200" data-log-filter="success">Success</button>
+          <button type="button" class="logs-filter-btn w-full py-1.5 rounded-md font-medium text-center text-zinc-400 hover:text-zinc-200" data-log-filter="error">Errors</button>
+        </div>
+
+        <button id="btn-clear-logs" type="button" class="inline-flex items-center justify-center w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 border border-zinc-800 hover:border-zinc-700 transition-colors shrink-0" title="Clear all logs" aria-label="Clear all logs">
+          <i data-lucide="trash-2" class="w-4 h-4 sm:w-3.5 sm:h-3.5"></i>
+        </button>
+      </div>
+
+      <div id="logs-list" class="space-y-2.5">
+        <!-- Populated dynamically -->
+      </div>
+    </section>
+
+  </div>
+
+  <!-- NATIVE MODAL 1: ADD WALLET -->
+  <dialog id="modal-add-wallet" closedby="any" aria-labelledby="modal-add-wallet-title">
+    <form id="form-add-wallet" class="p-5 space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-4 h-4 text-zinc-400"></i>
+            <h2 id="modal-add-wallet-title" class="text-sm font-semibold text-zinc-100">Create New secp256k1 Wallet</h2>
+          </div>
+          <p class="text-xs text-zinc-400">Generates a real ECDSA keypair and derives a <code class="text-zinc-300">0x...</code> address.</p>
+        </div>
+        <button type="button" id="btn-close-add-wallet" class="text-zinc-400 hover:text-zinc-100 p-1 rounded-lg hover:bg-zinc-800" aria-label="Close dialog">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-1.5">
+        <label for="input-wallet-name" class="block text-xs font-medium text-zinc-300">Wallet Owner Name</label>
+        <input id="input-wallet-name" name="name" type="text" maxlength="40" placeholder="e.g. Dave, Validator-2" class="form-control font-mono" autocomplete="off" autofocus required />
+        <p id="add-wallet-error" class="text-xs font-mono text-rose-400 hidden" role="alert" aria-live="polite"></p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-1">
+        <button type="button" id="btn-cancel-add-wallet" class="btn-outline">Cancel</button>
+        <button type="submit" class="btn-solid">Create Wallet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- NATIVE MODAL 2: CONFIRM RESET -->
+  <dialog id="modal-confirm-reset" closedby="any" aria-labelledby="modal-confirm-reset-title">
+    <form method="dialog" class="p-5 space-y-4">
+      <div class="space-y-1.5">
+        <div class="flex items-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4 text-zinc-400"></i>
+          <h2 id="modal-confirm-reset-title" class="text-sm font-semibold text-zinc-100">Reset Lab to Clean Slate?</h2>
+        </div>
+        <p class="text-xs text-zinc-400">This clears all blocks, mempool transactions, and wallets so you can start fresh from Step 1.</p>
+      </div>
+      <div class="flex items-center justify-end gap-2">
+        <button value="cancel" class="btn-outline" autofocus>Cancel</button>
+        <button value="confirm" class="btn-solid">Reset Chain</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- TOAST REGION -->
+  <div id="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/core/core.js"></script>
+  <script src="app.js?v=1.1"></script>
+</body>
+</html>

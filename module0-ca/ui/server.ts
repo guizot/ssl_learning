@@ -4,6 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { serveCoreAssetIfMatch } from "../../core/http.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1122,6 +1123,8 @@ const server = http.createServer(async (req, res) => {
     // -------------------------------------------------------------------------
     // STATIC FILE SERVER
     // -------------------------------------------------------------------------
+    if (serveCoreAssetIfMatch(res, pathname)) return;
+
     let filePath =
       pathname === "/" ? path.join(PUBLIC_DIR, "index.html") : path.join(PUBLIC_DIR, pathname);
     if (!filePath.startsWith(PUBLIC_DIR)) {
@@ -1152,7 +1155,8 @@ const server = http.createServer(async (req, res) => {
 export { server };
 
 const PORT = Number(process.env.PORT || 3000);
-if (process.env.TEST_MODE !== "true") {
+const isMain = process.argv[1] ? path.resolve(process.argv[1]) === __filename : false;
+if (isMain && process.env.TEST_MODE !== "true") {
   server.listen(PORT, () => {
     console.log(`\n===============================================================`);
     console.log(` 🚀 Blockchain Visual Lab running at http://localhost:${PORT}`);
