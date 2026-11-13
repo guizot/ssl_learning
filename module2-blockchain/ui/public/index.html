@@ -344,25 +344,19 @@
 
       <!-- BLOCK & MERKLE TREE INSPECTOR -->
       <section id="block-inspector-section" class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="space-y-0.5">
-            <div class="flex items-center gap-2">
-              <i data-lucide="box" class="w-4 h-4 text-zinc-400"></i>
-              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Block Inspector &amp; Merkle Tree</h3>
-            </div>
-            <p class="text-xs text-zinc-400">Inspect header fields, transactions, and the bottom-up SHA-256 Merkle Tree for the selected block above.</p>
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="box" class="w-4 h-4 text-zinc-400"></i>
+            <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Block Inspector &amp; Merkle Tree</h3>
           </div>
-          <div class="flex items-center gap-2 w-full sm:w-auto">
-            <label for="inspector-block-select" class="text-xs text-zinc-400 shrink-0">Block:</label>
-            <select id="inspector-block-select" class="form-control font-mono w-full sm:w-44"></select>
-          </div>
+          <p class="text-xs text-zinc-400">Inspect header fields, transactions, and the bottom-up SHA-256 Merkle Tree for the selected block above.</p>
         </div>
 
         <div id="inspector-header-grid" class="grid grid-cols-1 gap-3 text-xs font-mono">
           <!-- Populated dynamically -->
         </div>
 
-        <div class="grid grid-cols-1 gap-4 pt-2">
+        <div id="inspector-details-grid" class="grid grid-cols-1 gap-4 pt-2">
           <div class="space-y-2.5 min-w-0">
             <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-300">Transactions in Block</h4>
             <div id="inspector-txs-list" class="space-y-2">

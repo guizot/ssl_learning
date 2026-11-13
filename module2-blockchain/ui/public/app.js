@@ -21,20 +21,8 @@ let lastSenderId = "";
 let isLogsPageOpen = false;
 let logFilter = "all";
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function shortHex(hex, head = 8, tail = 6) {
-  if (!hex || typeof hex !== "string") return "-";
-  if (hex.length <= head + tail + 3) return hex;
-  return `${hex.slice(0, head)}...${hex.slice(-tail)}`;
-}
+const escapeHtml = (value) => window.SSLCore.escapeHtml(value);
+const shortHex = (hex, head = 8, tail = 6) => window.SSLCore.shortHex(hex, head, tail);
 
 function walletNameForAddress(address) {
   if (!address) return "Unknown";
@@ -282,16 +270,7 @@ function renderActiveRoleView() {
   }
 }
 
-function toggleRoleDropdown(show) {
-  const menu = document.getElementById("role-dropdown-menu");
-  const trigger = document.getElementById("role-dropdown-trigger");
-  const chevron = document.getElementById("role-dropdown-chevron");
-  if (!menu) return;
-  const shouldOpen = typeof show === "boolean" ? show : menu.classList.contains("hidden");
-  menu.classList.toggle("hidden", !shouldOpen);
-  if (trigger) trigger.setAttribute("aria-expanded", String(shouldOpen));
-  if (chevron) chevron.classList.toggle("rotate-180", shouldOpen);
-}
+const toggleRoleDropdown = (show) => window.SSLCore.toggleRoleDropdown(show);
 
 async function selectRole(role) {
   toggleRoleDropdown(false);
@@ -951,33 +930,36 @@ function renderMiningPanel() {
 }
 
 function renderInspector() {
-  const select = document.getElementById("inspector-block-select");
-  if (!select) return;
+  const headerGrid = document.getElementById("inspector-header-grid");
+  const detailsGrid = document.getElementById("inspector-details-grid");
+  if (!headerGrid) return;
   if (m2State.chain.length === 0) {
-    select.innerHTML = `<option value="">No blocks yet</option>`;
-    document.getElementById("inspector-header-grid").innerHTML = `
-      <div class="rounded-lg border border-dashed border-zinc-800 p-4 text-xs text-zinc-400">
-        No blocks to inspect yet. Initialize Genesis Block (#0) in Step 1.
+    if (detailsGrid) detailsGrid.classList.add("hidden");
+    headerGrid.innerHTML = `
+      <div class="w-full font-sans rounded-lg border border-dashed border-zinc-800 p-6 text-center space-y-3">
+        <p class="text-xs text-zinc-400">No blocks to inspect yet (0 blocks).</p>
+        <button type="button" id="btn-inspector-init-genesis" class="btn-outline text-xs px-3 min-h-[32px]">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span>Initialize Genesis Block (#0)</span>
+        </button>
       </div>
     `;
+    document.getElementById("btn-inspector-init-genesis")?.addEventListener("click", handleInitGenesis);
     document.getElementById("inspector-txs-list").innerHTML = "";
     document.getElementById("inspector-merkle-tree").innerHTML = "";
+    if (window.lucide) window.lucide.createIcons();
     return;
   }
+
+  if (detailsGrid) detailsGrid.classList.remove("hidden");
 
   if (selectedBlockIndex < 0 || selectedBlockIndex >= m2State.chain.length) {
     selectedBlockIndex = m2State.chain.length - 1;
   }
 
-  select.innerHTML = m2State.chain
-    .map((b) => `<option value="${b.index}">${b.index === 0 ? "Block #0 (Genesis)" : `Block #${b.index}`}</option>`)
-    .join("");
-  select.value = String(selectedBlockIndex);
-
   const block = m2State.chain[selectedBlockIndex] || m2State.chain[0];
   const diag = block.diagnostics;
 
-  const headerGrid = document.getElementById("inspector-header-grid");
   headerGrid.innerHTML = `
     <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-3 space-y-1.5">
       <div class="text-[10px] uppercase text-zinc-500">Block Index &amp; Timestamp</div>
@@ -1324,15 +1306,6 @@ function initEventListeners() {
     }
   });
 
-  // Inspector block selector
-  document.getElementById("inspector-block-select")?.addEventListener("change", (e) => {
-    selectedBlockIndex = Number(e.target.value);
-    renderChainStrip();
-    renderInspector();
-    scrollSelectedBlockIntoView();
-    if (window.lucide) window.lucide.createIcons();
-  });
-
   // Tamper lab
   document.getElementById("tamper-block")?.addEventListener("change", populateTamperTxOptions);
 
@@ -1374,27 +1347,14 @@ function initEventListeners() {
 
   // Add Wallet modal (<dialog>) & Role Dropdown
   const addWalletDialog = document.getElementById("modal-add-wallet");
-  document.getElementById("role-dropdown-trigger")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleRoleDropdown();
-  });
-  document.addEventListener("click", (e) => {
-    const container = document.getElementById("role-dropdown-container");
-    if (container && !container.contains(e.target)) {
-      toggleRoleDropdown(false);
-    }
-  });
-  document.getElementById("role-dropdown-items")?.addEventListener("click", (e) => {
-    const btn = e.target.closest(".role-option-item");
-    if (!btn) return;
-    const role = btn.getAttribute("data-role");
-    if (role) selectRole(role);
-  });
-  document.getElementById("role-dropdown-add-wallet")?.addEventListener("click", () => {
-    toggleRoleDropdown(false);
-    document.getElementById("add-wallet-error").classList.add("hidden");
-    document.getElementById("input-wallet-name").value = "";
-    addWalletDialog.showModal();
+  window.SSLCore.initRoleDropdown({
+    onSelectRole: (role) => selectRole(role),
+    addButtonId: "role-dropdown-add-wallet",
+    onAddClick: () => {
+      document.getElementById("add-wallet-error").classList.add("hidden");
+      document.getElementById("input-wallet-name").value = "";
+      addWalletDialog.showModal();
+    },
   });
   document.getElementById("btn-wallet-back-node")?.addEventListener("click", () => selectRole("node"));
   document.getElementById("btn-attacker-back-node")?.addEventListener("click", () => selectRole("node"));

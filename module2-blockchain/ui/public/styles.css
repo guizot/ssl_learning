@@ -172,61 +172,6 @@ dialog::backdrop {
   display: inline-flex;
 }
 
-/* Collapsible Sections */
-.section-card.collapsed .section-content {
-  display: none !important;
-}
-.section-collapse-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  color: rgb(var(--zinc-400));
-  transition: background-color 0.15s ease, transform 0.2s ease;
-  flex-shrink: 0;
-}
-.section-collapse-btn:hover {
-  background-color: rgb(var(--zinc-800));
-  color: rgb(var(--zinc-100));
-}
-.section-card:not(.collapsed) .section-collapse-btn i,
-.section-card:not(.collapsed) .section-collapse-btn svg {
-  transform: rotate(180deg);
-}
-
-/* Subtab Navigation */
-.subtab-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 36px;
-  color: rgb(var(--zinc-400));
-  background-color: transparent;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  user-select: none;
-}
-@media (min-width: 640px) {
-  .subtab-btn {
-    height: 32px;
-  }
-}
-.subtab-btn:hover:not(.active) {
-  color: rgb(var(--zinc-200));
-  background-color: rgba(var(--zinc-800), 0.5);
-}
-.subtab-btn.active {
-  color: rgb(var(--zinc-100));
-  background-color: rgb(var(--zinc-800));
-  border-color: rgb(var(--zinc-700));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
 /* Form Controls */
 .form-control {
   width: 100%;
@@ -263,95 +208,21 @@ dialog::backdrop {
   color: rgb(var(--zinc-100));
 }
 
-/* Buttons matching Module 0 & 1 */
-.btn-solid,
+/* Module 2 button & badge overrides */
 .btn-outline {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 36px;
-  gap: 6px;
-  padding: 0 12px;
-  font-size: 12px;
-  border-radius: 8px;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-@media (min-width: 640px) {
-  .btn-solid,
-  .btn-outline {
-    min-height: 32px;
-  }
-}
-
-.btn-solid {
-  font-weight: 600;
-  background-color: rgb(var(--zinc-100));
-  color: rgb(var(--zinc-950));
-  border: 1px solid transparent;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-.btn-solid:hover:not(:disabled) {
-  opacity: 0.9;
-}
-.btn-solid:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.btn-outline {
-  font-weight: 500;
   background-color: rgb(var(--zinc-950));
-  color: rgb(var(--zinc-200));
-  border: 1px solid rgb(var(--zinc-800));
 }
-.btn-outline:hover:not(:disabled) {
-  background-color: rgb(var(--zinc-800));
-  border-color: rgb(var(--zinc-700));
-}
-.btn-outline:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 button:focus-visible,
 a:focus-visible {
   outline: 2px solid rgb(var(--zinc-500));
   outline-offset: 2px;
 }
-
-/* Badges matching Module 1 vault-badge */
 .vault-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
   height: 26px;
-  padding: 0 9px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 500;
-  font-family: "Geist Mono", monospace;
-  background-color: rgb(var(--zinc-950));
-  border: 1px solid rgb(var(--zinc-800));
-  color: rgb(var(--zinc-300));
-  white-space: nowrap;
-}
-.vault-badge.valid {
-  background: rgba(16, 185, 129, 0.08);
-  color: rgb(var(--emerald-400));
-  border-color: rgba(16, 185, 129, 0.25);
-}
-.vault-badge.invalid {
-  background: rgba(244, 63, 94, 0.08);
-  color: rgb(var(--rose-400));
-  border-color: rgba(244, 63, 94, 0.3);
 }
 .vault-badge.muted {
   background: rgb(var(--zinc-950));
   color: rgb(var(--zinc-300));
-  border-color: rgb(var(--zinc-800));
 }
 
 /* Visual Blockchain Strip (side-by-side horizontal strip with smooth scroll) */

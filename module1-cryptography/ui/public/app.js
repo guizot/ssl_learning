@@ -13,65 +13,10 @@ let m1State = {
 let currentSubtab = "identity";
 let currentAdminSubtab = "vault";
 
-function escapeHtml(str) {
-  if (typeof str !== "string") return "";
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+const escapeHtml = (str) => (typeof str === "string" ? window.SSLCore.escapeHtml(str) : "");
+const formatShortAddress = (addr) => window.SSLCore.shortHex(addr, 8, 6);
 
-function formatShortAddress(addr) {
-  if (!addr || typeof addr !== "string") return "-";
-  if (addr.length <= 16) return addr;
-  return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
-}
-
-function renderCmdOutput(detailsId, codeId, { commands = [], outputs = [], status = "success", customHtml = null }) {
-  const detailsEl = document.getElementById(detailsId);
-  const codeEl = document.getElementById(codeId);
-  if (!codeEl) return;
-
-  codeEl.setAttribute("data-has-output", "true");
-
-  if (customHtml) {
-    codeEl.innerHTML = customHtml;
-  } else {
-    let html = "";
-    if (commands && commands.length > 0) {
-      const cmdsFormatted = commands
-        .map((c) => {
-          const trimmed = String(c || "").trim();
-          if (trimmed.startsWith("$") || trimmed.startsWith("[") || trimmed.startsWith("#")) {
-            return `<span class="text-zinc-200 font-semibold">${escapeHtml(trimmed)}</span>`;
-          }
-          return `<span class="text-zinc-200 font-semibold">$ ${escapeHtml(trimmed)}</span>`;
-        })
-        .join("\n");
-      html += cmdsFormatted;
-    }
-
-    if (outputs && outputs.length > 0) {
-      if (html) html += "\n\n";
-      const outText = outputs.join("\n");
-      let statusClass = "text-emerald-400";
-      if (status === "error" || status === "failed") {
-        statusClass = "text-rose-400";
-      } else if (status === "warning") {
-        statusClass = "text-amber-400";
-      }
-      html += `<span class="${statusClass}">${escapeHtml(outText)}</span>`;
-    }
-
-    codeEl.innerHTML = html;
-  }
-
-  if (detailsEl) {
-    detailsEl.open = true;
-  }
-}
+const renderCmdOutput = (detailsId, codeId, opts) => window.SSLCore.renderCmdOutput(detailsId, codeId, opts);
 
 // ============================================================================
 // STATE SYNC & UI RENDER
@@ -221,106 +166,25 @@ function renderRoleSelector() {
   if (window.lucide) window.lucide.createIcons();
 }
 
-const roleTrigger = document.getElementById("role-dropdown-trigger");
-const roleMenu = document.getElementById("role-dropdown-menu");
-const roleChevron = document.getElementById("role-dropdown-chevron");
+const toggleRoleDropdown = (show) => window.SSLCore.toggleRoleDropdown(show);
 
-function toggleRoleDropdown(show) {
-  if (!roleMenu) return;
-  const isHidden = roleMenu.classList.contains("hidden");
-  const willShow = show !== undefined ? show : isHidden;
-  if (willShow) {
-    roleMenu.classList.remove("hidden");
-    if (roleTrigger) roleTrigger.setAttribute("aria-expanded", "true");
-    if (roleChevron) roleChevron.classList.add("rotate-180");
-  } else {
-    roleMenu.classList.add("hidden");
-    if (roleTrigger) roleTrigger.setAttribute("aria-expanded", "false");
-    if (roleChevron) roleChevron.classList.remove("rotate-180");
-  }
-}
-
-roleTrigger?.addEventListener("click", (e) => {
-  e.stopPropagation();
-  toggleRoleDropdown();
-});
-
-document.addEventListener("click", (e) => {
-  const container = document.getElementById("role-dropdown-container");
-  if (container && !container.contains(e.target)) {
-    toggleRoleDropdown(false);
-  }
-});
-
-document.getElementById("role-dropdown-items")?.addEventListener("click", async (e) => {
-  const btn = e.target.closest(".role-option-item");
-  if (!btn) return;
-  const selectedRole = btn.getAttribute("data-role");
-  toggleRoleDropdown(false);
-
-  await fetch("/api/m1/select-role", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role: selectedRole }),
-  });
-  await syncM1State();
-});
-
-document.getElementById("role-dropdown-add-wallet")?.addEventListener("click", () => {
-  toggleRoleDropdown(false);
-  openAddWalletModal();
+window.SSLCore.initRoleDropdown({
+  onSelectRole: async (selectedRole) => {
+    await fetch("/api/m1/select-role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: selectedRole }),
+    });
+    await syncM1State();
+  },
+  addButtonId: "role-dropdown-add-wallet",
+  onAddClick: () => openAddWalletModal(),
 });
 
 // ============================================================================
 // MODAL MANAGERS: CONFIRM DIALOG & ADD WALLET MODAL
 // ============================================================================
-function showConfirmModal({
-  title = "Confirm Action",
-  message = "Are you sure you want to proceed?",
-  confirmText = "Confirm",
-  icon = "trash-2",
-  alertOnly = false,
-} = {}) {
-  return new Promise((resolve) => {
-    const modal = document.getElementById("modal-confirm");
-    const titleEl = document.getElementById("confirm-title");
-    const msgEl = document.getElementById("confirm-message");
-    const proceedBtn = document.getElementById("btn-confirm-proceed");
-    const proceedText = document.getElementById("confirm-proceed-text");
-    const closeBtn = document.getElementById("btn-close-modal-confirm");
-    const iconBox = document.getElementById("confirm-icon-box");
-    const proceedIconBox = document.getElementById("confirm-proceed-icon-box");
-
-    if (titleEl) titleEl.textContent = title;
-    if (msgEl) msgEl.textContent = message;
-    if (proceedText) proceedText.textContent = confirmText;
-
-    const iconName = icon === "rotate-ccw" ? "rotate-ccw" : icon === "info" ? "info" : "trash-2";
-    if (iconBox) iconBox.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 text-zinc-400"></i>`;
-    if (proceedIconBox) {
-      proceedIconBox.innerHTML = `<i data-lucide="${alertOnly ? "check" : iconName}" class="w-3.5 h-3.5"></i>`;
-    }
-
-    if (window.lucide) window.lucide.createIcons();
-    modal.style.display = "flex";
-
-    function cleanup(result) {
-      modal.style.display = "none";
-      proceedBtn.removeEventListener("click", onProceed);
-      closeBtn.removeEventListener("click", onCancel);
-      resolve(result);
-    }
-    function onProceed() {
-      cleanup(true);
-    }
-    function onCancel() {
-      cleanup(false);
-    }
-
-    proceedBtn.addEventListener("click", onProceed);
-    closeBtn.addEventListener("click", onCancel);
-  });
-}
+const showConfirmModal = (opts) => window.SSLCore.showConfirmModal(opts);
 
 function openAddWalletModal() {
   const modal = document.getElementById("modal-add-wallet");
@@ -954,43 +818,7 @@ function renderTxCardsList(container, txs, mode) {
     return;
   }
 
-  if (!window.__statusCollapsibleBound) {
-    window.__statusCollapsibleBound = true;
-    document.addEventListener("click", (e) => {
-      const trigger = e.target.closest(".status-collapsible-trigger");
-      if (!trigger) return;
-      const root = trigger.closest(".status-collapsible");
-      if (!root) return;
-      const isOpen = root.classList.toggle("is-open");
-      trigger.setAttribute("aria-expanded", String(isOpen));
-    });
-  }
-
-  const renderStatusCollapsible = ({ id, valid, headlineHtml, bodyHtml }) => {
-    const stateClass = valid ? "valid" : "invalid";
-    const iconName = valid ? "check-circle-2" : "x-circle";
-    if (!bodyHtml) {
-      return `
-        <div class="result-banner ${stateClass}">
-          <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 mt-0.5 self-start"></i>
-          <div class="text-xs font-mono font-medium leading-snug break-words w-full min-w-0">${headlineHtml}</div>
-        </div>
-      `;
-    }
-    return `
-      <div class="status-collapsible ${stateClass}" id="${id}">
-        <button type="button" class="status-collapsible-trigger" aria-expanded="false">
-          <div class="flex items-start gap-2 min-w-0 flex-1">
-            <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 mt-0.5"></i>
-            <div class="text-xs font-mono font-medium leading-snug break-words min-w-0">${headlineHtml}</div>
-          </div>
-          <span class="status-label-show self-center text-[10px] font-mono opacity-75 hover:opacity-100 transition-opacity shrink-0">Show</span>
-          <span class="status-label-hide self-center text-[10px] font-mono opacity-75 hover:opacity-100 transition-opacity shrink-0">Hide</span>
-        </button>
-        <div class="status-collapsible-body">${bodyHtml}</div>
-      </div>
-    `;
-  };
+  const renderStatusCollapsible = (opts) => window.SSLCore.renderStatusCollapsible(opts);
 
   container.innerHTML = txs
     .map((tx) => {

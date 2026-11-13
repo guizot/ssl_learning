@@ -349,6 +349,230 @@
 
     // 5. Enhance all <select> elements into custom Zinc dropdowns
     enhanceAllSelects();
+
+    // 6. Bind shared .status-collapsible-trigger toggle once
+    if (!document.body.dataset.coreStatusCollapsibleBound) {
+      document.body.dataset.coreStatusCollapsibleBound = "true";
+      document.addEventListener("click", (e) => {
+        const trigger = e.target.closest(".status-collapsible-trigger");
+        if (!trigger) return;
+        const root = trigger.closest(".status-collapsible");
+        if (!root) return;
+        const isOpen = root.classList.toggle("is-open");
+        trigger.setAttribute("aria-expanded", String(isOpen));
+      });
+    }
+  }
+
+  function renderCmdOutput(detailsId, codeId, { commands = [], outputs = [], status = "success", customHtml = null } = {}) {
+    const detailsEl = document.getElementById(detailsId);
+    const codeEl = document.getElementById(codeId);
+    if (!codeEl) return;
+
+    codeEl.setAttribute("data-has-output", "true");
+
+    if (customHtml) {
+      codeEl.innerHTML = customHtml;
+    } else {
+      let html = "";
+      if (commands && commands.length > 0) {
+        html += commands
+          .map((c) => {
+            const trimmed = String(c || "").trim();
+            if (trimmed.startsWith("$") || trimmed.startsWith("[") || trimmed.startsWith("#")) {
+              return `<span class="text-zinc-200 font-semibold">${escapeHtml(trimmed)}</span>`;
+            }
+            return `<span class="text-zinc-200 font-semibold">$ ${escapeHtml(trimmed)}</span>`;
+          })
+          .join("\n");
+      }
+
+      if (outputs && outputs.length > 0) {
+        if (html) html += "\n\n";
+        const outText = outputs.join("\n");
+        let statusClass = "text-emerald-400";
+        if (status === "error" || status === "failed") {
+          statusClass = "text-rose-400";
+        } else if (status === "warning") {
+          statusClass = "text-amber-400";
+        }
+        html += `<span class="${statusClass}">${escapeHtml(outText)}</span>`;
+      }
+
+      codeEl.innerHTML = html;
+    }
+
+    if (detailsEl) {
+      detailsEl.open = true;
+    }
+  }
+
+  function showConfirmModal({
+    title = "Confirm Action",
+    message = "Are you sure you want to proceed?",
+    confirmText = "Confirm",
+    icon = "trash-2",
+    alertOnly = false,
+  } = {}) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById("modal-confirm");
+      if (!modal) return resolve(false);
+
+      const titleEl = document.getElementById("confirm-title");
+      const msgEl = document.getElementById("confirm-message");
+      const proceedBtn = document.getElementById("btn-confirm-proceed");
+      const proceedText = document.getElementById("confirm-proceed-text");
+      const closeBtn = document.getElementById("btn-close-modal-confirm");
+      const iconBox = document.getElementById("confirm-icon-box");
+      const proceedIconBox = document.getElementById("confirm-proceed-icon-box");
+
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = message;
+      if (proceedText) proceedText.textContent = confirmText;
+
+      const iconName = icon === "rotate-ccw" ? "rotate-ccw" : icon === "info" ? "info" : "trash-2";
+      if (iconBox) iconBox.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 text-zinc-400"></i>`;
+      if (proceedIconBox) {
+        proceedIconBox.innerHTML = `<i data-lucide="${alertOnly ? "check" : iconName}" class="w-3.5 h-3.5"></i>`;
+      }
+      if (proceedBtn) {
+        proceedBtn.className = "w-full btn-solid h-9 sm:h-8 text-xs font-medium rounded-lg inline-flex items-center justify-center gap-1.5 cursor-pointer";
+      }
+
+      if (window.lucide) window.lucide.createIcons();
+      modal.style.display = "flex";
+
+      function cleanup(result) {
+        modal.style.display = "none";
+        if (proceedBtn) proceedBtn.onclick = null;
+        if (closeBtn) closeBtn.onclick = null;
+        modal.onclick = null;
+        window.removeEventListener("keydown", onKeydown);
+        resolve(result);
+      }
+
+      function onKeydown(e) {
+        if (e.key === "Escape") cleanup(false);
+        else if (e.key === "Enter") cleanup(true);
+      }
+
+      if (proceedBtn) {
+        proceedBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup(true);
+        };
+      }
+      if (closeBtn) {
+        closeBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          cleanup(false);
+        };
+      }
+      modal.onclick = (e) => {
+        if (e.target === modal) cleanup(false);
+      };
+      window.addEventListener("keydown", onKeydown);
+    });
+  }
+
+  function showAlertModal(title, message, icon = "info") {
+    return showConfirmModal({
+      title,
+      message,
+      confirmText: "OK",
+      alertOnly: true,
+      icon,
+    });
+  }
+
+  function renderStatusCollapsible({ id = "", valid = true, headlineHtml = "", bodyHtml = "" } = {}) {
+    const stateClass = valid ? "valid" : "invalid";
+    const iconName = valid ? "check-circle-2" : "x-circle";
+    if (!bodyHtml) {
+      return `
+        <div class="result-banner ${stateClass}">
+          <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 mt-0.5 self-start"></i>
+          <div class="text-xs font-mono font-medium leading-snug break-words w-full min-w-0">${headlineHtml}</div>
+        </div>
+      `;
+    }
+    return `
+      <div class="status-collapsible ${stateClass}"${id ? ` id="${escapeHtml(id)}"` : ""}>
+        <button type="button" class="status-collapsible-trigger" aria-expanded="false">
+          <div class="flex items-start gap-2 min-w-0 flex-1">
+            <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 mt-0.5"></i>
+            <div class="text-xs font-mono font-medium leading-snug break-words min-w-0">${headlineHtml}</div>
+          </div>
+          <span class="status-label-show self-center text-[10px] font-mono opacity-75 hover:opacity-100 transition-opacity shrink-0">Show</span>
+          <span class="status-label-hide self-center text-[10px] font-mono opacity-75 hover:opacity-100 transition-opacity shrink-0">Hide</span>
+        </button>
+        <div class="status-collapsible-body">${bodyHtml}</div>
+      </div>
+    `;
+  }
+
+  function toggleRoleDropdown(show) {
+    const menu = document.getElementById("role-dropdown-menu");
+    const trigger = document.getElementById("role-dropdown-trigger");
+    const chevron = document.getElementById("role-dropdown-chevron");
+    if (!menu) return;
+    const shouldOpen = typeof show === "boolean" ? show : menu.classList.contains("hidden");
+    menu.classList.toggle("hidden", !shouldOpen);
+    if (trigger) trigger.setAttribute("aria-expanded", String(shouldOpen));
+    if (chevron) chevron.classList.toggle("rotate-180", shouldOpen);
+  }
+
+  function initRoleDropdown({ onSelectRole, addButtonId, onAddClick } = {}) {
+    const trigger = document.getElementById("role-dropdown-trigger");
+    if (trigger && !trigger.dataset.coreRoleBound) {
+      trigger.dataset.coreRoleBound = "true";
+      trigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleRoleDropdown();
+      });
+    }
+
+    if (!document.body.dataset.coreRoleDocBound) {
+      document.body.dataset.coreRoleDocBound = "true";
+      document.addEventListener("click", (e) => {
+        const container = document.getElementById("role-dropdown-container");
+        if (container && !container.contains(e.target)) {
+          toggleRoleDropdown(false);
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          toggleRoleDropdown(false);
+        }
+      });
+    }
+
+    const items = document.getElementById("role-dropdown-items");
+    if (items && !items.dataset.coreRoleItemsBound) {
+      items.dataset.coreRoleItemsBound = "true";
+      items.addEventListener("click", (e) => {
+        const btn = e.target.closest(".role-option-item");
+        if (!btn) return;
+        const selectedRole = btn.getAttribute("data-role");
+        toggleRoleDropdown(false);
+        if (selectedRole && typeof onSelectRole === "function") {
+          onSelectRole(selectedRole);
+        }
+      });
+    }
+
+    if (addButtonId && typeof onAddClick === "function") {
+      const addBtn = document.getElementById(addButtonId);
+      if (addBtn && !addBtn.dataset.coreRoleAddBound) {
+        addBtn.dataset.coreRoleAddBound = "true";
+        addBtn.addEventListener("click", () => {
+          toggleRoleDropdown(false);
+          onAddClick();
+        });
+      }
+    }
   }
 
   // Apply class & meta immediately on script load to avoid flash
@@ -385,5 +609,11 @@
     applyTheme,
     cycleTheme,
     enhanceAllSelects,
+    renderCmdOutput,
+    showConfirmModal,
+    showAlertModal,
+    renderStatusCollapsible,
+    toggleRoleDropdown,
+    initRoleDropdown,
   };
 })();

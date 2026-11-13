@@ -132,25 +132,6 @@ body {
 }
 
 /* Subtab Buttons (Unified Highlight) */
-.subtab-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  color: rgb(var(--zinc-400));
-  background-color: transparent;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  user-select: none;
-}
-@media (min-width: 640px) {
-  .subtab-btn {
-    height: 32px;
-  }
-}
-
 /* Collapsible accordion / details matching button height (h-9 mobile / sm:h-8 desktop) */
 details:not([open]) {
   height: 36px !important;
@@ -209,17 +190,6 @@ details summary {
     transform: translateY(0) scale(1);
   }
 }
-.subtab-btn:hover:not(.active) {
-  color: rgb(var(--zinc-200));
-  background-color: rgba(var(--zinc-800), 0.5);
-}
-.subtab-btn.active {
-  color: rgb(var(--zinc-100)) !important;
-  background-color: rgb(var(--zinc-800)) !important;
-  border-color: rgb(var(--zinc-700)) !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
 /* Text Inputs and Controls */
 input[type="text"],
 input[type="password"],
@@ -302,105 +272,6 @@ select option {
 .f-badge.created .f-state {
   color: rgb(var(--emerald-400)) !important;
   font-weight: 500;
-}
-
-/* Buttons */
-.btn-solid,
-.btn-outline,
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 36px;
-  gap: 6px;
-  padding: 0 12px;
-  font-size: 12px;
-  border-radius: 8px;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-@media (min-width: 640px) {
-  .btn-solid,
-  .btn-outline,
-  .btn-ghost {
-    height: 32px;
-    padding: 0 12px;
-  }
-}
-
-.btn-solid {
-  font-weight: 600;
-  background-color: rgb(var(--zinc-100));
-  color: rgb(var(--zinc-950));
-  border: 1px solid transparent;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-.btn-solid svg,
-.btn-solid i {
-  color: inherit !important;
-  stroke: currentColor !important;
-}
-.btn-solid:hover:not(:disabled) {
-  opacity: 0.9;
-}
-.btn-solid:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.btn-outline {
-  font-weight: 500;
-  background-color: rgb(var(--zinc-900));
-  color: rgb(var(--zinc-200));
-  border: 1px solid rgb(var(--zinc-800));
-}
-.btn-outline:hover:not(:disabled) {
-  background-color: rgb(var(--zinc-800));
-  border-color: rgb(var(--zinc-700));
-  color: rgb(var(--zinc-50));
-}
-
-.btn-ghost {
-  font-weight: 500;
-  background-color: transparent;
-  color: rgb(var(--zinc-400));
-  border: 1px solid transparent;
-}
-.btn-ghost:hover:not(:disabled) {
-  background-color: rgb(var(--zinc-900));
-  color: rgb(var(--zinc-100));
-  border-color: rgb(var(--zinc-800));
-}
-
-.btn-danger-hover:hover:not(:disabled) {
-  background-color: rgb(var(--zinc-800)) !important;
-  color: rgb(var(--zinc-100)) !important;
-  border-color: rgb(var(--zinc-700)) !important;
-}
-
-.btn-danger-action {
-  background-color: rgb(var(--zinc-900)) !important;
-  color: rgb(var(--zinc-200)) !important;
-  border: 1px solid rgb(var(--zinc-800)) !important;
-}
-.btn-danger-action:hover:not(:disabled) {
-  background-color: rgb(var(--zinc-800)) !important;
-  border-color: rgb(var(--zinc-700)) !important;
-  color: rgb(var(--zinc-50)) !important;
-}
-
-.btn-sm {
-  height: 36px;
-  padding: 0 10px;
-  font-size: 11px;
-  border-radius: 8px;
-}
-@media (min-width: 640px) {
-  .btn-sm {
-    height: 32px;
-    padding: 0 10px;
-  }
 }
 
 /* Dynamic Inbox Cards */
@@ -498,46 +369,6 @@ select option {
   border-radius: 8px;
 }
 
-.vault-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 9px;
-  font-size: 11px;
-  font-family: "Geist Mono", monospace;
-  background-color: rgb(var(--zinc-950));
-  border: 1px solid rgb(var(--zinc-800));
-  border-radius: 8px;
-  color: rgb(var(--zinc-300));
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.vault-badge.success {
-  color: rgb(var(--emerald-400));
-  border-color: rgba(16, 185, 129, 0.25);
-  background-color: rgba(16, 185, 129, 0.08);
-}
-
-.vault-badge.warning {
-  color: rgb(var(--amber-400));
-  border-color: rgba(245, 158, 11, 0.3);
-  background-color: rgba(245, 158, 11, 0.08);
-}
-
-.vault-badge.danger {
-  color: rgb(var(--rose-400));
-  border-color: rgba(244, 63, 94, 0.3);
-  background-color: rgba(244, 63, 94, 0.08);
-}
-
-.vault-badge.muted {
-  color: rgb(var(--zinc-500));
-  border-color: rgb(var(--zinc-800));
-  background-color: rgb(var(--zinc-900) / 0.5);
-}
-
 .inbox-title {
   font-size: 13px;
   font-weight: 600;
@@ -612,67 +443,6 @@ select option {
   border: 1px solid rgb(var(--zinc-800));
   border-radius: 8px;
   font-weight: 500;
-}
-
-.result-banner {
-  border-radius: 8px;
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-.result-banner.valid {
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  background-color: rgba(16, 185, 129, 0.1);
-  color: rgb(var(--emerald-400));
-}
-.result-banner.invalid {
-  border: 1px solid rgba(244, 63, 94, 0.3);
-  background-color: rgba(244, 63, 94, 0.1);
-  color: #fb7185;
-}
-
-/* Section Collapsible Cards */
-.section-header {
-  position: relative;
-  transition: opacity 0.15s ease;
-}
-.section-collapse-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background-color: transparent;
-  color: rgb(var(--zinc-400));
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.section-collapse-btn:hover,
-.section-header:hover .section-collapse-btn {
-  background-color: rgb(var(--zinc-800));
-  color: rgb(var(--zinc-100));
-  border-color: rgb(var(--zinc-700));
-}
-.section-collapse-btn svg,
-.section-collapse-btn i {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-/* When section is collapsed: chevron points down (rotate 0). When open: chevron points up (rotate 180deg) */
-.section-card.collapsed .section-collapse-btn svg,
-.section-card.collapsed .section-collapse-btn i {
-  transform: rotate(0deg);
-}
-.section-card:not(.collapsed) .section-collapse-btn svg,
-.section-card:not(.collapsed) .section-collapse-btn i {
-  transform: rotate(180deg);
-}
-.section-card.collapsed .section-content {
-  display: none !important;
 }
 
 /* Client Identity Action Buttons: 3 columns on web (desktop), 2 rows on mobile */
