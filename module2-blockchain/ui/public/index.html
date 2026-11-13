@@ -127,18 +127,23 @@
 
     <!-- ROLE VIEW: WALLET & MINER CLIENT -->
     <div id="view-role-wallet" class="role-view space-y-5 hidden">
-      <section id="wallet-role-card" class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3 shadow-sm">
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <div id="wallet-role-avatar" class="w-9 h-9 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-100 shrink-0">W</div>
-            <div class="min-w-0">
-              <h3 id="wallet-role-name" class="text-sm font-semibold text-zinc-100 truncate">Wallet</h3>
-              <div id="wallet-role-address" class="text-[11px] font-mono text-zinc-400 truncate">0x...</div>
+      <section id="wallet-role-card" class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3 shadow-sm">
+        <div class="section-header flex items-start sm:items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="wallet" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+                <h3 id="wallet-role-name" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Wallet</h3>
+              </div>
+              <span class="vault-badge valid shrink-0">Wallet &amp; Miner</span>
             </div>
+            <div id="wallet-role-address" class="text-[11px] font-mono text-zinc-400 truncate">0x...</div>
           </div>
-          <span class="vault-badge valid shrink-0">Wallet &amp; Miner</span>
+          <button type="button" class="section-collapse-btn shrink-0" title="Toggle section" aria-label="Toggle Wallet summary">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
-        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800/80 text-xs font-mono">
+        <div class="section-content grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800/80 text-xs font-mono">
           <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
             <div class="text-[10px] uppercase text-zinc-500">Confirmed</div>
             <div id="wallet-role-confirmed" class="text-sm font-bold text-zinc-100">0</div>
@@ -153,16 +158,21 @@
           </div>
         </div>
       </section>
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="pen-tool" class="w-4 h-4 text-zinc-400"></i>
-            <h3 id="tx-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Create &amp; Sign Transaction</h3>
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="pen-tool" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h3 id="tx-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Create &amp; Sign Transaction</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Signed with sender's <code class="text-zinc-300">secp256k1</code> private key and queued in Mempool with a Gas Fee.</p>
           </div>
-          <p class="text-xs text-zinc-400">Signed with sender's <code class="text-zinc-300">secp256k1</code> private key and queued in Mempool with a Gas Fee.</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle Create & Sign Transaction section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
-        <form id="form-send-tx" class="space-y-3.5" aria-labelledby="tx-form-heading">
+        <form id="form-send-tx" class="section-content space-y-3.5" aria-labelledby="tx-form-heading">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="space-y-1">
               <label for="tx-from" class="block text-xs font-medium text-zinc-300">Sender Wallet</label>
@@ -206,15 +216,21 @@
       </section>
 
       <!-- PROOF-OF-WORK MINING (IN WALLET ROLE) -->
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="cpu" class="w-4 h-4 text-zinc-400"></i>
-            <h3 id="mining-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Miner Node &amp; Consensus Rules</h3>
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="cpu" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h3 id="mining-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Miner Node &amp; Consensus Rules</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Miner bundles Mempool transactions, prepends Coinbase mint tx, and iterates <code class="text-zinc-300">nonce</code> until target zeroes match.</p>
           </div>
-          <p class="text-xs text-zinc-400">Miner bundles Mempool transactions, prepends Coinbase mint tx, and iterates <code class="text-zinc-300">nonce</code> until target zeroes match.</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle Miner Node & Consensus Rules section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
+        <div class="section-content space-y-4">
         <form id="form-config" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end" aria-label="Consensus Difficulty and Reward">
           <div class="space-y-1">
             <label for="cfg-difficulty" class="block text-xs font-medium text-zinc-300">Difficulty (1–4 zeroes)</label>
@@ -263,17 +279,24 @@
             <span>Mine Next Block (Solve PoW)</span>
           </button>
         </div>
+        </div>
       </section>
 
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="gauge" class="w-4 h-4 text-zinc-400"></i>
-            <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Proof-of-Work Telemetry</h3>
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="gauge" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Proof-of-Work Telemetry</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Statistics from the most recently mined block.</p>
           </div>
-          <p class="text-xs text-zinc-400">Statistics from the most recently mined block.</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle Proof-of-Work Telemetry section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
+        <div class="section-content space-y-4">
         <div id="mining-telemetry-box" class="rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-xs font-mono space-y-2.5">
           <p class="text-zinc-400">No user blocks mined yet. Click <strong>Mine Next Block</strong> to run Proof-of-Work and mint the first block reward.</p>
         </div>
@@ -281,6 +304,7 @@
         <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-3.5 text-[11px] font-mono text-zinc-400 space-y-1">
           <div class="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Block Header Hash Formula</div>
           <code class="block text-zinc-300 break-all">SHA256("${index}|${previousHash}|${timestamp}|${merkleRoot}|${difficulty}|${nonce}")</code>
+        </div>
         </div>
       </section>
     </div> <!-- /#view-role-wallet -->
@@ -312,22 +336,27 @@
 
       <!-- VISUAL BLOCKCHAIN STRIP -->
       <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 shadow-sm">
-        <div class="space-y-1">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <i data-lucide="link" class="w-4 h-4 text-zinc-400 shrink-0"></i>
-              <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Immutable Ledger (Linked Blocks)</h2>
+        <div class="section-header flex items-start sm:items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-1 min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="link" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+                <h2 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Immutable Ledger (Linked Blocks)</h2>
+              </div>
+              <span id="header-chain-status" class="vault-badge valid shrink-0">
+                <i data-lucide="shield-check" class="w-3 h-3"></i>
+                <span>Chain Valid</span>
+              </span>
             </div>
-            <span id="header-chain-status" class="vault-badge valid shrink-0">
-              <i data-lucide="shield-check" class="w-3 h-3"></i>
-              <span>Chain Valid</span>
-            </span>
+            <p class="text-xs text-zinc-400">Each block embeds its parent SHA-256 hash. Tap any block or use the side arrows to inspect its Merkle Tree below.</p>
+            <p id="chain-validation-summary" class="text-[11px] font-mono text-zinc-400 hidden"></p>
           </div>
-          <p class="text-xs text-zinc-400">Each block embeds its parent SHA-256 hash. Tap any block or use the side arrows to inspect its Merkle Tree below.</p>
-          <p id="chain-validation-summary" class="text-[11px] font-mono text-zinc-400 hidden"></p>
+          <button type="button" class="section-collapse-btn shrink-0" title="Toggle section" aria-label="Toggle Immutable Ledger section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
-        <div class="relative flex items-center gap-2">
+        <div class="section-content relative flex items-center gap-2">
           <button type="button" id="btn-chain-prev" class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-zinc-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0" title="Previous Block" aria-label="Previous Block">
             <i data-lucide="chevron-left" class="w-4 h-4"></i>
           </button>
@@ -344,14 +373,20 @@
 
       <!-- BLOCK & MERKLE TREE INSPECTOR -->
       <section id="block-inspector-section" class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="box" class="w-4 h-4 text-zinc-400"></i>
-            <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Block Inspector &amp; Merkle Tree</h3>
+        <div class="section-header flex items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="box" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Block Inspector &amp; Merkle Tree</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Inspect header fields, transactions, and the bottom-up SHA-256 Merkle Tree for the selected block above.</p>
           </div>
-          <p class="text-xs text-zinc-400">Inspect header fields, transactions, and the bottom-up SHA-256 Merkle Tree for the selected block above.</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle Block Inspector section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
+        <div class="section-content space-y-4">
         <div id="inspector-header-grid" class="grid grid-cols-1 gap-3 text-xs font-mono">
           <!-- Populated dynamically -->
         </div>
@@ -373,6 +408,7 @@
               <!-- Populated dynamically -->
             </div>
           </div>
+        </div>
         </div>
       </section>
 
@@ -422,19 +458,24 @@
       </section>
 
       <!-- MEMPOOL QUEUE -->
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="flex items-center justify-between gap-2">
-          <div class="space-y-0.5 min-w-0">
-            <div class="flex items-center gap-2">
-              <i data-lucide="layers" class="w-4 h-4 text-zinc-400 shrink-0"></i>
-              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Mempool Queue</h3>
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="section-header flex items-start sm:items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="layers" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Mempool Queue</h3>
+              </div>
+              <span id="mempool-fees-pill" class="vault-badge muted shrink-0">Fees: 0</span>
             </div>
             <p class="text-xs text-zinc-400">Unconfirmed transactions awaiting PoW mining.</p>
           </div>
-          <span id="mempool-fees-pill" class="vault-badge muted shrink-0">Fees: 0</span>
+          <button type="button" class="section-collapse-btn shrink-0" title="Toggle section" aria-label="Toggle Mempool Queue section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
-        <div id="mempool-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+        <div id="mempool-list" class="section-content space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
           <!-- Populated dynamically -->
         </div>
       </section>
@@ -454,16 +495,21 @@
         </div>
         <span class="vault-badge invalid shrink-0">Adversary</span>
       </section>
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="space-y-0.5">
-          <div class="flex items-center gap-2">
-            <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-400"></i>
-            <h3 id="tamper-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Simulate History Tampering Attack</h3>
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="section-header flex items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+              <h3 id="tamper-form-heading" class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">Simulate History Tampering Attack</h3>
+            </div>
+            <p class="text-xs text-zinc-400">Mutate a confirmed transaction amount inside an already-mined block and watch cryptographic invariants catch it.</p>
           </div>
-          <p class="text-xs text-zinc-400">Mutate a confirmed transaction amount inside an already-mined block and watch cryptographic invariants catch it.</p>
+          <button type="button" class="section-collapse-btn" title="Toggle section" aria-label="Toggle Simulate History Tampering Attack section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
-        <form id="form-tamper" class="space-y-3.5" aria-labelledby="tamper-form-heading">
+        <form id="form-tamper" class="section-content space-y-3.5" aria-labelledby="tamper-form-heading">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="space-y-1">
               <label for="tamper-block" class="block text-xs font-medium text-zinc-300">Target Block (#1+)</label>
@@ -498,19 +544,24 @@
         </form>
       </section>
 
-      <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
-        <div class="flex items-center justify-between gap-2">
-          <div class="space-y-0.5 min-w-0">
-            <div class="flex items-center gap-2">
-              <i data-lucide="shield-check" class="w-4 h-4 text-zinc-400 shrink-0"></i>
-              <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase truncate">5-Point Chain Integrity Audit</h3>
+      <section class="section-card rounded-lg border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="section-header flex items-start sm:items-center justify-between cursor-pointer select-none gap-3">
+          <div class="space-y-0.5 min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="shield-check" class="w-4 h-4 text-zinc-400 shrink-0"></i>
+                <h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">5-Point Chain Integrity Audit</h3>
+              </div>
+              <span id="tamper-audit-badge" class="vault-badge valid shrink-0">VALID</span>
             </div>
             <p class="text-xs text-zinc-400">Live output of <code class="text-zinc-300">Blockchain.isChainValid()</code>.</p>
           </div>
-          <span id="tamper-audit-badge" class="vault-badge valid shrink-0">VALID</span>
+          <button type="button" class="section-collapse-btn shrink-0" title="Toggle section" aria-label="Toggle 5-Point Chain Integrity Audit section">
+            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+          </button>
         </div>
 
-        <div id="tamper-diagnostics-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+        <div id="tamper-diagnostics-list" class="section-content space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
           <!-- Populated dynamically -->
         </div>
       </section>

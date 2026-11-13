@@ -237,6 +237,17 @@ a:focus-visible {
   scroll-snap-type: x proximity;
   scroll-behavior: smooth;
 }
+@media (max-width: 639px) {
+  .chain-strip {
+    padding: 3px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .chain-strip::-webkit-scrollbar {
+    display: none;
+  }
+}
 
 .block-node {
   width: 260px;
@@ -250,6 +261,13 @@ a:focus-visible {
   text-align: left;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
+}
+@media (max-width: 639px) {
+  .block-node {
+    width: 100%;
+    min-width: 100%;
+    scroll-snap-align: center;
+  }
 }
 
 .chain-link-arrow {

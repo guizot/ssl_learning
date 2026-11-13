@@ -254,14 +254,12 @@ function renderActiveRoleView() {
   if (walletView) walletView.classList.toggle("hidden", !activeWallet);
 
   if (activeWallet) {
-    const avatar = document.getElementById("wallet-role-avatar");
     const nameEl = document.getElementById("wallet-role-name");
     const addrEl = document.getElementById("wallet-role-address");
     const confEl = document.getElementById("wallet-role-confirmed");
     const pendEl = document.getElementById("wallet-role-pending");
     const nonceEl = document.getElementById("wallet-role-nonce");
 
-    if (avatar) avatar.textContent = (activeWallet.name || "W").charAt(0).toUpperCase();
     if (nameEl) nameEl.textContent = activeWallet.name;
     if (addrEl) addrEl.textContent = activeWallet.address;
     if (confEl) confEl.textContent = `${activeWallet.confirmedBalance} Coins`;
@@ -804,7 +802,11 @@ function renderTxFormAndMempool() {
   // Render Mempool
   const mempoolList = document.getElementById("mempool-list");
   const totalFees = m2State.mempool.reduce((s, tx) => s + tx.data.fee, 0);
-  document.getElementById("mempool-fees-pill").textContent = `Fees: ${totalFees}`;
+  const feesPill = document.getElementById("mempool-fees-pill");
+  if (feesPill) {
+    feesPill.textContent = `Fees: ${totalFees}`;
+    feesPill.className = `vault-badge ${totalFees > 0 ? "valid" : "muted"} shrink-0`;
+  }
 
   if (m2State.mempool.length === 0) {
     mempoolList.innerHTML = `
@@ -1065,17 +1067,18 @@ function renderTamperLab() {
   const auditBadge = document.getElementById("tamper-audit-badge");
   const list = document.getElementById("tamper-diagnostics-list");
   if (m2State.chain.length === 0) {
-    auditBadge.className = "vault-badge muted";
-    auditBadge.textContent = "NOT INITIALIZED";
+    auditBadge.className = "vault-badge muted shrink-0";
+    auditBadge.innerHTML = `<i data-lucide="circle-dashed" class="w-3 h-3"></i><span>Not Initialized</span>`;
     list.innerHTML = `<div class="rounded-lg border border-dashed border-zinc-800 p-4 text-xs text-zinc-400">No blocks yet. Initialize Genesis Block (#0) and mine at least one block first.</div>`;
+    if (window.lucide) window.lucide.createIcons();
     return;
   }
   if (m2State.validation.isValid) {
-    auditBadge.className = "vault-badge valid";
-    auditBadge.textContent = "VALID";
+    auditBadge.className = "vault-badge valid shrink-0";
+    auditBadge.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i><span>VALID</span>`;
   } else {
-    auditBadge.className = "vault-badge invalid";
-    auditBadge.textContent = `FAILED AT BLOCK #${m2State.validation.errorBlockIndex}`;
+    auditBadge.className = "vault-badge invalid shrink-0";
+    auditBadge.innerHTML = `<i data-lucide="shield-alert" class="w-3 h-3"></i><span>FAILED AT BLOCK #${escapeHtml(m2State.validation.errorBlockIndex)}</span>`;
   }
 
   list.innerHTML = m2State.chain
