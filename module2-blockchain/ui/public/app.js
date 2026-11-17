@@ -15,7 +15,7 @@ let m2State = {
   logs: [],
 };
 
-let activeTab = "tx-mempool";
+let activeTab = "blocks";
 let selectedBlockIndex = 0;
 let lastSenderId = "";
 let isLogsPageOpen = false;
@@ -192,7 +192,7 @@ function renderRoleSelector() {
     `;
     m2State.wallets.forEach((w) => {
       const isActive = role === w.id;
-      if (isActive) activeText = `${w.name} (Wallet/Miner)`;
+      if (isActive) activeText = w.name;
       const initial = (w.name || "W").charAt(0).toUpperCase();
       itemsHtml += `
         <button type="button" class="role-option-item w-full flex items-center justify-between px-3 py-2 sm:px-2.5 sm:py-1.5 rounded-md transition-colors text-left cursor-pointer ${
@@ -543,10 +543,12 @@ function renderHeaderAndStats() {
   document.getElementById("stat-reward").textContent = `${config.blockReward} Coins`;
   document.getElementById("stat-mempool").textContent = `${mempool.length} Pending`;
   document.getElementById("stat-supply").textContent = `${totalSupply} Coins`;
-  const tabMempoolCount = document.getElementById("tab-mempool-count");
-  if (tabMempoolCount) tabMempoolCount.textContent = String(mempool.length);
-  const smCount = document.getElementById("tab-mempool-count-sm");
-  if (smCount) smCount.textContent = String(mempool.length);
+  const blocksCountEl = document.getElementById("node-tab-blocks-count");
+  const participantsCountEl = document.getElementById("node-tab-participants-count");
+  const mempoolCountEl = document.getElementById("node-tab-mempool-count");
+  if (blocksCountEl) blocksCountEl.textContent = String(chain.length);
+  if (participantsCountEl) participantsCountEl.textContent = String(m2State.wallets.length);
+  if (mempoolCountEl) mempoolCountEl.textContent = String(mempool.length);
 }
 
 function renderWallets() {
@@ -1160,6 +1162,16 @@ function switchTab(tabId) {
   });
 }
 
+function switchWalletTab(tabId) {
+  document.querySelectorAll(".subtab-btn[data-wallet-tab]").forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-wallet-tab") === tabId);
+  });
+  document.querySelectorAll(".wallet-tab-panel").forEach((panel) => {
+    const match = panel.id === `wallet-panel-${tabId}`;
+    panel.style.display = match ? "" : "none";
+  });
+}
+
 async function handleMineBlock(explicitMinerId = null) {
   const minerId = explicitMinerId || document.getElementById("mine-miner-select")?.value;
   const errEl = document.getElementById("mining-error");
@@ -1202,6 +1214,11 @@ function initEventListeners() {
   document.querySelectorAll(".subtab-btn[data-tab]").forEach((btn) => {
     btn.addEventListener("click", () => {
       switchTab(btn.getAttribute("data-tab"));
+    });
+  });
+  document.querySelectorAll(".subtab-btn[data-wallet-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      switchWalletTab(btn.getAttribute("data-wallet-tab"));
     });
   });
 

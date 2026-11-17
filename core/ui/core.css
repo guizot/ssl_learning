@@ -92,7 +92,6 @@ html.dark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   height: 36px;
   color: rgb(var(--zinc-400));
   background-color: transparent;

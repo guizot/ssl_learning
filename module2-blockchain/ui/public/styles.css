@@ -232,28 +232,22 @@ a:focus-visible {
   align-items: stretch;
   gap: 0.5rem;
   overflow-x: auto;
-  padding: 3px 3px 8px 3px;
+  padding: 3px;
   -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-@media (max-width: 639px) {
-  .chain-strip {
-    padding: 3px;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .chain-strip::-webkit-scrollbar {
-    display: none;
-  }
+.chain-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .block-node {
-  width: 260px;
-  min-width: 260px;
+  width: 100%;
+  min-width: 100%;
   flex-shrink: 0;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
   border-radius: 8px;
   border: 1px solid rgb(var(--zinc-800));
   background-color: rgb(var(--zinc-950));
@@ -261,13 +255,6 @@ a:focus-visible {
   text-align: left;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
-}
-@media (max-width: 639px) {
-  .block-node {
-    width: 100%;
-    min-width: 100%;
-    scroll-snap-align: center;
-  }
 }
 
 .chain-link-arrow {
